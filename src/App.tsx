@@ -1,10 +1,7 @@
+import { AppRouter } from './app/AppRouter'
+
 function App() {
-  return (
-    <main>
-      <h1>CactiGrow</h1>
-      <p>Cactus growing, breeding, collecting, and marketplace game.</p>
-    </main>
-  )
+  return <AppRouter />
 }
 
 export default App
