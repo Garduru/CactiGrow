@@ -1,8 +1,13 @@
+import { useCallback, useState } from 'react'
 import { getSpeciesById } from '../../data/species'
 import { useGameState } from '../../game/useGameState'
+import { PlantDetails } from './PlantDetails'
 
 export function GardenPage() {
   const { state } = useGameState()
+  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null)
+  const selectedPlant = state.ownedPlants.find((plant) => plant.id === selectedPlantId)
+  const closeDetails = useCallback(() => setSelectedPlantId(null), [])
 
   return (
     <section aria-labelledby="garden-title">
@@ -19,17 +24,31 @@ export function GardenPage() {
             const plantSpecies = getSpeciesById(plant.speciesId)
             return (
               <article className="garden-specimen" key={plant.id}>
-                <span className="nursery-stage nursery-stage--mature">{plant.stage}</span>
-                <h2>{plantSpecies?.commonName ?? 'Unknown cactus'}</h2>
-                <em>{plantSpecies?.scientificName}</em>
-                <dl>
-                  <div><dt>Specimen</dt><dd>{plant.id}</dd></div>
-                  <div><dt>Collected</dt><dd>{new Date(plant.collectedAt).toLocaleString()}</dd></div>
-                </dl>
+                <button
+                  className="garden-specimen__select"
+                  type="button"
+                  onClick={() => setSelectedPlantId(plant.id)}
+                  aria-haspopup="dialog"
+                  aria-label={`View details for ${plantSpecies?.commonName ?? 'unknown cactus'} specimen ${plant.id}`}
+                >
+                  <span className="nursery-stage nursery-stage--mature">{plant.stage}</span>
+                  <strong>{plantSpecies?.commonName ?? 'Unknown cactus'}</strong>
+                  <em>{plantSpecies?.scientificName}</em>
+                  <span className="garden-specimen__id">Specimen {plant.id}</span>
+                  <span className="garden-specimen__prompt">View details →</span>
+                </button>
               </article>
             )
           })}
         </div>
+      )}
+
+      {selectedPlant && (
+        <PlantDetails
+          plant={selectedPlant}
+          species={getSpeciesById(selectedPlant.speciesId)}
+          onClose={closeDetails}
+        />
       )}
     </section>
   )
