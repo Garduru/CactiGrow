@@ -31,7 +31,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return true
     },
     addInventoryItem(item: InventoryItem) {
-      dispatch({ type: 'inventory/added', item })
+      dispatch({ type: 'inventory/added', item, now: Date.now() })
     },
     removeInventoryItem(itemId, quantity) {
       const item = state.inventory.find((entry) => entry.id === itemId)
@@ -74,6 +74,15 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       if (!canCancelListing(state, listingId)) return false
       dispatch({ type: 'marketplace/cancelled', listingId, now: Date.now() })
       return true
+    },
+    observePlant(plantId) {
+      dispatch({ type: 'research/observed', plantId, now: Date.now() })
+    },
+    analyzePlant(plantId) {
+      dispatch({ type: 'research/analyzed', plantId, now: Date.now() })
+    },
+    comparePlants(firstPlantId, secondPlantId) {
+      dispatch({ type: 'research/compared', firstPlantId, secondPlantId, now: Date.now() })
     },
     dismissLevelUp(noticeId) {
       dispatch({ type: 'progression/notice-dismissed', noticeId })

@@ -35,6 +35,8 @@ export function UtilityMenu() {
       {open && (
         <div className="utility-menu__panel" id="utility-panel" role="group" aria-label="Utilities">
           <Link to="/skills" onClick={() => setOpen(false)}>Skills</Link>
+          <Link to="/journal" onClick={() => setOpen(false)}>Field Journal</Link>
+          <Link to="/research" onClick={() => setOpen(false)}>Research Log</Link>
           <Link to="/achievements" onClick={() => setOpen(false)}>Achievements</Link>
           {['Grow Log', 'Settings', 'Help', 'CactiSwap'].map((item) => (
             <button key={item} type="button" aria-disabled="true" title="Coming soon">{item}</button>

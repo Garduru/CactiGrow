@@ -42,6 +42,7 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
   const [validationError, setValidationError] = useState('')
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const submissionRef = useRef(false)
   const parent1 = state.ownedPlants.find((plant) => plant.id === parent1Id)
   const parent2 = state.ownedPlants.find((plant) => plant.id === parent2Id)
   const eligible = state.ownedPlants.filter((plant) => canBreed(parent1, plant))
@@ -85,12 +86,14 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
   if (!parent1) return null
 
   function confirmBreed() {
-    if (!parent2Id) return
+    if (!parent2Id || submissionRef.current) return
+    submissionRef.current = true
     const seed = breedPlants(parent1Id, parent2Id)
     if (seed) {
       setResult(seed)
       setValidationError('')
     } else {
+      submissionRef.current = false
       setValidationError('These specimens are no longer compatible or eligible to breed.')
     }
   }

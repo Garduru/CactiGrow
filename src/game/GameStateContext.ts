@@ -16,6 +16,9 @@ export interface GameStateContextValue {
   sellPlantToNpc: (plantId: string) => number | null
   listPlant: (plantId: string, price: number) => MarketplaceListing | null
   cancelListing: (listingId: string) => boolean
+  observePlant: (plantId: string) => void
+  analyzePlant: (plantId: string) => void
+  comparePlants: (firstPlantId: string, secondPlantId: string) => void
   dismissLevelUp: (noticeId: string) => void
 }
 

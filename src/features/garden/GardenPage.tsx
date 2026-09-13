@@ -5,14 +5,17 @@ import { PlantDetails } from './PlantDetails'
 import { BreedingWorkflow } from '../breeding/BreedingWorkflow'
 import { SellWorkflow } from '../marketplace/SellWorkflow'
 import { getListingForPlant } from '../../game/gameState'
+import { ResearchWorkflow } from '../research/ResearchWorkflow'
 
 export function GardenPage() {
   const { state } = useGameState()
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null)
   const [breedingParentId, setBreedingParentId] = useState<string | null>(null)
   const [sellingPlantId, setSellingPlantId] = useState<string | null>(null)
+  const [researchPlantId, setResearchPlantId] = useState<string | null>(null)
   const specimenRefs = useRef(new Map<string, HTMLButtonElement>())
   const selectedPlant = state.ownedPlants.find((plant) => plant.id === selectedPlantId)
+  const researchPlant = state.ownedPlants.find((plant) => plant.id === researchPlantId)
   const closeDetails = useCallback(() => setSelectedPlantId(null), [])
   const closeBreeding = useCallback(() => {
     const parentId = breedingParentId
@@ -24,6 +27,11 @@ export function GardenPage() {
     setSellingPlantId(null)
     requestAnimationFrame(() => { if (plantId) specimenRefs.current.get(plantId)?.focus() })
   }, [sellingPlantId])
+  const closeResearch = useCallback(() => {
+    const plantId = researchPlantId
+    setResearchPlantId(null)
+    requestAnimationFrame(() => { if (plantId) specimenRefs.current.get(plantId)?.focus() })
+  }, [researchPlantId])
 
   return (
     <section aria-labelledby="garden-title">
@@ -68,11 +76,13 @@ export function GardenPage() {
           onClose={closeDetails}
           onBreed={() => { setBreedingParentId(selectedPlant.id); setSelectedPlantId(null) }}
           onSell={() => { setSellingPlantId(selectedPlant.id); setSelectedPlantId(null) }}
+          onResearch={() => { setResearchPlantId(selectedPlant.id); setSelectedPlantId(null) }}
           isListed={Boolean(getListingForPlant(state.marketplaceListings, selectedPlant.id))}
         />
       )}
       {breedingParentId && <BreedingWorkflow parent1Id={breedingParentId} onClose={closeBreeding} />}
       {sellingPlantId && <SellWorkflow plantId={sellingPlantId} onClose={closeSelling} />}
+      {researchPlant && <ResearchWorkflow plant={researchPlant} onClose={closeResearch} />}
     </section>
   )
 }

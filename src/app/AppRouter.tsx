@@ -12,6 +12,8 @@ import { PageLayout } from '../components/layout/PageLayout'
 import { AchievementsPage } from '../features/achievements/AchievementsPage'
 import { LevelUpNotice } from '../features/progression/LevelUpNotice'
 import { SkillsPage } from '../features/progression/SkillsPage'
+import { FieldJournalPage } from '../features/journal/FieldJournalPage'
+import { ResearchLogPage } from '../features/research/ResearchLogPage'
 
 export function AppRouter() {
   return (
@@ -32,6 +34,8 @@ export function AppRouter() {
             <Route path="/market" element={<MarketplacePage />} />
             <Route path="/achievements" element={<AchievementsPage />} />
             <Route path="/skills" element={<SkillsPage />} />
+            <Route path="/journal" element={<FieldJournalPage />} />
+            <Route path="/research" element={<ResearchLogPage />} />
             <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
           </Route>
         </Routes>

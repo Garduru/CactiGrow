@@ -10,6 +10,7 @@ export interface AchievementDefinition {
   requirement:
     | { kind: 'event'; sources: readonly GameplayEventSource[] }
     | { kind: 'skill-level'; skillId: SkillId; level: number }
+    | { kind: 'species-count'; count: number }
 }
 
 export const achievementDefinitions: readonly AchievementDefinition[] = [
@@ -18,6 +19,7 @@ export const achievementDefinitions: readonly AchievementDefinition[] = [
   { id: 'first-breed', name: 'First Breed', description: 'Create your first bred seed.', requirement: { kind: 'event', sources: ['breedPlant'] } },
   { id: 'first-npc-sale', name: 'First NPC Sale', description: 'Sell your first specimen to an NPC.', requirement: { kind: 'event', sources: ['npcSale'] } },
   { id: 'first-market-listing', name: 'First Marketplace Listing', description: 'List your first specimen on the Marketplace.', requirement: { kind: 'event', sources: ['marketplaceListing'] } },
+  { id: 'first-species-discovery', name: 'Discover Your First Species', description: 'Record your first cactus species in the Field Journal.', requirement: { kind: 'species-count', count: 1 } },
   ...[10, 25, 50, 75, 99].map((level): AchievementDefinition => ({
     id: `reach-cultivation-level-${level}`,
     name: `Reach Cultivation Level ${level}`,
@@ -36,6 +38,7 @@ export function evaluateAchievements(
   achievements: AchievementProgress[],
   eventCounts: ProgressionEventCounts,
   skills: PlayerSkills,
+  discoveredSpeciesCount: number,
   completedAt: string,
 ): AchievementProgress[] {
   return achievements.map((achievement) => {
@@ -44,7 +47,9 @@ export function evaluateAchievements(
     if (!definition) return achievement
     const completed = definition.requirement.kind === 'skill-level'
       ? getLevelFromXp(skills[definition.requirement.skillId].xp) >= definition.requirement.level
-      : definition.requirement.sources.some((source) => eventCounts[source] > 0)
+      : definition.requirement.kind === 'species-count'
+        ? discoveredSpeciesCount >= definition.requirement.count
+        : definition.requirement.sources.some((source) => eventCounts[source] > 0)
     return completed ? { ...achievement, completedAt } : achievement
   })
 }

@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import type { CollectedPlant } from '../../game/gameState'
 import type { Species } from '../../types/species'
 import { getSpeciesById } from '../../data/species'
+import { getGeneticFeatureDefinition } from '../../data/geneticFeatures'
+import { getExpressedGeneticFeatures } from '../genetics/geneticFeatureModel'
 
 interface PlantDetailsProps {
   plant: CollectedPlant
@@ -9,6 +11,7 @@ interface PlantDetailsProps {
   onClose: () => void
   onBreed: () => void
   onSell: () => void
+  onResearch: () => void
   isListed: boolean
 }
 
@@ -17,12 +20,13 @@ const detailFields = [
   ['Growth speed', 'growthSpeed'],
   ['Size', 'size'],
   ['Flowering', 'flowering'],
-  ['Mutation chance', 'mutationChance'],
+  ['Mutation tendency', 'mutationChance'],
 ] as const
 
-export function PlantDetails({ plant, species, onClose, onBreed, onSell, isListed }: PlantDetailsProps) {
+export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed }: PlantDetailsProps) {
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  const expressedFeatures = getExpressedGeneticFeatures(plant.geneticFeatures)
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement
@@ -112,6 +116,25 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, isListe
           </dl>
         </section>
 
+        <section className="plant-details__section" aria-labelledby="genetic-identity-title">
+          <h3 id="genetic-identity-title">Genetic Identity</h3>
+          <dl className="plant-details__identity">
+            <div><dt>Clone line</dt><dd>{plant.cloneLineId}</dd></div>
+            <div><dt>Special variant</dt><dd>{plant.specialVariants.some(({ variantId }) => variantId === 'shiny') ? 'Shiny' : 'Normal'}</dd></div>
+          </dl>
+          <h3 className="plant-details__subheading">Visible Traits / Mutations</h3>
+          {expressedFeatures.length ? (
+            <ul className="plant-details__features">
+              {expressedFeatures.map((feature) => {
+                const definition = getGeneticFeatureDefinition(feature.featureId)
+                return <li key={feature.featureId}>{definition?.displayName ?? feature.featureId} ({feature.expressionStrength}%)</li>
+              })}
+            </ul>
+          ) : (
+            <p className="plant-details__missing">None visibly expressed.</p>
+          )}
+        </section>
+
         <section className="plant-details__section" aria-labelledby="lineage-title">
           <h3 id="lineage-title">Lineage</h3>
           {plant.isHybrid && plant.parentSpeciesIds && (
@@ -139,6 +162,7 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, isListe
         <footer className="plant-details__actions">
           <span>{isListed ? 'Listed on Marketplace' : 'Specimen actions'}</span>
           <div>
+            <button className="plant-details__primary-action" type="button" onClick={onResearch}>Study Genetics</button>
             <button className="plant-details__primary-action" type="button" onClick={onBreed} disabled={isListed}>Breed</button>
             <button className="plant-details__primary-action" type="button" onClick={onSell} disabled={isListed}>Sell</button>
           </div>

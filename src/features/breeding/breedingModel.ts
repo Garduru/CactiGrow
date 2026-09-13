@@ -2,6 +2,7 @@ import type { BredSeed } from '../../types/bredSeed'
 import type { PlantGenetics } from '../../types/genetics'
 import type { Plant } from '../../types/plant'
 import { getSpeciesById } from '../../data/species'
+import { getMutationTendencyMultiplier, resolveSexualGeneticOutcome } from '../genetics/geneticFeatureResolver'
 
 export const GENETIC_MIN = 0
 export const GENETIC_MAX = 100
@@ -44,7 +45,7 @@ export function inheritGenetics(
   random: () => number = Math.random,
 ): PlantGenetics {
   const baseline = previewOffspringGenetics(parent1, parent2)
-  const mutationProbability = baseline.mutationChance / GENETIC_MAX
+  const mutationProbability = 0.02 + (0.1 * (getMutationTendencyMultiplier(baseline.mutationChance) - 1) / 2)
 
   return Object.fromEntries(geneticKeys.map((key) => {
     const normalVariation = (random() * 10) - 5
@@ -83,16 +84,35 @@ export function createBredSeed(
   now: number,
   random: () => number = Math.random,
   createId: () => string = () => crypto.randomUUID(),
+  createCloneLineId: () => string = () => crypto.randomUUID(),
 ): BredSeed | null {
   if (!canBreed(parent1, parent2)) return null
   const speciesResolution = resolveOffspringSpecies(parent1, parent2)
   if (!speciesResolution) return null
+  const seedId = createId()
+  const cloneLineId = createCloneLineId()
+  if (!seedId
+    || !cloneLineId
+    || cloneLineId === seedId
+    || cloneLineId === parent1.cloneLineId
+    || cloneLineId === parent2.cloneLineId) return null
+
+  const createdAt = new Date(now).toISOString()
+  const genetics = inheritGenetics(parent1, parent2, random)
+  const geneticOutcome = resolveSexualGeneticOutcome(parent1, parent2, {
+    offspringSpeciesId: speciesResolution.speciesId,
+    isHybrid: speciesResolution.isHybrid,
+    mutationTendency: genetics.mutationChance,
+    establishedAt: createdAt,
+  }, random)
 
   return {
-    id: createId(),
+    id: seedId,
+    cloneLineId,
     ...speciesResolution,
-    createdAt: new Date(now).toISOString(),
-    genetics: inheritGenetics(parent1, parent2, random),
+    createdAt,
+    genetics,
+    ...geneticOutcome,
     parentPlantIds: [parent1.id, parent2.id],
   }
 }

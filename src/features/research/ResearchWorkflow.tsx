@@ -1,0 +1,83 @@
+import { useEffect, useRef } from 'react'
+import { getLevelFromXp } from '../progression/progressionModel'
+import type { CollectedPlant } from '../../game/gameState'
+import { useGameState } from '../../game/useGameState'
+import { getNextResearchStep, projectGeneticKnowledge } from './researchModel'
+import { GeneticKnowledgeView } from './GeneticKnowledgeView'
+
+interface ResearchWorkflowProps {
+  plant: CollectedPlant
+  onClose: () => void
+}
+
+export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
+  const { state, observePlant, analyzePlant } = useGameState()
+  const panelRef = useRef<HTMLElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const level = getLevelFromXp(state.player.skills.genetics.xp)
+  const record = state.geneticsResearch.records[plant.cloneLineId]
+  const knowledge = projectGeneticKnowledge(plant, record, level)
+  const nextStep = getNextResearchStep(record)
+  const canAdvance = !record || level >= nextStep.requiredLevel
+
+  useEffect(() => {
+    closeRef.current?.focus()
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const controls = panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), [href], [tabindex]:not([tabindex="-1"])')
+      if (!controls?.length) return
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
+  function advanceResearch() {
+    if (record) analyzePlant(plant.id)
+    else observePlant(plant.id)
+  }
+
+  return (
+    <div className="plant-details-overlay">
+      <button className="plant-details__backdrop" type="button" onClick={onClose} aria-label="Close Genetics research" />
+      <section className="research-workflow" ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="research-workflow-title">
+        <header className="plant-details__header">
+          <div>
+            <span className="eyebrow">Genetics Level {level}</span>
+            <h2 id="research-workflow-title">Study Genetics</h2>
+            <em>{knowledge.scientificName ?? knowledge.speciesName ?? 'Unknown cactus'}</em>
+          </div>
+          <button className="plant-details__close" ref={closeRef} type="button" onClick={onClose} aria-label="Close Genetics research">&times;</button>
+        </header>
+
+        {record ? <GeneticKnowledgeView knowledge={knowledge} /> : (
+          <div className="research-unstudied">
+            <strong>This clone line has not been studied.</strong>
+            <p>Observation records visible phenotype and identity. It does not reveal hidden carrier states.</p>
+          </div>
+        )}
+
+        <footer className="research-workflow__actions">
+          <div>
+            <span>Next milestone</span>
+            <strong>{nextStep.label}</strong>
+            {level < nextStep.requiredLevel && <small>Requires Genetics Level {nextStep.requiredLevel}</small>}
+          </div>
+          {nextStep.label !== 'Research complete' && (
+            <button className="nursery-button" type="button" onClick={advanceResearch} disabled={!canAdvance}>
+              {record ? 'Run analysis' : 'Observe specimen'}
+            </button>
+          )}
+        </footer>
+      </section>
+    </div>
+  )
+}
