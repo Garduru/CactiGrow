@@ -1,24 +1,27 @@
-import { useCallback, useState } from 'react'
-import type { NurseryPlant } from './nurseryModel'
+import { useEffect, useState } from 'react'
+import { getTotalSeedQuantity } from '../../game/gameState'
+import { useGameState } from '../../game/useGameState'
 import { NurserySlot } from './NurserySlot'
 import { SeedPicker } from './SeedPicker'
-import { useNursery } from './useNursery'
 
 export function NurseryPage() {
   const [plantingSlotId, setPlantingSlotId] = useState<string | null>(null)
-  const [collectedPlants, setCollectedPlants] = useState<NurseryPlant[]>([])
-  const handleCollected = useCallback((plant: NurseryPlant) => {
-    setCollectedPlants((current) => [...current, plant])
+  const [now, setNow] = useState(() => Date.now())
+  const { state, plantSeed, collectPlant } = useGameState()
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
   }, [])
-  const nursery = useNursery({ onCollect: handleCollected })
 
   function selectSeed(speciesId: string) {
-    if (plantingSlotId && nursery.plantSeed(plantingSlotId, speciesId)) {
+    if (plantingSlotId && plantSeed(plantingSlotId, speciesId)) {
       setPlantingSlotId(null)
     }
   }
 
-  const availableSeeds = nursery.seeds.reduce((total, seed) => total + seed.quantity, 0)
+  const seeds = state.inventory.filter((item) => item.itemType === 'seed')
+  const availableSeeds = getTotalSeedQuantity(state)
 
   return (
     <section className="nursery" aria-labelledby="nursery-title">
@@ -29,9 +32,9 @@ export function NurseryPage() {
           <p>Plant seeds, watch them grow, and collect mature specimens.</p>
         </div>
         <div className="nursery__summary" aria-label="Nursery summary">
-          <span><strong>{nursery.slots.filter((slot) => slot.plant).length}</strong> / 6 growing</span>
+          <span><strong>{state.nurserySlots.filter((slot) => slot.plant).length}</strong> / 6 growing</span>
           <span><strong>{availableSeeds}</strong> seeds</span>
-          <span><strong>{collectedPlants.length}</strong> collected</span>
+          <span><strong>{state.ownedPlants.length}</strong> collected</span>
         </div>
       </div>
 
@@ -40,21 +43,21 @@ export function NurseryPage() {
       </div>
 
       <div className="nursery__slots">
-        {nursery.slots.map((slot, index) => (
+        {state.nurserySlots.map((slot, index) => (
           <NurserySlot
             key={slot.id}
             slot={slot}
             slotNumber={index + 1}
-            now={nursery.now}
+            now={now}
             onPlant={setPlantingSlotId}
-            onCollect={nursery.collectPlant}
+            onCollect={collectPlant}
           />
         ))}
       </div>
 
       {plantingSlotId && (
         <SeedPicker
-          seeds={nursery.seeds}
+          seeds={seeds}
           onSelect={selectSeed}
           onClose={() => setPlantingSlotId(null)}
         />

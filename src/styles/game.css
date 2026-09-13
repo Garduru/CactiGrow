@@ -26,9 +26,6 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .skip-link:focus { top: 8px; }
 .game-main { width: min(calc(100% - 2 * var(--cg-page-gutter)), var(--cg-content-width)); margin: 0 auto; padding: var(--cg-section-space) 0 var(--cg-shell-bottom-space); }
 .eyebrow { color: var(--cg-accent); text-transform: uppercase; letter-spacing: .16em; font-size: 10px; font-weight: 600; }
-.farm__intro { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--cg-card-gap); margin-bottom: var(--cg-section-space); }
-.farm__intro h1 { margin-top: 5px; }
-.farm__intro p { margin: 0 0 4px; font-size: 13px; }
 .farm-world { position: relative; isolation: isolate; width: min(100%, var(--cg-world-width)); aspect-ratio: 16 / 9; min-height: 500px; margin-inline: auto; overflow: hidden; border: 1px solid #4b3a2a; border-radius: var(--cg-radius-lg); background: radial-gradient(ellipse at 53% 42%, #4a3c29 0%, #2c2820 58%, #211c17 100%); }
 .farm-world::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: .22; background-image: radial-gradient(#c7a272 .8px, transparent .8px); background-size: 21px 23px; pointer-events: none; }
 .farm-world__terrain { position: absolute; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
@@ -56,7 +53,6 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .utility-menu__toggle:hover { background: var(--cg-accent-hover); }
 @media (max-width: 720px) {
   .game-header__level { width: clamp(110px, 25vw, 132px); }
-  .farm__intro { align-items: flex-start; flex-direction: column; gap: 6px; margin-bottom: 14px; }
   .farm-world { aspect-ratio: 4 / 5; min-height: 440px; max-height: 720px; }
   .farm-world__locations { column-gap: var(--cg-card-gap); row-gap: clamp(20px, 4vw, 32px); padding: 24px 3% 50px; }
   .farm-location { padding-inline: 0; }
@@ -341,6 +337,61 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .seed-option__quantity { color: #d9b38b; font-size: 12px; }
 .seed-picker__note { margin: 16px 0 0; font-size: 11px; }
 
+.inventory-list,
+.garden-specimens {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--cg-card-min)), 1fr));
+  gap: var(--cg-card-gap);
+  margin-top: var(--cg-section-space);
+}
+
+.inventory-item {
+  min-width: 0;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--cg-surface-raised);
+  border: 1px solid var(--cg-border);
+  border-radius: var(--cg-radius-sm);
+}
+
+.inventory-item strong,
+.inventory-item span { display: block; }
+.inventory-item strong { overflow-wrap: anywhere; }
+.inventory-item div > span { margin-top: 3px; color: var(--cg-text-muted); font: italic 11px Georgia, serif; }
+.inventory-item__quantity { flex: none; color: #d9b38b; font-size: 13px; }
+
+.garden-empty {
+  margin-top: var(--cg-section-space);
+  padding: clamp(20px, 3vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: var(--cg-text-muted);
+  background: var(--cg-surface-raised);
+  border: 1px dashed var(--cg-border-strong);
+  border-radius: var(--cg-radius-md);
+}
+
+.garden-empty strong { color: var(--cg-text); }
+
+.garden-specimen {
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px);
+  background: linear-gradient(160deg, var(--cg-surface-raised), #17120f);
+  border: 1px solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+}
+
+.garden-specimen h2 { margin: 12px 0 2px; overflow-wrap: anywhere; }
+.garden-specimen em { color: var(--cg-text-muted); font: italic 11px Georgia, serif; }
+.garden-specimen dl { margin: 18px 0 0; display: grid; gap: 10px; }
+.garden-specimen dl div { min-width: 0; }
+.garden-specimen dt { color: var(--cg-text-muted); font-size: 10px; }
+.garden-specimen dd { margin: 3px 0 0; overflow-wrap: anywhere; color: var(--cg-text); font-size: 11px; }
+
 @media (max-width: 720px) {
   .nursery__header { align-items: flex-start; flex-direction: column; }
   .nursery__summary { justify-content: flex-start; }
@@ -357,7 +408,6 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
   .game-header__brand img { height: 40px; }
   .game-header__inventory { min-height: var(--cg-touch-target); }
   .game-main { padding-top: 10px; }
-  .farm__intro { flex-direction: row; align-items: flex-end; margin-bottom: 10px; }
   .farm-world { aspect-ratio: 16 / 9; min-height: 380px; }
   .farm-world__locations { row-gap: 6px; padding-block: 8px 42px; }
   .location-art { width: min(100%, 190px); }

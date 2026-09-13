@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
+import { getTotalSeedQuantity } from '../../game/gameState'
+import { useGameState } from '../../game/useGameState'
 import { ProgressBar } from '../ui/ProgressBar'
 
 export function GameHeader() {
+  const { state } = useGameState()
   const player = {
     username: 'Player',
     tokens: 1216,
-    seeds: 17,
     level: 4,
     xp: 315,
     xpRequired: 388,
@@ -27,7 +29,7 @@ export function GameHeader() {
 
           <Link className="game-header__inventory" to="/inventory">
             <span>Inventory</span>
-            <strong>{player.seeds} Seeds</strong>
+            <strong>{getTotalSeedQuantity(state)} Seeds</strong>
           </Link>
 
           <div className="game-header__level">

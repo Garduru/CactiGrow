@@ -1,7 +1,8 @@
 import { AppRouter } from './app/AppRouter'
+import { GameStateProvider } from './game/GameStateProvider'
 
 function App() {
-  return <AppRouter />
+  return <GameStateProvider><AppRouter /></GameStateProvider>
 }
 
 export default App

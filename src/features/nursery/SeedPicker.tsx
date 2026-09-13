@@ -1,8 +1,8 @@
 import { getSpeciesById } from '../../data/species'
-import type { NurserySeedStack } from './nurseryModel'
+import type { InventoryItem } from '../../types/inventory'
 
 interface SeedPickerProps {
-  seeds: NurserySeedStack[]
+  seeds: InventoryItem[]
   onSelect: (speciesId: string) => void
   onClose: () => void
 }
@@ -18,14 +18,14 @@ export function SeedPicker({ seeds, onSelect, onClose }: SeedPickerProps) {
         </div>
         <div className="seed-picker__options">
           {seeds.map((seed) => {
-            const seedSpecies = getSpeciesById(seed.speciesId)
+            const seedSpecies = getSpeciesById(seed.itemKey)
             return (
               <button
                 className="seed-option"
-                key={seed.speciesId}
+                key={seed.id}
                 type="button"
                 disabled={seed.quantity === 0}
-                onClick={() => onSelect(seed.speciesId)}
+                onClick={() => onSelect(seed.itemKey)}
               >
                 <span className="seed-option__icon" aria-hidden="true">◉</span>
                 <span><strong>{seedSpecies?.commonName ?? 'Unknown seed'}</strong><small>{seedSpecies?.scientificName}</small></span>

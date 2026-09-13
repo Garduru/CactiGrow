@@ -4,11 +4,7 @@ import { LocationArt } from './LocationArt'
 
 export function FarmPage() {
   return (
-    <section className="farm" aria-labelledby="farm-heading">
-      <div className="farm__intro">
-        <div><span className="eyebrow">Your patch of the desert</span><h1 id="farm-heading">The Farm</h1></div>
-        <p>Take a little wander. See what grows.</p>
-      </div>
+    <section className="farm" aria-label="Farm">
       <nav className="farm-world" aria-label="Farm locations">
         <svg className="farm-world__terrain" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
           <path d="M0 140 130 60 213 109 328 35 440 133 582 65 690 119 829 41 1000 130V600H0Z" fill="#392d24" opacity=".5" />

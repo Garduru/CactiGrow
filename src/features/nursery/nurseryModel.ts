@@ -1,15 +1,7 @@
 import type { GrowthStage } from '../../types/species'
+import type { Plant } from '../../types/plant'
 
-export interface NurserySeedStack {
-  speciesId: string
-  quantity: number
-}
-
-export interface NurseryPlant {
-  id: string
-  speciesId: string
-  plantedAt: string
-}
+export type NurseryPlant = Plant
 
 export interface NurserySlotState {
   id: string
@@ -51,10 +43,24 @@ export function calculateNurseryGrowth(
 }
 
 export function createNurseryPlant(speciesId: string, now: number): NurseryPlant {
+  const timestamp = new Date(now).toISOString()
+
   return {
     id: crypto.randomUUID(),
+    ownerId: 'local-player',
     speciesId,
-    plantedAt: new Date(now).toISOString(),
+    stage: 'seed',
+    plantedAt: timestamp,
+    lastUpdatedAt: timestamp,
+    genetics: {
+      vigor: 50,
+      growthSpeed: 50,
+      size: 50,
+      flowering: 50,
+      mutationChance: 1,
+    },
+    isHarvestable: false,
+    isListedForSale: false,
   }
 }
 
@@ -64,24 +70,42 @@ export function createInitialNurserySlots(now: number): NurserySlotState[] {
       id: 'slot-1',
       plant: {
         id: 'demo-seedling',
+        ownerId: 'local-player',
         speciesId: 'echinopsis-pachanoi',
+        stage: 'seedling',
         plantedAt: new Date(now - MOCK_GROWTH_DURATION_MS * 0.32).toISOString(),
+        lastUpdatedAt: new Date(now).toISOString(),
+        genetics: { vigor: 55, growthSpeed: 52, size: 48, flowering: 50, mutationChance: 1 },
+        isHarvestable: false,
+        isListedForSale: false,
       },
     },
     {
       id: 'slot-2',
       plant: {
         id: 'demo-juvenile',
+        ownerId: 'local-player',
         speciesId: 'lophophora-williamsii',
+        stage: 'juvenile',
         plantedAt: new Date(now - MOCK_GROWTH_DURATION_MS * 0.67).toISOString(),
+        lastUpdatedAt: new Date(now).toISOString(),
+        genetics: { vigor: 48, growthSpeed: 46, size: 53, flowering: 57, mutationChance: 2 },
+        isHarvestable: false,
+        isListedForSale: false,
       },
     },
     {
       id: 'slot-3',
       plant: {
         id: 'demo-mature',
+        ownerId: 'local-player',
         speciesId: 'echinopsis-pachanoi',
+        stage: 'mature',
         plantedAt: new Date(now - MOCK_GROWTH_DURATION_MS * 1.1).toISOString(),
+        lastUpdatedAt: new Date(now).toISOString(),
+        genetics: { vigor: 58, growthSpeed: 51, size: 61, flowering: 49, mutationChance: 1 },
+        isHarvestable: true,
+        isListedForSale: false,
       },
     },
     ...Array.from({ length: 3 }, (_, index) => ({
