@@ -1,0 +1,33 @@
+:root {
+  /* CactiGrow surfaces */
+  --cg-bg: #100d0b;
+  --cg-surface: #191411;
+  --cg-surface-raised: #211a16;
+  --cg-surface-hover: #29201a;
+
+  /* Borders */
+  --cg-border: #392e27;
+  --cg-border-strong: #4a3a30;
+
+  /* Text */
+  --cg-text: #f4eee8;
+  --cg-text-muted: #a99b8c;
+
+  /* CactiSwap/CactiGrow accent */
+  --cg-accent: #dc6841;
+  --cg-accent-hover: #e9784e;
+
+  /* Game states */
+  --cg-success: #22c98d;
+  --cg-warning: #e5a84b;
+  --cg-danger: #df5b55;
+
+  /* Shape */
+  --cg-radius-sm: 10px;
+  --cg-radius-md: 16px;
+  --cg-radius-lg: 22px;
+
+  /* Layout */
+  --cg-content-width: 1200px;
+  --cg-header-height: 72px;
+}
