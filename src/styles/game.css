@@ -1,152 +1,84 @@
-.game-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  width: 100%;
-  min-height: var(--cg-header-height);
-  background: rgba(16, 13, 11, 0.96);
-  border-bottom: 1px solid var(--cg-border);
-  backdrop-filter: blur(12px);
-}
-
-.game-header__inner {
-  width: min(100% - 32px, var(--cg-content-width));
-  min-height: var(--cg-header-height);
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.game-header__brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.game-header__cactus {
-  font-size: 30px;
-}
-
-.game-header__brand div {
-  display: flex;
-  flex-direction: column;
-}
-
-.game-header__brand strong {
-  color: var(--cg-text);
-  font-size: 18px;
-}
-
-.game-header__brand span:not(.game-header__cactus) {
-  color: var(--cg-text-muted);
-  font-size: 11px;
-}
-
-.game-header__player {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 20px;
-  flex: 1;
-}
-
-.game-header__tokens {
-  display: flex;
-  flex-direction: column;
-}
-
-.game-header__tokens span {
-  color: var(--cg-text-muted);
-  font-size: 11px;
-}
-
-.game-header__tokens strong {
-  color: var(--cg-text);
-  font-size: 14px;
-}
-
-.game-header__level {
-  width: 180px;
-}
-
-.game-header__level-title {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  font-size: 12px;
-}
-
-.game-header__level-title strong {
-  color: var(--cg-text);
-}
-
-.game-header__level-title span {
-  color: var(--cg-text-muted);
-}
-
-.progress__info {
-  display: flex;
-  justify-content: flex-end;
-  color: var(--cg-text-muted);
-  font-size: 10px;
-  margin-bottom: 3px;
-}
-
-.progress__track {
-  height: 6px;
-  overflow: hidden;
-  background: var(--cg-surface-raised);
-  border-radius: 999px;
-}
-
-.progress__fill {
-  height: 100%;
-  background: var(--cg-accent);
-  border-radius: inherit;
-  transition: width 200ms ease;
-}
-
-.cactiswap-button {
-  padding: 9px 13px;
-  color: var(--cg-text);
-  background: var(--cg-surface-raised);
-  border: 1px solid var(--cg-border);
-  border-radius: var(--cg-radius-sm);
-  cursor: pointer;
-}
-
-.cactiswap-button:hover {
-  background: var(--cg-surface-hover);
-}
-
+﻿a { color: inherit; text-decoration: none; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; }
+button, a, [tabindex] { touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 5px; }
+h1, h2 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; }
+h1 { margin: 0; font-size: clamp(28px, 3vw, 38px); }
+p { color: var(--cg-text-muted); line-height: 1.6; }
+.game-header { border-bottom: 1px solid var(--cg-border); background: var(--cg-surface); }
+.game-header__inner { width: min(100% - 40px, var(--cg-content-width)); min-height: var(--cg-header-height); margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 4px; }
+.game-header__brand { display: flex; flex-shrink: 0; align-items: center; justify-content: center; min-width: 58px; min-height: 44px; }
+.game-header__brand img { display: block; height: 48px; width: auto; object-fit: contain; }
+.game-header__player { display: flex; align-items: center; gap: 24px; min-width: 0; }
+.game-header__stat, .game-header__inventory { display: flex; flex-direction: column; gap: 2px; }
+.game-header__stat > span, .game-header__inventory > span { color: var(--cg-text-muted); font-size: 11px; }
+.game-header__stat strong, .game-header__inventory strong { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.game-header__inventory { justify-content: center; min-height: 44px; padding: 4px 10px; border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); background: var(--cg-surface-raised); }
+.game-header__inventory:hover { background: var(--cg-surface-hover); border-color: var(--cg-border-strong); }
+.game-header__level { width: 152px; }
+.game-header__level-title { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; margin-bottom: 2px; }
+.game-header__level-title span { color: var(--cg-text-muted); }
+.progress__info { display: flex; justify-content: space-between; gap: 5px; font-size: 10px; color: var(--cg-text-muted); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+.progress__track { height: 4px; background: var(--cg-border); overflow: hidden; border-radius: 999px; }
+.progress__fill { height: 100%; background: var(--cg-accent); border-radius: inherit; }
+.skip-link { position: fixed; left: 12px; top: -100px; z-index: 300; padding: 12px; background: var(--cg-surface); border-radius: 8px; }
+.skip-link:focus { top: 8px; }
+.game-main { width: min(100% - 40px, var(--cg-content-width)); margin: 0 auto; padding: 26px 0 88px; }
+.eyebrow { color: var(--cg-accent); text-transform: uppercase; letter-spacing: .16em; font-size: 10px; font-weight: 600; }
+.farm__intro { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.farm__intro h1 { margin-top: 5px; }
+.farm__intro p { margin: 0 0 4px; font-size: 13px; }
+.farm-world { position: relative; isolation: isolate; overflow: hidden; border: 1px solid #4b3a2a; border-radius: var(--cg-radius-lg); background: radial-gradient(ellipse at 53% 42%, #4a3c29 0%, #2c2820 58%, #211c17 100%); }
+.farm-world::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: .22; background-image: radial-gradient(#c7a272 .8px, transparent .8px); background-size: 21px 23px; pointer-events: none; }
+.farm-world__terrain { position: absolute; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.farm-world__locations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16%; row-gap: 18px; max-width: 960px; margin: auto; padding: 22px 5% 52px; }
+.farm-location { display: flex; flex-direction: column; align-items: center; justify-content: end; min-width: 0; padding: 4px 8px 12px; border-radius: 24px; }
+.location-art { display: block; width: min(100%, 270px); height: auto; filter: drop-shadow(0 8px 6px #100d0b33); transition: transform 160ms ease; }
+.farm-location__sign { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 8px 16px; border: 1px solid #866247; border-radius: 8px; background: #271e16; box-shadow: 0 4px 0 #17120e66; font-family: Georgia, 'Times New Roman', serif; font-size: 20px; color: #f1dec1; }
+.farm-location__sign > span { color: #cc9873; font: 14px system-ui; }
+.farm-location__description { text-align: center; margin-top: 10px; color: #c4b199; font-size: 11px; line-height: 1.5; }
+.farm-location:hover .location-art, .farm-location:focus-visible .location-art { transform: translateY(-4px); }
+.farm-location:hover .farm-location__sign, .farm-location:focus-visible .farm-location__sign { border-color: var(--cg-accent); background: #38271c; }
+.farm-world__caption { position: absolute; bottom: 17px; width: 100%; text-align: center; font: italic 12px Georgia, serif; color: #af9677; pointer-events: none; }
+.location-page { padding-top: 2px; }
+.farm-return { display: inline-flex; align-items: center; min-height: 44px; color: var(--cg-text-muted); font-size: 13px; }
+.farm-return:hover { color: var(--cg-text); }
+.location-page__content { margin-top: 14px; padding: clamp(20px, 4vw, 40px); background: var(--cg-surface); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-md); }
+.location-page__content h2 { margin: 0; font-size: 32px; }
+.location-page__content p { max-width: 640px; margin-bottom: 0; }
+.utility-menu { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.utility-menu__panel { width: 160px; max-height: calc(100dvh - 84px); overflow-y: auto; padding: 4px; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: 12px; box-shadow: 0 12px 36px #0007; }
+.utility-menu__panel button { display: block; width: 100%; min-height: 36px; padding: 6px 10px; text-align: left; background: transparent; border: 0; border-radius: 7px; color: var(--cg-text-muted); font-size: 12px; cursor: default; }
+.utility-menu__panel button:hover, .utility-menu__panel button:focus-visible { background: var(--cg-surface-hover); color: var(--cg-text); }
+.utility-menu__panel button:focus-visible { outline-offset: -2px; }
+.utility-menu__toggle { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; color: var(--cg-text); font-size: 21px; border: 1px solid #eb966e55; border-radius: 50%; background: #b85a36; box-shadow: 0 6px 20px #0006; cursor: pointer; }
+.utility-menu__toggle:hover { background: var(--cg-accent-hover); }
 @media (max-width: 700px) {
-  .game-header__inner {
-    width: min(100% - 20px, var(--cg-content-width));
-    gap: 10px;
-  }
-
-  .game-header__brand div span {
-    display: none;
-  }
-
-  .game-header__player {
-    gap: 10px;
-  }
-
-  .game-header__tokens span,
-  .game-header__level-title span {
-    display: none;
-  }
-
-  .game-header__level {
-    width: 100px;
-  }
-
-  .cactiswap-button {
-    padding: 8px 9px;
-    font-size: 12px;
-  }
+  .game-header__inner { width: calc(100% - 24px); gap: 12px; }
+  .game-header__player { gap: 12px; }
+  .game-header__level { width: 122px; }
+  .game-main { width: calc(100% - 24px); padding-top: 20px; }
+  .farm__intro { align-items: flex-start; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .farm-world__locations { column-gap: 7%; row-gap: 28px; padding: 24px 3% 54px; }
+  .farm-location { padding-inline: 0; }
+  .farm-location__sign { font-size: 17px; gap: 10px; padding: 9px 12px; }
+  .farm-location__description { max-width: 150px; }
+}
+@media (max-width: 420px) {
+  .game-header__inner { flex-wrap: wrap; justify-content: center; gap: 2px; }
+  .game-header__brand img { height: 44px; }
+  .game-header__player { width: 100%; justify-content: space-between; gap: 8px; padding-bottom: 4px; }
+  .game-header__inventory { padding-inline: 8px; }
+  .game-header__level { width: 114px; }
+  .farm-world__locations { column-gap: 12px; row-gap: 32px; padding: 30px 10px 54px; }
+  .farm-location__sign { font-size: 15px; padding: 8px; gap: 5px; }
+  .farm-location__description { font-size: 10px; }
+  .farm-world { border-radius: 14px; }
+}
+@media (pointer: coarse) {
+  .utility-menu__panel button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .location-art { transition: none; }
 }

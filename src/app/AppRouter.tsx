@@ -1,31 +1,38 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { GameNav } from '../components/GameNav'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { FarmPage } from '../features/farm/FarmPage'
 import { NurseryPage } from '../features/nursery/NurseryPage'
 import { BreedingPage } from '../features/breeding/BreedingPage'
-import { CollectionPage } from '../features/collection/CollectionPage'
+import { GardenPage } from '../features/garden/GardenPage'
 import { InventoryPage } from '../features/inventory/InventoryPage'
 import { ShopPage } from '../features/shop/ShopPage'
 import { MarketplacePage } from '../features/marketplace/MarketplacePage'
 import { GameHeader } from '../components/layout/GameHeader'
+import { UtilityMenu } from '../components/layout/UtilityMenu'
+import { PageLayout } from '../components/layout/PageLayout'
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <GameHeader />
-      <GameNav />
-
-      <main>
+      <main id="main-content" className="game-main">
         <Routes>
           <Route path="/" element={<FarmPage />} />
-          <Route path="/nursery" element={<NurseryPage />} />
-          <Route path="/breeding" element={<BreedingPage />} />
-          <Route path="/collection" element={<CollectionPage />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/shop" element={<ShopPage />} />
-          <Route path="/marketplace" element={<MarketplacePage />} />
+          <Route path="/farm" element={<Navigate to="/" replace />} />
+          <Route path="/collection" element={<Navigate to="/garden" replace />} />
+          <Route path="/marketplace" element={<Navigate to="/market" replace />} />
+          <Route element={<PageLayout />}>
+            <Route path="/nursery" element={<NurseryPage />} />
+            <Route path="/breeding" element={<BreedingPage />} />
+            <Route path="/garden" element={<GardenPage />} />
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/shop" element={<ShopPage />} />
+            <Route path="/market" element={<MarketplacePage />} />
+            <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
+          </Route>
         </Routes>
       </main>
+
+      <UtilityMenu />
     </BrowserRouter>
   )
 }

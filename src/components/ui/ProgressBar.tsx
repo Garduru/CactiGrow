@@ -17,7 +17,14 @@ export function ProgressBar({ value, max, label }: ProgressBarProps) {
         </span>
       </div>
 
-      <div className="progress__track">
+      <div
+        className="progress__track"
+        role="progressbar"
+        aria-label={label ?? 'Progress'}
+        aria-valuemin={0}
+        aria-valuemax={safeMax}
+        aria-valuenow={Math.min(Math.max(value, 0), safeMax)}
+      >
         <div
           className="progress__fill"
           style={{ width: `${percentage}%` }}

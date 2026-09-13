@@ -1,11 +1,11 @@
+import { Link } from 'react-router-dom'
 import { ProgressBar } from '../ui/ProgressBar'
 
 export function GameHeader() {
-  // Temporary local data.
-  // Later this comes from the CactiSwap integration layer.
   const player = {
     username: 'Player',
     tokens: 1216,
+    seeds: 17,
     level: 4,
     xp: 315,
     xpRequired: 388,
@@ -13,21 +13,22 @@ export function GameHeader() {
 
   return (
     <header className="game-header">
+      <a className="skip-link" href="#main-content">Skip to game</a>
       <div className="game-header__inner">
-        <div className="game-header__brand">
-          <span className="game-header__cactus">🌵</span>
-
-          <div>
-            <strong>CactiGrow</strong>
-            <span>Grow • Breed • Collect</span>
-          </div>
-        </div>
+        <Link className="game-header__brand" to="/" aria-label="CactiGrow — Farm">
+          <img src="/cactigrow-logo.png" alt="CactiGrow by CactiSwap" />
+        </Link>
 
         <div className="game-header__player">
-          <div className="game-header__tokens">
+          <div className="game-header__stat">
             <span>Tokens</span>
-            <strong>🪙 {player.tokens.toLocaleString()}</strong>
+            <strong>{player.tokens.toLocaleString()}</strong>
           </div>
+
+          <Link className="game-header__inventory" to="/inventory">
+            <span>Inventory</span>
+            <strong>{player.seeds} Seeds</strong>
+          </Link>
 
           <div className="game-header__level">
             <div className="game-header__level-title">
@@ -38,12 +39,9 @@ export function GameHeader() {
             <ProgressBar
               value={player.xp}
               max={player.xpRequired}
+              label="XP"
             />
           </div>
-
-          <button className="cactiswap-button" type="button">
-            CactiSwap
-          </button>
         </div>
       </div>
     </header>

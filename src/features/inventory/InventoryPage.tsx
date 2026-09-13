@@ -1,7 +1,7 @@
 export function InventoryPage() {
   return (
     <section>
-      <h2>Inventory</h2>
+      <h1>Inventory</h1>
       <p>Manage your inventory here.</p>
     </section>
   )

@@ -1,7 +1,7 @@
 export function ShopPage() {
   return (
     <section>
-      <h2>Shop</h2>
+      <h1>Shop</h1>
       <p>Buy cacti and supplies here.</p>
     </section>
   )
