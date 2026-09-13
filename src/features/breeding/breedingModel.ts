@@ -14,7 +14,15 @@ function clampGenetic(value: number): number {
 }
 
 export function canBreed(parent1: Plant | undefined, parent2: Plant | undefined): boolean {
-  return Boolean(parent1 && parent2 && parent1.id !== parent2.id && parent1.stage === 'mature' && parent2.stage === 'mature')
+  return Boolean(
+    parent1
+    && parent2
+    && parent1.id !== parent2.id
+    && parent1.stage === 'mature'
+    && parent2.stage === 'mature'
+    && !parent1.isListedForSale
+    && !parent2.isListedForSale,
+  )
 }
 
 export function previewOffspringGenetics(parent1: Plant, parent2: Plant): PlantGenetics {

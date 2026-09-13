@@ -42,7 +42,9 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
   const closeRef = useRef<HTMLButtonElement>(null)
   const parent1 = state.ownedPlants.find((plant) => plant.id === parent1Id)
   const parent2 = state.ownedPlants.find((plant) => plant.id === parent2Id)
-  const eligible = state.ownedPlants.filter((plant) => plant.id !== parent1Id && plant.stage === 'mature')
+  const eligible = state.ownedPlants.filter((plant) => (
+    plant.id !== parent1Id && plant.stage === 'mature' && !plant.isListedForSale
+  ))
   const preview = useMemo(
     () => parent1 && parent2 ? previewOffspringGenetics(parent1, parent2) : null,
     [parent1, parent2],

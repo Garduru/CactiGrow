@@ -5,13 +5,7 @@ import { ProgressBar } from '../ui/ProgressBar'
 
 export function GameHeader() {
   const { state } = useGameState()
-  const player = {
-    username: 'Player',
-    tokens: 1216,
-    level: 4,
-    xp: 315,
-    xpRequired: 388,
-  }
+  const { player } = state
 
   return (
     <header className="game-header">

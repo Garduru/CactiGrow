@@ -488,6 +488,8 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .plant-details__actions button { min-height: var(--cg-touch-target); padding: 8px 14px; color: var(--cg-text-muted); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); cursor: not-allowed; opacity: .65; }
 .plant-details__actions .plant-details__primary-action { color: var(--cg-text); background: #a84f31; border-color: #d3744f; cursor: pointer; opacity: 1; }
 .plant-details__actions .plant-details__primary-action:hover { background: var(--cg-accent); }
+.plant-details__actions .plant-details__primary-action:disabled { color: var(--cg-text-muted); background: var(--cg-surface-raised); border-color: var(--cg-border); cursor: not-allowed; opacity: .65; }
+.garden-specimen__listed { margin-top: 8px; color: #e6b46e; font-size: 10px; text-transform: uppercase; letter-spacing: .05em; }
 
 .breeding-overlay { position: fixed; inset: 0; z-index: 270; display: grid; place-items: center; padding: var(--cg-page-gutter); }
 .breeding-workflow { position: relative; width: min(100%, 900px); max-height: calc(100dvh - 2 * var(--cg-page-gutter)); padding: clamp(16px, 3vw, 28px); overflow-y: auto; overscroll-behavior: contain; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-lg); box-shadow: 0 24px 70px #000b; }
@@ -515,12 +517,54 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .breeding-result h3 { margin-top: 14px; }
 .breeding-result > small { display: block; margin-top: 14px; color: var(--cg-text-muted); overflow-wrap: anywhere; }
 
+.sell-overlay { position: fixed; inset: 0; z-index: 280; display: grid; place-items: center; padding: var(--cg-page-gutter); }
+.sell-workflow { position: relative; width: min(100%, 640px); max-height: calc(100dvh - 2 * var(--cg-page-gutter)); padding: clamp(16px, 3vw, 28px); overflow-y: auto; overscroll-behavior: contain; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-lg); box-shadow: 0 24px 70px #000b; }
+.sell-workflow h2 { margin: 5px 0 2px; font-size: clamp(25px, 4vw, 34px); }
+.sell-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cg-card-gap); margin-top: var(--cg-section-space); }
+.sell-choices button { min-height: 120px; padding: 18px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; color: var(--cg-text); text-align: left; background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-md); cursor: pointer; }
+.sell-choices button:hover { background: var(--cg-surface-hover); border-color: var(--cg-accent); }
+.sell-choices strong, .sell-confirmation h3, .sell-success h3 { font: 500 19px Georgia, serif; }
+.sell-choices span { color: var(--cg-text-muted); font-size: 12px; line-height: 1.45; }
+.sell-confirmation, .sell-success { margin-top: var(--cg-section-space); }
+.sell-confirmation h3, .sell-success h3 { margin: 0 0 14px; }
+.sell-confirmation dl { display: grid; gap: 8px; margin: 0; }
+.sell-confirmation dl div { display: flex; justify-content: space-between; gap: 16px; padding: 10px; background: var(--cg-surface-raised); border-radius: 8px; }
+.sell-confirmation dt { color: var(--cg-text-muted); }
+.sell-confirmation dd { margin: 0; overflow-wrap: anywhere; }
+.sell-confirmation label { display: block; margin-bottom: 7px; color: var(--cg-text); font-size: 12px; }
+.sell-confirmation input { width: 100%; min-height: var(--cg-touch-target); padding: 8px 11px; color: var(--cg-text); background: #17120e; border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-sm); font: inherit; }
+.sell-confirmation > small { display: block; margin-top: 7px; color: var(--cg-text-muted); }
+.sell-warning, .form-error { padding: 10px 12px; border-radius: 8px; font-size: 12px; }
+.sell-warning { color: #efd0a8; background: #5d2c1f55; border: 1px solid #8f4c36; }
+.form-error { color: #ffd0c4; background: #6b251f55; border: 1px solid #9b4639; }
+.sell-controls { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.sell-controls button, .market-listing__cancel { min-height: var(--cg-touch-target); padding: 8px 14px; color: var(--cg-text); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); cursor: pointer; }
+.sell-success { padding: 18px; background: var(--cg-surface-raised); border: 1px solid #75623d; border-radius: var(--cg-radius-md); }
+
+.market-empty { margin-top: var(--cg-section-space); padding: 24px; display: flex; flex-direction: column; gap: 6px; color: var(--cg-text-muted); background: var(--cg-surface-raised); border: 1px dashed var(--cg-border-strong); border-radius: var(--cg-radius-md); }
+.market-empty strong { color: var(--cg-text); }
+.market-listings { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: var(--cg-card-gap); margin-top: var(--cg-section-space); }
+.market-listing { min-width: 0; padding: clamp(14px, 2vw, 20px); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-md); }
+.market-listing header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.market-listing h2 { margin: 8px 0 2px; font-size: clamp(20px, 3vw, 25px); }
+.market-listing em { color: var(--cg-text-muted); font: italic 11px Georgia, serif; }
+.market-listing__price { flex: 0 0 auto; color: #e7b26b; font-size: 14px; }
+.market-listing__meta { display: grid; gap: 7px; margin: 16px 0 0; }
+.market-listing__meta div { min-width: 0; display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 8px; }
+.market-listing__meta dt { color: var(--cg-text-muted); font-size: 10px; text-transform: uppercase; }
+.market-listing__meta dd { margin: 0; overflow-wrap: anywhere; font-size: 11px; }
+.market-listing__traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.market-listing__traits span { padding: 5px 7px; color: var(--cg-text-muted); background: #18130f; border-radius: 6px; font-size: 10px; }
+.market-listing__traits b { color: var(--cg-text); }
+.market-listing__cancel { margin-top: 16px; }
+
 @media (max-width: 720px) {
   .nursery__header { align-items: flex-start; flex-direction: column; }
   .nursery__summary { justify-content: flex-start; }
   .plant-details__genetics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .breeding-comparison, .breeding-candidates { grid-template-columns: 1fr; }
   .breeding-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sell-choices { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 440px) {
@@ -528,6 +572,9 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
   .plant-details__actions div { flex-direction: column; }
   .plant-details__actions button { width: 100%; }
   .breeding-section__heading { align-items: flex-start; flex-direction: column; }
+  .sell-controls { flex-direction: column-reverse; }
+  .sell-controls button { width: 100%; }
+  .market-listing header { flex-direction: column; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) and (max-width: 950px) {
@@ -563,5 +610,7 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
   .plant-details__actions { margin-top: 12px; padding-top: 10px; }
   .breeding-workflow { padding-block: 14px; }
   .breeding-section { margin-top: 12px; }
+  .sell-workflow { padding-block: 14px; }
+  .sell-choices, .sell-confirmation, .sell-success { margin-top: 12px; }
   .utility-menu { bottom: max(8px, env(safe-area-inset-bottom)); }
 }

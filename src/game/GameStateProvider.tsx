@@ -11,6 +11,8 @@ import {
   gameStateReducer,
   getSeedQuantity,
 } from './gameState'
+import { canCancelListing, canListPlant, createMarketplaceListing } from '../features/marketplace/marketplaceModel'
+import { canSellPlantToNpc, getNpcSaleValue } from '../features/marketplace/sellModel'
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameStateReducer, undefined, () => createInitialGameState())
@@ -49,6 +51,28 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     plantBredSeed(slotId, seedId) {
       if (!canPlantBredSeed(state, slotId, seedId)) return false
       dispatch({ type: 'bred-seed/planted', slotId, seedId, now: Date.now() })
+      return true
+    },
+    sellPlantToNpc(plantId) {
+      if (!canSellPlantToNpc(state, plantId)) return null
+      const plant = state.ownedPlants.find((specimen) => specimen.id === plantId)
+      const saleValue = plant ? getNpcSaleValue(plant) : null
+      if (saleValue === null) return null
+      dispatch({ type: 'plant/sold-to-npc', plantId, expectedValue: saleValue })
+      return saleValue
+    },
+    listPlant(plantId, price) {
+      if (!canListPlant(state, plantId, price)) return null
+      const plant = state.ownedPlants.find((specimen) => specimen.id === plantId)
+      if (!plant) return null
+      const listing = createMarketplaceListing(plant, state.player.id, price, Date.now())
+      if (!listing) return null
+      dispatch({ type: 'marketplace/listed', listing })
+      return listing
+    },
+    cancelListing(listingId) {
+      if (!canCancelListing(state, listingId)) return false
+      dispatch({ type: 'marketplace/cancelled', listingId, now: Date.now() })
       return true
     },
   }), [state])

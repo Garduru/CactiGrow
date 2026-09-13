@@ -3,11 +3,14 @@ import { getSpeciesById } from '../../data/species'
 import { useGameState } from '../../game/useGameState'
 import { PlantDetails } from './PlantDetails'
 import { BreedingWorkflow } from '../breeding/BreedingWorkflow'
+import { SellWorkflow } from '../marketplace/SellWorkflow'
+import { getListingForPlant } from '../../game/gameState'
 
 export function GardenPage() {
   const { state } = useGameState()
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null)
   const [breedingParentId, setBreedingParentId] = useState<string | null>(null)
+  const [sellingPlantId, setSellingPlantId] = useState<string | null>(null)
   const specimenRefs = useRef(new Map<string, HTMLButtonElement>())
   const selectedPlant = state.ownedPlants.find((plant) => plant.id === selectedPlantId)
   const closeDetails = useCallback(() => setSelectedPlantId(null), [])
@@ -16,6 +19,11 @@ export function GardenPage() {
     setBreedingParentId(null)
     requestAnimationFrame(() => { if (parentId) specimenRefs.current.get(parentId)?.focus() })
   }, [breedingParentId])
+  const closeSelling = useCallback(() => {
+    const plantId = sellingPlantId
+    setSellingPlantId(null)
+    requestAnimationFrame(() => { if (plantId) specimenRefs.current.get(plantId)?.focus() })
+  }, [sellingPlantId])
 
   return (
     <section aria-labelledby="garden-title">
@@ -41,6 +49,7 @@ export function GardenPage() {
                   aria-label={`View details for ${plantSpecies?.commonName ?? 'unknown cactus'} specimen ${plant.id}`}
                 >
                   <span className="nursery-stage nursery-stage--mature">{plant.stage}</span>
+                  {plant.isListedForSale && <span className="garden-specimen__listed">Listed on Marketplace</span>}
                   <strong>{plantSpecies?.commonName ?? 'Unknown cactus'}</strong>
                   <em>{plantSpecies?.scientificName}</em>
                   <span className="garden-specimen__id">Specimen {plant.id}</span>
@@ -58,9 +67,12 @@ export function GardenPage() {
           species={getSpeciesById(selectedPlant.speciesId)}
           onClose={closeDetails}
           onBreed={() => { setBreedingParentId(selectedPlant.id); setSelectedPlantId(null) }}
+          onSell={() => { setSellingPlantId(selectedPlant.id); setSelectedPlantId(null) }}
+          isListed={Boolean(getListingForPlant(state.marketplaceListings, selectedPlant.id))}
         />
       )}
       {breedingParentId && <BreedingWorkflow parent1Id={breedingParentId} onClose={closeBreeding} />}
+      {sellingPlantId && <SellWorkflow plantId={sellingPlantId} onClose={closeSelling} />}
     </section>
   )
 }
