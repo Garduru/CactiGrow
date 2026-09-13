@@ -1,4 +1,6 @@
-import { calculateNurseryGrowth, createInitialNurserySlots, createNurseryPlant, type NurserySlotState } from '../features/nursery/nurseryModel'
+import { canBreed, createBredSeed, hasValidGenetics, resolveOffspringSpecies } from '../features/breeding/breedingModel'
+import { calculateNurseryGrowth, createInitialNurserySlots, createNurseryPlant, createNurseryPlantFromBredSeed, type NurserySlotState } from '../features/nursery/nurseryModel'
+import type { BredSeed } from '../types/bredSeed'
 import type { InventoryItem } from '../types/inventory'
 import type { Plant } from '../types/plant'
 
@@ -10,6 +12,7 @@ export interface GameState {
   inventory: InventoryItem[]
   nurserySlots: NurserySlotState[]
   ownedPlants: CollectedPlant[]
+  bredSeeds: BredSeed[]
 }
 
 export type GameAction =
@@ -17,6 +20,8 @@ export type GameAction =
   | { type: 'plant/collected'; slotId: string; now: number }
   | { type: 'inventory/added'; item: InventoryItem }
   | { type: 'inventory/removed'; itemId: string; quantity: number }
+  | { type: 'offspring/created'; seed: BredSeed }
+  | { type: 'bred-seed/planted'; slotId: string; seedId: string; now: number }
 
 export function createInitialGameState(now = Date.now()): GameState {
   return {
@@ -26,6 +31,7 @@ export function createInitialGameState(now = Date.now()): GameState {
     ],
     nurserySlots: createInitialNurserySlots(now),
     ownedPlants: [],
+    bredSeeds: [],
   }
 }
 
@@ -34,7 +40,7 @@ export function getSeedQuantity(state: GameState, speciesId: string): number {
 }
 
 export function getTotalSeedQuantity(state: GameState): number {
-  return state.inventory.reduce((total, item) => (
+  return state.bredSeeds.length + state.inventory.reduce((total, item) => (
     item.itemType === 'seed' ? total + item.quantity : total
   ), 0)
 }
@@ -47,6 +53,17 @@ export function canPlantSeed(state: GameState, slotId: string, speciesId: string
 export function canCollectPlant(state: GameState, slotId: string, now: number): boolean {
   const plant = state.nurserySlots.find((entry) => entry.id === slotId)?.plant
   return Boolean(plant && calculateNurseryGrowth(plant.plantedAt, now).isMature)
+}
+
+export function canPlantBredSeed(state: GameState, slotId: string, seedId: string): boolean {
+  const slot = state.nurserySlots.find((entry) => entry.id === slotId)
+  return Boolean(slot && !slot.plant && state.bredSeeds.some((seed) => seed.id === seedId))
+}
+
+export function breedPlants(state: GameState, parent1Id: string, parent2Id: string, now: number): BredSeed | null {
+  const parent1 = state.ownedPlants.find((plant) => plant.id === parent1Id)
+  const parent2 = state.ownedPlants.find((plant) => plant.id === parent2Id)
+  return parent1 && parent2 ? createBredSeed(parent1, parent2, now) : null
 }
 
 export function gameStateReducer(state: GameState, action: GameAction): GameState {
@@ -115,6 +132,29 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
         inventory: state.inventory.map((entry) => entry.id === action.itemId
           ? { ...entry, quantity: entry.quantity - action.quantity }
           : entry),
+      }
+    }
+
+    case 'offspring/created': {
+      const [parent1Id, parent2Id] = action.seed.parentPlantIds
+      const parent1 = state.ownedPlants.find((plant) => plant.id === parent1Id)
+      const parent2 = state.ownedPlants.find((plant) => plant.id === parent2Id)
+      if (!parent1 || !parent2 || !canBreed(parent1, parent2) || !hasValidGenetics(action.seed.genetics)) return state
+      if (action.seed.speciesId !== resolveOffspringSpecies(parent1)) return state
+      if (state.bredSeeds.some((seed) => seed.id === action.seed.id)) return state
+      return { ...state, bredSeeds: [...state.bredSeeds, action.seed] }
+    }
+
+    case 'bred-seed/planted': {
+      if (!canPlantBredSeed(state, action.slotId, action.seedId)) return state
+      const seed = state.bredSeeds.find((entry) => entry.id === action.seedId)
+      if (!seed) return state
+      return {
+        ...state,
+        bredSeeds: state.bredSeeds.filter((entry) => entry.id !== action.seedId),
+        nurserySlots: state.nurserySlots.map((slot) => slot.id === action.slotId
+          ? { ...slot, plant: createNurseryPlantFromBredSeed(seed, action.now) }
+          : slot),
       }
     }
   }

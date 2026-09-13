@@ -335,6 +335,7 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .seed-option strong, .seed-option small { display: block; }
 .seed-option small { margin-top: 3px; color: var(--cg-text-muted); font: italic 10px Georgia, serif; }
 .seed-option__quantity { color: #d9b38b; font-size: 12px; }
+.seed-option--bred { border-color: #75623d; }
 .seed-picker__note { margin: 16px 0 0; font-size: 11px; }
 
 .inventory-list,
@@ -361,6 +362,8 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .inventory-item span { display: block; }
 .inventory-item strong { overflow-wrap: anywhere; }
 .inventory-item div > span { margin-top: 3px; color: var(--cg-text-muted); font: italic 11px Georgia, serif; }
+.inventory-item small { display: block; margin-top: 5px; color: var(--cg-text-muted); font-size: 10px; overflow-wrap: anywhere; }
+.inventory-item--bred { border-color: #75623d; }
 .inventory-item__quantity { flex: none; color: #d9b38b; font-size: 13px; }
 
 .garden-empty {
@@ -483,17 +486,48 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .plant-details__actions > span { color: var(--cg-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
 .plant-details__actions div { display: flex; gap: 10px; margin-top: 10px; }
 .plant-details__actions button { min-height: var(--cg-touch-target); padding: 8px 14px; color: var(--cg-text-muted); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); cursor: not-allowed; opacity: .65; }
+.plant-details__actions .plant-details__primary-action { color: var(--cg-text); background: #a84f31; border-color: #d3744f; cursor: pointer; opacity: 1; }
+.plant-details__actions .plant-details__primary-action:hover { background: var(--cg-accent); }
+
+.breeding-overlay { position: fixed; inset: 0; z-index: 270; display: grid; place-items: center; padding: var(--cg-page-gutter); }
+.breeding-workflow { position: relative; width: min(100%, 900px); max-height: calc(100dvh - 2 * var(--cg-page-gutter)); padding: clamp(16px, 3vw, 28px); overflow-y: auto; overscroll-behavior: contain; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-lg); box-shadow: 0 24px 70px #000b; }
+.breeding-workflow h2 { margin: 5px 0 0; font-size: clamp(26px, 4vw, 34px); }
+.breeding-section { margin-top: var(--cg-section-space); }
+.breeding-section h3, .breeding-result h3 { margin: 0 0 10px; font: 500 18px Georgia, serif; }
+.breeding-section > p { margin: 0 0 12px; font-size: 12px; }
+.breeding-section__heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.breeding-section__heading button { min-height: var(--cg-touch-target); padding: 6px 10px; color: #d9b38b; background: transparent; border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); cursor: pointer; }
+.breeding-comparison, .breeding-candidates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cg-card-gap); }
+.breeding-candidates > button { padding: 0; color: inherit; text-align: left; background: transparent; border: 0; border-radius: var(--cg-radius-md); cursor: pointer; }
+.breeding-candidates > button:hover .breeding-parent { border-color: var(--cg-accent); background: var(--cg-surface-hover); }
+.breeding-parent { min-width: 0; padding: 14px; display: flex; flex-direction: column; background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-md); }
+.breeding-parent strong { font: 500 19px Georgia, serif; }
+.breeding-parent em { margin-top: 2px; color: var(--cg-text-muted); font: italic 11px Georgia, serif; }
+.breeding-parent small { margin-top: 9px; color: var(--cg-text-muted); font-size: 10px; overflow-wrap: anywhere; }
+.breeding-traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.breeding-traits span { padding: 5px 7px; color: var(--cg-text-muted); background: #18130f; border-radius: 6px; font-size: 10px; }
+.breeding-traits b { color: var(--cg-text); }
+.breeding-preview { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.breeding-preview span { min-width: 0; padding: 10px 6px; display: flex; flex-direction: column; gap: 4px; color: var(--cg-text-muted); text-align: center; background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: 8px; font-size: 10px; }
+.breeding-preview strong { color: var(--cg-text); font-size: 16px; }
+.breeding-empty { padding: 18px; background: var(--cg-surface-raised); border: 1px dashed var(--cg-border-strong); border-radius: var(--cg-radius-md); }
+.breeding-result { margin-top: var(--cg-section-space); padding: clamp(16px, 3vw, 24px); background: var(--cg-surface-raised); border: 1px solid #75623d; border-radius: var(--cg-radius-md); }
+.breeding-result h3 { margin-top: 14px; }
+.breeding-result > small { display: block; margin-top: 14px; color: var(--cg-text-muted); overflow-wrap: anywhere; }
 
 @media (max-width: 720px) {
   .nursery__header { align-items: flex-start; flex-direction: column; }
   .nursery__summary { justify-content: flex-start; }
   .plant-details__genetics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .breeding-comparison, .breeding-candidates { grid-template-columns: 1fr; }
+  .breeding-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 440px) {
   .plant-details__identity { grid-template-columns: 1fr; }
   .plant-details__actions div { flex-direction: column; }
   .plant-details__actions button { width: 100%; }
+  .breeding-section__heading { align-items: flex-start; flex-direction: column; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) and (max-width: 950px) {
@@ -527,5 +561,7 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
   .plant-details__identity { margin-top: 12px; padding: 12px; }
   .plant-details__section { margin-top: 12px; }
   .plant-details__actions { margin-top: 12px; padding-top: 10px; }
+  .breeding-workflow { padding-block: 14px; }
+  .breeding-section { margin-top: 12px; }
   .utility-menu { bottom: max(8px, env(safe-area-inset-bottom)); }
 }

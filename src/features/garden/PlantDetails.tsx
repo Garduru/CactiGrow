@@ -6,6 +6,7 @@ interface PlantDetailsProps {
   plant: CollectedPlant
   species: Species | undefined
   onClose: () => void
+  onBreed: () => void
 }
 
 const detailFields = [
@@ -16,7 +17,7 @@ const detailFields = [
   ['Mutation chance', 'mutationChance'],
 ] as const
 
-export function PlantDetails({ plant, species, onClose }: PlantDetailsProps) {
+export function PlantDetails({ plant, species, onClose, onBreed }: PlantDetailsProps) {
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -121,7 +122,7 @@ export function PlantDetails({ plant, species, onClose }: PlantDetailsProps) {
         <footer className="plant-details__actions">
           <span>Future specimen actions</span>
           <div>
-            <button type="button" disabled>Breed · Coming later</button>
+            <button className="plant-details__primary-action" type="button" onClick={onBreed}>Breed</button>
             <button type="button" disabled>Sell · Coming later</button>
           </div>
         </footer>

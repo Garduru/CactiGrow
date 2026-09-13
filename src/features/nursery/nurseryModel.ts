@@ -1,5 +1,6 @@
 import type { GrowthStage } from '../../types/species'
 import type { Plant } from '../../types/plant'
+import type { BredSeed } from '../../types/bredSeed'
 
 export type NurseryPlant = Plant
 
@@ -59,6 +60,22 @@ export function createNurseryPlant(speciesId: string, now: number): NurseryPlant
       flowering: 50,
       mutationChance: 1,
     },
+    isHarvestable: false,
+    isListedForSale: false,
+  }
+}
+
+export function createNurseryPlantFromBredSeed(seed: BredSeed, now: number): NurseryPlant {
+  const timestamp = new Date(now).toISOString()
+  return {
+    id: seed.id,
+    ownerId: 'local-player',
+    speciesId: seed.speciesId,
+    stage: 'seed',
+    plantedAt: timestamp,
+    lastUpdatedAt: timestamp,
+    genetics: seed.genetics,
+    parentPlantIds: seed.parentPlantIds,
     isHarvestable: false,
     isListedForSale: false,
   }

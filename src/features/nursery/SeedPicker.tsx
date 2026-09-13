@@ -1,13 +1,16 @@
 import { getSpeciesById } from '../../data/species'
 import type { InventoryItem } from '../../types/inventory'
+import type { BredSeed } from '../../types/bredSeed'
 
 interface SeedPickerProps {
   seeds: InventoryItem[]
+  bredSeeds: BredSeed[]
   onSelect: (speciesId: string) => void
+  onSelectBredSeed: (seedId: string) => void
   onClose: () => void
 }
 
-export function SeedPicker({ seeds, onSelect, onClose }: SeedPickerProps) {
+export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClose }: SeedPickerProps) {
   return (
     <div className="seed-picker" role="dialog" aria-modal="true" aria-labelledby="seed-picker-title">
       <button className="seed-picker__backdrop" type="button" onClick={onClose} aria-label="Close seed selection" />
@@ -32,6 +35,10 @@ export function SeedPicker({ seeds, onSelect, onClose }: SeedPickerProps) {
                 <span className="seed-option__quantity">× {seed.quantity}</span>
               </button>
             )
+          })}
+          {bredSeeds.map((seed) => {
+            const seedSpecies = getSpeciesById(seed.speciesId)
+            return <button className="seed-option seed-option--bred" key={seed.id} type="button" onClick={() => onSelectBredSeed(seed.id)}><span className="seed-option__icon" aria-hidden="true">◆</span><span><strong>{seedSpecies?.commonName ?? 'Bred offspring'} seed</strong><small>Unique · Parents {seed.parentPlantIds.join(' + ')}</small></span><span className="seed-option__quantity">Bred</span></button>
           })}
         </div>
         <p className="seed-picker__note">Prototype growth is accelerated to about two minutes.</p>

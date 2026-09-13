@@ -7,7 +7,7 @@ import { SeedPicker } from './SeedPicker'
 export function NurseryPage() {
   const [plantingSlotId, setPlantingSlotId] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
-  const { state, plantSeed, collectPlant } = useGameState()
+  const { state, plantSeed, plantBredSeed, collectPlant } = useGameState()
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
@@ -18,6 +18,10 @@ export function NurseryPage() {
     if (plantingSlotId && plantSeed(plantingSlotId, speciesId)) {
       setPlantingSlotId(null)
     }
+  }
+
+  function selectBredSeed(seedId: string) {
+    if (plantingSlotId && plantBredSeed(plantingSlotId, seedId)) setPlantingSlotId(null)
   }
 
   const seeds = state.inventory.filter((item) => item.itemType === 'seed')
@@ -58,7 +62,9 @@ export function NurseryPage() {
       {plantingSlotId && (
         <SeedPicker
           seeds={seeds}
+          bredSeeds={state.bredSeeds}
           onSelect={selectSeed}
+          onSelectBredSeed={selectBredSeed}
           onClose={() => setPlantingSlotId(null)}
         />
       )}

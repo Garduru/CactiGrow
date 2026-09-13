@@ -4,7 +4,9 @@ import type { InventoryItem } from '../types/inventory'
 import { GameStateContext, type GameStateContextValue } from './GameStateContext'
 import {
   canCollectPlant,
+  canPlantBredSeed,
   canPlantSeed,
+  breedPlants as createBredSeedForState,
   createInitialGameState,
   gameStateReducer,
   getSeedQuantity,
@@ -37,6 +39,17 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     },
     getSeedQuantity(speciesId) {
       return getSeedQuantity(state, speciesId)
+    },
+    breedPlants(parent1Id, parent2Id) {
+      const seed = createBredSeedForState(state, parent1Id, parent2Id, Date.now())
+      if (!seed) return null
+      dispatch({ type: 'offspring/created', seed })
+      return seed
+    },
+    plantBredSeed(slotId, seedId) {
+      if (!canPlantBredSeed(state, slotId, seedId)) return false
+      dispatch({ type: 'bred-seed/planted', slotId, seedId, now: Date.now() })
+      return true
     },
   }), [state])
 
