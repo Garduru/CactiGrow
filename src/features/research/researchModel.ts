@@ -73,7 +73,43 @@ function discoveryReward(id: string): number {
   if (id === researchDiscoveryMilestoneIds.firstCrossSpeciesComparison) return GENETICS_RESEARCH_REWARDS.firstCrossSpeciesComparison
   if (id === researchDiscoveryMilestoneIds.visibleTwoFeatureSpecimen) return GENETICS_RESEARCH_REWARDS.firstVisibleTwoFeatureSpecimen
   if (id === researchDiscoveryMilestoneIds.visibleThreeFeatureSpecimen) return GENETICS_RESEARCH_REWARDS.firstVisibleThreeFeatureSpecimen
+  if (id === researchDiscoveryMilestoneIds.firstTissueSample) return GENETICS_RESEARCH_REWARDS.firstTissueSample
+  if (id.startsWith('sampling:clone:')) return GENETICS_RESEARCH_REWARDS.firstSampledCloneLine
+  if (id === researchDiscoveryMilestoneIds.firstGoodQualitySample) return GENETICS_RESEARCH_REWARDS.firstGoodQualitySample
+  if (id === researchDiscoveryMilestoneIds.firstExcellentQualitySample) return GENETICS_RESEARCH_REWARDS.firstExcellentQualitySample
+  if (id === researchDiscoveryMilestoneIds.firstQuantitativeExtraction) return GENETICS_RESEARCH_REWARDS.firstQuantitativeExtraction
+  if (id.startsWith('extraction:target:')) return GENETICS_RESEARCH_REWARDS.firstExtractTarget
+  if (id === researchDiscoveryMilestoneIds.firstLowYieldExtract) return GENETICS_RESEARCH_REWARDS.firstLowYieldExtract
+  if (id === researchDiscoveryMilestoneIds.firstGoodExtraction) return GENETICS_RESEARCH_REWARDS.firstGoodExtraction
+  if (id === researchDiscoveryMilestoneIds.firstExcellentExtraction) return GENETICS_RESEARCH_REWARDS.firstExcellentExtraction
   return 0
+}
+
+export function recordExtractionMilestones(research: GeneticsResearchState, target: string, outcome: 'success' | 'low-yield', qualityBand: 'poor' | 'standard' | 'good' | 'excellent'): ResearchResult {
+  const ids = [researchDiscoveryMilestoneIds.firstQuantitativeExtraction, researchDiscoveryMilestoneIds.extractTarget(target), ...(outcome === 'low-yield' ? [researchDiscoveryMilestoneIds.firstLowYieldExtract] : []), ...(qualityBand === 'good' || qualityBand === 'excellent' ? [researchDiscoveryMilestoneIds.firstGoodExtraction] : []), ...(qualityBand === 'excellent' ? [researchDiscoveryMilestoneIds.firstExcellentExtraction] : [])]
+  const additions = ids.filter((id) => !research.completedDiscoveryMilestoneIds.includes(id))
+  if (!additions.length) return { research, xpAwarded: 0, changed: false }
+  return { research: { ...research, completedDiscoveryMilestoneIds: [...research.completedDiscoveryMilestoneIds, ...additions] }, xpAwarded: additions.reduce((sum, id) => sum + discoveryReward(id), 0), changed: true }
+}
+
+export function recordTissueSamplingMilestones(
+  research: GeneticsResearchState,
+  cloneLineId: string,
+  qualityBand: 'poor' | 'standard' | 'good' | 'excellent',
+): ResearchResult {
+  const milestoneIds = [
+    researchDiscoveryMilestoneIds.firstTissueSample,
+    researchDiscoveryMilestoneIds.sampledCloneLine(cloneLineId),
+    ...(qualityBand === 'good' || qualityBand === 'excellent' ? [researchDiscoveryMilestoneIds.firstGoodQualitySample] : []),
+    ...(qualityBand === 'excellent' ? [researchDiscoveryMilestoneIds.firstExcellentQualitySample] : []),
+  ]
+  const newMilestones = milestoneIds.filter((id) => !research.completedDiscoveryMilestoneIds.includes(id))
+  if (!newMilestones.length) return { research, xpAwarded: 0, changed: false }
+  return {
+    research: { ...research, completedDiscoveryMilestoneIds: [...research.completedDiscoveryMilestoneIds, ...newMilestones] },
+    xpAwarded: newMilestones.reduce((total, id) => total + discoveryReward(id), 0),
+    changed: true,
+  }
 }
 
 export function observeCloneLine(

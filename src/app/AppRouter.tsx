@@ -14,6 +14,7 @@ import { LevelUpNotice } from '../features/progression/LevelUpNotice'
 import { SkillsPage } from '../features/progression/SkillsPage'
 import { FieldJournalPage } from '../features/journal/FieldJournalPage'
 import { ResearchLogPage } from '../features/research/ResearchLogPage'
+import { GeneticsLabPage } from '../features/lab/GeneticsLabPage'
 
 export function AppRouter() {
   return (
@@ -36,6 +37,7 @@ export function AppRouter() {
             <Route path="/skills" element={<SkillsPage />} />
             <Route path="/journal" element={<FieldJournalPage />} />
             <Route path="/research" element={<ResearchLogPage />} />
+            <Route path="/lab" element={<GeneticsLabPage />} />
             <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
           </Route>
         </Routes>

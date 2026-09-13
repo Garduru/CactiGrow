@@ -11,13 +11,15 @@ Do not add major dependencies without a clear need. React handles the HUD, inven
 ## Navigation and gameplay direction
 
 - Farm is Home and the primary navigation world, with no separate dashboard or permanent world navbar.
-- Click physical Farm locations to enter Nursery, Garden, Shop, and Marketplace.
+- Click physical Farm locations to enter Nursery, Garden, Shop, Marketplace, and Genetics Lab.
+- Farm visually prioritizes the property over menu-like labels. Destination names and descriptions do not permanently clutter the scene. Hover, keyboard focus, or selection identifies a building; selecting it opens contextual Building Details, and entering it is a deliberate second action.
 - Nursery handles planting seeds, growth, collecting mature plants, capacity and upgrades; trays, benches, and pots can come later.
 - Garden replaces the player-facing Collection name. It will display prized plants, expose the full collection, and open specimen details.
 - Breeding starts at Garden > plant details > Breed > second parent > workflow. It is not a primary destination.
 - Selling starts at plant details, through NPC sales or marketplace listings. Marketplace handles buying, player listings, and eventual trade history.
 - Inventory belongs in the HUD, showing total seed count. The current inventory route is acceptable until a compact panel is useful.
-- The bottom-right utility menu contains only Achievements, Grow Log, Settings, Help, and CactiSwap. Never put world destinations there.
+- Physical world destinations are Nursery, Garden, Shop, Marketplace, and Genetics Lab. The Lab is a player-owned physical facility, not a utility page; its Research Center, Microscope Station, Extraction Station, Advanced Genetics area, and upgrades exist inside it.
+- Utility and reference destinations are Skills, Field Journal, Research Log, Achievements, Grow Log, Settings, Help, and CactiSwap. Research Log remains the player's persistent notebook and reference interface, while the Research Center inside the Lab provides its research summary and access point. Never put physical world destinations in the utility menu.
 - Interior screens provide a small Back to Farm link. Maintain real routes and working browser history/deep links.
 - Canonical routes: `/` (Farm), `/nursery`, `/garden`, `/market`, `/shop`, `/inventory`. `/farm`, `/collection`, and `/marketplace` redirect to canonical destinations. The existing `/breeding` workflow placeholder remains unpromoted.
 
@@ -28,6 +30,8 @@ Preserve the warm cactus/desert identity: near-black/dark brown surfaces, burnt 
 Use one compact supplied CactiGrow logo, without separate emoji branding or a tagline. **Explicit user-approved exception:** the full supplied logo may retain its embedded "by CactiSwap" credit in the HUD. Do not add another permanent CactiSwap control to the HUD.
 
 The compact HUD retains mock tokens, Inventory/Seeds, level, username, and XP. Aim for approximately 56px desktop height and allow narrow-screen wrapping. Keep the utility panel about 160px wide with short desktop rows, modest padding, and accessible touch targets.
+
+World buildings may eventually grant passive bonuses and visually evolve as they upgrade. Building bonus definitions must remain centralized and data-driven, while each feature's domain model remains authoritative for its rules. Only implemented bonuses may affect gameplay or appear as active. Future directions include Nursery capacity and cultivation efficiency, Garden capacity and support, Lab research/sample/extraction improvements, Shop stock and purchasing services, and Marketplace listing or fee services; these are not current gameplay effects.
 
 ## Current foundation and immediate scope
 
@@ -44,7 +48,7 @@ The current pass refines the shell, replaces temporary GameNav with a simple Rea
 5. XP, levels, achievements, objectives, unlocks, and Farm expansion.
 6. API, authentication, persistence, server-authoritative actions, and anti-cheat validation.
 7. Optional CactiSwap identity/shared-currency adapter.
-8. Final world artwork and interactions; Phaser only if justified.
+8. Final world artwork and interactions; Phaser only if justified. The Genetics Lab building should eventually evolve visually with its facility tier from Research Site through Research Bench, Microscope Station, Genetics Lab, Advanced Genetics Lab, and Research Facility. The planned production direction is stylized, hand-painted 3D; current illustrated world assets remain temporary.
 9. Deployment, PWA, optional mobile packaging and desktop/Steam support.
 
 Likely later technologies are Cloudflare Workers, PostgreSQL, Cloudflare R2, Tauri, and Capacitor or similar. These are directions, not instructions to install, connect, or deploy anything now.
@@ -68,6 +72,14 @@ Genetics research is permanent player knowledge keyed by clone-line ID. Specimen
 Early Genetics progression rewards distinct clone-line observations and idempotent first discoveries of species, genera, visible feature types, Shiny plants, hybrids, and visible multi-feature specimens. Specimen comparison remains useful at Level 5, but only the first valid comparison and first cross-species comparison award XP globally; arbitrary clone pairs are not a repeatable XP source. The intentionally small prototype catalog does not guarantee enough fixed discovery XP to reach Level 10. Future species, mutations, expeditions, wild populations, research contracts, and laboratory discoveries expand the same stable milestone system without changing the OSRS curve or adding grind rewards.
 
 Future research commands may require a lab tier, equipment, consumables, and server authority in addition to Genetics level and research state. Tissue sampling, extraction, genetic intervention, and actual clone verification remain later systems; current specimen comparison must not be presented as DNA verification.
+
+Genetics lab progression is separate from Genetics skill level. Tissue sampling unlocks at Genetics Level 40 and requires a Microscope Station (lab tier 2) or higher. Sampling never consumes a plant, creates a clone, or changes donor genetics, clone identity, features, or Shiny state. Tissue samples live outside seed inventory and permanently preserve donor specimen, clone-line, species, collector, and collection-time provenance. Sample preparation quality is a once-resolved gameplay rating rather than genetic potency.
+
+The provisional 24-hour sampling cooldown is keyed by physical specimen, while research knowledge and first-sampled-clone XP remain keyed by clone line. Repeat samples provide no recurring Genetics XP. Extraction remains deferred, and future economy-sensitive sampling, lab, and extraction outcomes should become server-authoritative.
+
+Tissue samples contain limited extraction material assigned once from their stored quality band: Poor 1 use, Standard 2, Good 3, and Excellent 3. Every valid extraction attempt consumes one use, including failure; invalid attempts consume nothing. Depleted samples remain as provenance history, and extraction never changes the donor's 24-hour physical-specimen sampling cooldown.
+
+Quantitative extraction requires Genetics Level 50 and a Tier 3 Genetics Lab. Its only current targets are Vigor, Growth Speed, Size, Flowering, and Mutation Tendency. Sample quality, extraction quality, and potency are separate stored gameplay values. Extracts preserve sample, donor specimen, clone-line, and species provenance, never carry Shiny, and cannot yet be applied to seeds. Feature or mutation extraction remains a future Level 60 system. Sample creation, uses, extraction outcomes, potency, consumption, and interventions must eventually become server-authoritative.
 
 ## Working conventions
 

@@ -17,8 +17,13 @@ import type { JournalStats, SpeciesDiscoveries } from '../types/journal'
 import { createCloneLine, createInitialCloneLineRegistry, registerActiveSpecimen, registerCloneLine } from '../features/genetics/cloneLineModel'
 import { hasValidGeneticFeatureStates, hasValidSpecialVariantStates } from '../features/genetics/geneticFeatureModel'
 import type { CloneLineRegistry } from '../types/cloneLine'
+import { getSpeciesById } from '../data/species'
 import type { GeneticsResearchState } from '../types/research'
-import { analyzeCloneLine, compareCloneLines, createGeneticsResearchState, observeCloneLine, type ResearchResult } from '../features/research/researchModel'
+import { analyzeCloneLine, compareCloneLines, createGeneticsResearchState, observeCloneLine, recordExtractionMilestones, recordTissueSamplingMilestones, type ResearchResult } from '../features/research/researchModel'
+import type { ExtractionAttempt, GeneticsLabState, GeneticsLabTierId, QuantitativeExtractTarget, TissueSample } from '../types/lab'
+import { addTissueSample, canUpgradeLab, createGeneticsLabState, createTissueSample, getSampleQualityBand, getTissueSamplingStatus, normalizeTissueSample } from '../features/lab/labModel'
+import { getLabTierDefinition } from '../features/lab/labConfig'
+import { canExtractQuantitative, createExtractionAttempt, quantitativeExtractTargets } from '../features/lab/extractionModel'
 
 export interface CollectedPlant extends Plant {
   collectedAt: string
@@ -38,6 +43,7 @@ export interface GameState {
   journalStats: JournalStats
   cloneLines: CloneLineRegistry
   geneticsResearch: GeneticsResearchState
+  geneticsLab: GeneticsLabState
 }
 
 export type GameAction =
@@ -53,6 +59,9 @@ export type GameAction =
   | { type: 'research/observed'; plantId: string; now: number }
   | { type: 'research/analyzed'; plantId: string; now: number }
   | { type: 'research/compared'; firstPlantId: string; secondPlantId: string; now: number }
+  | { type: 'lab/upgraded'; targetTier: GeneticsLabTierId; now: number }
+  | { type: 'sample/collected'; sample: TissueSample }
+  | { type: 'extraction/attempted'; attempt: ExtractionAttempt }
   | { type: 'progression/notice-dismissed'; noticeId: string }
 
 export function createInitialGameState(now = Date.now()): GameState {
@@ -111,6 +120,7 @@ export function createInitialGameState(now = Date.now()): GameState {
     journalStats: { shinyCloneLineIds: [] },
     cloneLines,
     geneticsResearch: createGeneticsResearchState(),
+    geneticsLab: createGeneticsLabState(),
   }
 }
 
@@ -232,6 +242,16 @@ export function breedPlants(state: GameState, parent1Id: string, parent2Id: stri
   const parent1 = state.ownedPlants.find((plant) => plant.id === parent1Id)
   const parent2 = state.ownedPlants.find((plant) => plant.id === parent2Id)
   return parent1 && parent2 ? createBredSeed(parent1, parent2, now) : null
+}
+
+export function collectTissueSampleForState(state: GameState, plantId: string, now: number): TissueSample | null {
+  const plant = state.ownedPlants.find((specimen) => specimen.id === plantId)
+  const level = getLevelFromXp(state.player.skills.genetics.xp)
+  if (!plant || !getTissueSamplingStatus(state.geneticsLab, level, plant.id, now).available) return null
+  return createTissueSample(plant, state.player.id, level, state.geneticsLab.tier, now)
+}
+export function extractFromSampleForState(state: GameState, sampleId: string, target: QuantitativeExtractTarget, now: number): ExtractionAttempt | null {
+  return createExtractionAttempt(state.geneticsLab, sampleId, target, getLevelFromXp(state.player.skills.genetics.xp), state.player.id, now)
 }
 
 export { getActiveListings, getListingForPlant }
@@ -457,6 +477,62 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
         compareCloneLines(state.geneticsResearch, first, second, geneticsLevel),
         action.now,
       )
+    }
+
+    case 'lab/upgraded': {
+      if (!canUpgradeLab(state.geneticsLab, action.targetTier, state.player.tokens)) return state
+      const cost = getLabTierDefinition(action.targetTier).cost
+      const timestamp = new Date(action.now).toISOString()
+      return {
+        ...state,
+        player: { ...state.player, tokens: state.player.tokens - cost },
+        geneticsLab: { ...state.geneticsLab, tier: action.targetTier, installedAt: state.geneticsLab.installedAt ?? timestamp, upgradedAt: timestamp },
+      }
+    }
+
+    case 'sample/collected': {
+      const plant = state.ownedPlants.find((specimen) => specimen.id === action.sample.donorSpecimenId)
+      const sampleTime = Date.parse(action.sample.collectedAt)
+      const level = getLevelFromXp(state.player.skills.genetics.xp)
+      if (!plant
+        || !action.sample.id
+        || !Number.isFinite(sampleTime)
+        || action.sample.collectorId !== state.player.id
+        || action.sample.donorCloneLineId !== plant.cloneLineId
+        || action.sample.donorSpeciesId !== plant.speciesId
+        || !getSpeciesById(action.sample.donorSpeciesId)
+        || !state.cloneLines[plant.cloneLineId]
+        || action.sample.sampleType !== 'stem-tissue'
+        || action.sample.status !== 'stored'
+        || action.sample.initialUses < 1
+        || action.sample.initialUses > 3
+        || action.sample.remainingUses !== action.sample.initialUses
+        || !Number.isFinite(action.sample.quality)
+        || action.sample.quality < 0
+        || action.sample.quality > 100
+        || action.sample.qualityBand !== getSampleQualityBand(action.sample.quality)
+        || !getTissueSamplingStatus(state.geneticsLab, level, plant.id, sampleTime).available) return state
+      const geneticsLab = addTissueSample(state.geneticsLab, action.sample)
+      if (!geneticsLab) return state
+      const nextState = { ...state, geneticsLab }
+      const milestoneResult = recordTissueSamplingMilestones(state.geneticsResearch, plant.cloneLineId, action.sample.qualityBand)
+      return milestoneResult.changed ? applyResearchResult(nextState, milestoneResult, sampleTime) : nextState
+    }
+
+    case 'extraction/attempted': {
+      const storedSample = state.geneticsLab.tissueSamples.find((entry) => entry.id === action.attempt.sampleId)
+      const sample = storedSample ? normalizeTissueSample(storedSample) : undefined
+      const level = getLevelFromXp(state.player.skills.genetics.xp)
+      if (!sample || !canExtractQuantitative(state.geneticsLab, level, sample) || !quantitativeExtractTargets.includes(action.attempt.target) || state.geneticsLab.extractionAttemptIds.includes(action.attempt.id)) return state
+      const extract = action.attempt.extract
+      if ((action.attempt.outcome === 'failure' && extract) || (action.attempt.outcome !== 'failure' && !extract)) return state
+      if (extract && (extract.sourceTissueSampleId !== sample.id || extract.target !== action.attempt.target || extract.donorSpecimenId !== sample.donorSpecimenId || extract.donorCloneLineId !== sample.donorCloneLineId || extract.donorSpeciesId !== sample.donorSpeciesId || extract.researcherId !== state.player.id || state.geneticsLab.geneticExtracts.some((entry) => entry.id === extract.id))) return state
+      const remainingUses = sample.remainingUses - 1
+      const geneticsLab = { ...state.geneticsLab, tissueSamples: state.geneticsLab.tissueSamples.map((entry) => entry.id === sample.id ? { ...entry, remainingUses, status: remainingUses === 0 ? 'depleted' as const : 'stored' as const, depletedAt: remainingUses === 0 ? action.attempt.attemptedAt : undefined } : entry), geneticExtracts: extract ? [...state.geneticsLab.geneticExtracts, extract] : state.geneticsLab.geneticExtracts, extractionAttemptIds: [...state.geneticsLab.extractionAttemptIds, action.attempt.id] }
+      const nextState = { ...state, geneticsLab }
+      if (!extract) return nextState
+      const milestones = recordExtractionMilestones(state.geneticsResearch, extract.target, extract.outcome, extract.extractionQualityBand)
+      return milestones.changed ? applyResearchResult(nextState, milestones, Date.parse(action.attempt.attemptedAt)) : nextState
     }
 
     case 'progression/notice-dismissed': {

@@ -10,6 +10,8 @@ import {
   createInitialGameState,
   gameStateReducer,
   getSeedQuantity,
+  collectTissueSampleForState,
+  extractFromSampleForState,
 } from './gameState'
 import { canCancelListing, canListPlant, createMarketplaceListing } from '../features/marketplace/marketplaceModel'
 import { canSellPlantToNpc, getNpcSaleValue } from '../features/marketplace/sellModel'
@@ -83,6 +85,21 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     },
     comparePlants(firstPlantId, secondPlantId) {
       dispatch({ type: 'research/compared', firstPlantId, secondPlantId, now: Date.now() })
+    },
+    upgradeLab(targetTier) {
+      dispatch({ type: 'lab/upgraded', targetTier, now: Date.now() })
+    },
+    collectTissueSample(plantId) {
+      const sample = collectTissueSampleForState(state, plantId, Date.now())
+      if (!sample) return null
+      dispatch({ type: 'sample/collected', sample })
+      return sample
+    },
+    extractFromSample(sampleId, target) {
+      const attempt = extractFromSampleForState(state, sampleId, target, Date.now())
+      if (!attempt) return null
+      dispatch({ type: 'extraction/attempted', attempt })
+      return attempt
     },
     dismissLevelUp(noticeId) {
       dispatch({ type: 'progression/notice-dismissed', noticeId })

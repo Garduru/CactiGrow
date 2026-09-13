@@ -57,10 +57,12 @@ export function ResearchLogPage() {
           {records.map((record) => {
             const ownedPlant = state.ownedPlants.find((plant) => plant.cloneLineId === record.cloneLineId)
             const knowledge = projectGeneticKnowledge(ownedPlant, record, level)
+            const sampleCount = state.geneticsLab.tissueSamples.filter((sample) => sample.donorCloneLineId === record.cloneLineId).length
             return (
               <article className="research-record" key={record.cloneLineId}>
                 <header><div><span>{getResearchDepthDefinition(record.analysisDepth).label}</span><h2>{knowledge.speciesName ?? 'Unknown cactus'}</h2><em>{knowledge.scientificName}</em></div><strong>{ownedPlant ? 'Owned specimen available' : 'Historical record'}</strong></header>
                 <GeneticKnowledgeView knowledge={knowledge} />
+                <p className="research-record__samples">Tissue samples collected: {sampleCount}</p>
                 <dl className="research-record__dates"><div><dt>First analyzed</dt><dd>{new Date(record.firstAnalyzedAt).toLocaleDateString()}</dd></div><div><dt>Latest analysis</dt><dd>{new Date(record.lastAnalyzedAt).toLocaleDateString()}</dd></div></dl>
               </article>
             )

@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getLevelFromXp } from '../progression/progressionModel'
 import type { CollectedPlant } from '../../game/gameState'
 import { useGameState } from '../../game/useGameState'
 import { getNextResearchStep, projectGeneticKnowledge } from './researchModel'
 import { GeneticKnowledgeView } from './GeneticKnowledgeView'
+import { getTissueSamplingStatus } from '../lab/labModel'
+import { TISSUE_SAMPLING_LAB_TIER, TISSUE_SAMPLING_LEVEL, getLabTierDefinition } from '../lab/labConfig'
 
 interface ResearchWorkflowProps {
   plant: CollectedPlant
@@ -11,7 +13,10 @@ interface ResearchWorkflowProps {
 }
 
 export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
-  const { state, observePlant, analyzePlant } = useGameState()
+  const { state, observePlant, analyzePlant, collectTissueSample } = useGameState()
+  const [sampleNotice, setSampleNotice] = useState('')
+  const [samplingNow, setSamplingNow] = useState(() => Date.now())
+  const samplingRef = useRef(false)
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const level = getLevelFromXp(state.player.skills.genetics.xp)
@@ -19,6 +24,7 @@ export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
   const knowledge = projectGeneticKnowledge(plant, record, level)
   const nextStep = getNextResearchStep(record)
   const canAdvance = !record || level >= nextStep.requiredLevel
+  const samplingStatus = getTissueSamplingStatus(state.geneticsLab, level, plant.id, samplingNow)
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -43,6 +49,15 @@ export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
   function advanceResearch() {
     if (record) analyzePlant(plant.id)
     else observePlant(plant.id)
+  }
+
+  function samplePlant() {
+    if (samplingRef.current) return
+    samplingRef.current = true
+    const sample = collectTissueSample(plant.id)
+    setSamplingNow(Date.now())
+    setSampleNotice(sample ? `${sample.qualityBand} tissue sample stored.` : 'The specimen is not currently eligible for sampling.')
+    samplingRef.current = false
   }
 
   return (
@@ -77,6 +92,16 @@ export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
             </button>
           )}
         </footer>
+        <section className="research-sampling" aria-labelledby="sampling-title">
+          <div><h3 id="sampling-title">Tissue Sampling</h3><p>Creates a provenance-preserving research sample without changing or consuming the plant.</p></div>
+          <ul>
+            <li>{level >= TISSUE_SAMPLING_LEVEL ? 'Genetics Level requirement met' : `Requires Genetics Level ${TISSUE_SAMPLING_LEVEL}`}</li>
+            <li>{state.geneticsLab.tier >= TISSUE_SAMPLING_LAB_TIER ? 'Microscope Station requirement met' : `Requires ${getLabTierDefinition(TISSUE_SAMPLING_LAB_TIER).name}`}</li>
+            {samplingStatus.cooldownUntil && <li>Recently sampled · available {new Date(samplingStatus.cooldownUntil).toLocaleString()}</li>}
+          </ul>
+          <button className="nursery-button" type="button" onClick={samplePlant} disabled={!samplingStatus.available}>Collect Tissue Sample</button>
+          {sampleNotice && <p role="status">{sampleNotice}</p>}
+        </section>
       </section>
     </div>
   )

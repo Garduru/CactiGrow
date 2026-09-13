@@ -34,6 +34,16 @@ export function LocationArt({ location }: { location: FarmLocationId }) {
           <path d="M32 133V159M50 144V170M26 146 58 165" stroke="#ac8a62" strokeWidth="5" strokeLinecap="round" />
           <ellipse cx="222" cy="154" rx="14" ry="8" fill="#a28868" />
         </g>
+      ) : location === 'lab' ? (
+        <g stroke="#bba17a" strokeWidth="3" strokeLinejoin="round">
+          <path d="M48 91 103 47H203L238 88V158H48Z" fill="#4d3b30" />
+          <path d="M103 47 132 88H238L203 47Z" fill="#789183" fillOpacity=".55" />
+          <path d="M132 88V158M177 88V158M103 47V158M48 91H238" fill="none" />
+          <path d="M58 105H98V145H58ZM184 105H226V145H184Z" fill="#9fb29d" fillOpacity=".35" />
+          <path d="M113 158V113H151V158" fill="#2c2923" />
+          <circle cx="194" cy="69" r="8" fill="#c77b4b" /><path d="m194 58 0 22m-11-11h22" stroke="#f0c18f" strokeWidth="2" />
+          <Cactus x={78} y={143} scale={.48} /><Cactus x={211} y={142} scale={.42} />
+        </g>
       ) : (
         <g strokeLinejoin="round">
           <path d="M58 84H222V158H58Z" fill="#654630" stroke="#af8455" strokeWidth="3" />

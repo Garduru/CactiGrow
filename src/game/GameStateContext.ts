@@ -3,6 +3,7 @@ import type { InventoryItem } from '../types/inventory'
 import type { GameState } from './gameState'
 import type { BredSeed } from '../types/bredSeed'
 import type { MarketplaceListing } from '../types/marketplace'
+import type { ExtractionAttempt, GeneticsLabTierId, QuantitativeExtractTarget, TissueSample } from '../types/lab'
 
 export interface GameStateContextValue {
   state: GameState
@@ -19,6 +20,9 @@ export interface GameStateContextValue {
   observePlant: (plantId: string) => void
   analyzePlant: (plantId: string) => void
   comparePlants: (firstPlantId: string, secondPlantId: string) => void
+  upgradeLab: (targetTier: GeneticsLabTierId) => void
+  collectTissueSample: (plantId: string) => TissueSample | null
+  extractFromSample: (sampleId: string, target: QuantitativeExtractTarget) => ExtractionAttempt | null
   dismissLevelUp: (noticeId: string) => void
 }
 
