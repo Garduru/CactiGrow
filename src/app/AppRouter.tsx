@@ -7,14 +7,13 @@ import { CollectionPage } from '../features/collection/CollectionPage'
 import { InventoryPage } from '../features/inventory/InventoryPage'
 import { ShopPage } from '../features/shop/ShopPage'
 import { MarketplacePage } from '../features/marketplace/MarketplacePage'
+import { GameHeader } from '../components/layout/GameHeader'
 
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <header>
-        <h1>CactiGrow</h1>
-        <GameNav />
-      </header>
+      <GameHeader />
+      <GameNav />
 
       <main>
         <Routes>

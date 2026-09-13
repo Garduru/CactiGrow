@@ -1,0 +1,152 @@
+.game-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  min-height: var(--cg-header-height);
+  background: rgba(16, 13, 11, 0.96);
+  border-bottom: 1px solid var(--cg-border);
+  backdrop-filter: blur(12px);
+}
+
+.game-header__inner {
+  width: min(100% - 32px, var(--cg-content-width));
+  min-height: var(--cg-header-height);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.game-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.game-header__cactus {
+  font-size: 30px;
+}
+
+.game-header__brand div {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-header__brand strong {
+  color: var(--cg-text);
+  font-size: 18px;
+}
+
+.game-header__brand span:not(.game-header__cactus) {
+  color: var(--cg-text-muted);
+  font-size: 11px;
+}
+
+.game-header__player {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 20px;
+  flex: 1;
+}
+
+.game-header__tokens {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-header__tokens span {
+  color: var(--cg-text-muted);
+  font-size: 11px;
+}
+
+.game-header__tokens strong {
+  color: var(--cg-text);
+  font-size: 14px;
+}
+
+.game-header__level {
+  width: 180px;
+}
+
+.game-header__level-title {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.game-header__level-title strong {
+  color: var(--cg-text);
+}
+
+.game-header__level-title span {
+  color: var(--cg-text-muted);
+}
+
+.progress__info {
+  display: flex;
+  justify-content: flex-end;
+  color: var(--cg-text-muted);
+  font-size: 10px;
+  margin-bottom: 3px;
+}
+
+.progress__track {
+  height: 6px;
+  overflow: hidden;
+  background: var(--cg-surface-raised);
+  border-radius: 999px;
+}
+
+.progress__fill {
+  height: 100%;
+  background: var(--cg-accent);
+  border-radius: inherit;
+  transition: width 200ms ease;
+}
+
+.cactiswap-button {
+  padding: 9px 13px;
+  color: var(--cg-text);
+  background: var(--cg-surface-raised);
+  border: 1px solid var(--cg-border);
+  border-radius: var(--cg-radius-sm);
+  cursor: pointer;
+}
+
+.cactiswap-button:hover {
+  background: var(--cg-surface-hover);
+}
+
+@media (max-width: 700px) {
+  .game-header__inner {
+    width: min(100% - 20px, var(--cg-content-width));
+    gap: 10px;
+  }
+
+  .game-header__brand div span {
+    display: none;
+  }
+
+  .game-header__player {
+    gap: 10px;
+  }
+
+  .game-header__tokens span,
+  .game-header__level-title span {
+    display: none;
+  }
+
+  .game-header__level {
+    width: 100px;
+  }
+
+  .cactiswap-button {
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+}
