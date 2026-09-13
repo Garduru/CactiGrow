@@ -1,6 +1,7 @@
 import type { BredSeed } from '../../types/bredSeed'
 import type { PlantGenetics } from '../../types/genetics'
 import type { Plant } from '../../types/plant'
+import { getSpeciesById } from '../../data/species'
 
 export const GENETIC_MIN = 0
 export const GENETIC_MAX = 100
@@ -14,6 +15,8 @@ function clampGenetic(value: number): number {
 }
 
 export function canBreed(parent1: Plant | undefined, parent2: Plant | undefined): boolean {
+  const species1 = parent1 ? getSpeciesById(parent1.speciesId) : undefined
+  const species2 = parent2 ? getSpeciesById(parent2.speciesId) : undefined
   return Boolean(
     parent1
     && parent2
@@ -21,7 +24,10 @@ export function canBreed(parent1: Plant | undefined, parent2: Plant | undefined)
     && parent1.stage === 'mature'
     && parent2.stage === 'mature'
     && !parent1.isListedForSale
-    && !parent2.isListedForSale,
+    && !parent2.isListedForSale
+    && species1
+    && species2
+    && species1.genus === species2.genus,
   )
 }
 
@@ -49,9 +55,26 @@ export function inheritGenetics(
   })) as unknown as PlantGenetics
 }
 
-// Cross-species breeding currently follows Parent 1. This isolated rule can be replaced later.
-export function resolveOffspringSpecies(parent1: Plant): string {
-  return parent1.speciesId
+export interface OffspringSpeciesResolution {
+  speciesId: string
+  parentSpeciesIds: [string, string]
+  isHybrid: boolean
+}
+
+// Cross-species hybrids temporarily use Parent 1 for display while retaining both source species.
+export function resolveOffspringSpecies(
+  parent1: Plant,
+  parent2: Plant,
+): OffspringSpeciesResolution | null {
+  const species1 = getSpeciesById(parent1.speciesId)
+  const species2 = getSpeciesById(parent2.speciesId)
+  if (!species1 || !species2 || species1.genus !== species2.genus) return null
+
+  return {
+    speciesId: parent1.speciesId,
+    parentSpeciesIds: [parent1.speciesId, parent2.speciesId],
+    isHybrid: parent1.speciesId !== parent2.speciesId,
+  }
 }
 
 export function createBredSeed(
@@ -62,10 +85,12 @@ export function createBredSeed(
   createId: () => string = () => crypto.randomUUID(),
 ): BredSeed | null {
   if (!canBreed(parent1, parent2)) return null
+  const speciesResolution = resolveOffspringSpecies(parent1, parent2)
+  if (!speciesResolution) return null
 
   return {
     id: createId(),
-    speciesId: resolveOffspringSpecies(parent1),
+    ...speciesResolution,
     createdAt: new Date(now).toISOString(),
     genetics: inheritGenetics(parent1, parent2, random),
     parentPlantIds: [parent1.id, parent2.id],

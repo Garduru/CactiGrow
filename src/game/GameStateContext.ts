@@ -16,6 +16,7 @@ export interface GameStateContextValue {
   sellPlantToNpc: (plantId: string) => number | null
   listPlant: (plantId: string, price: number) => MarketplaceListing | null
   cancelListing: (listingId: string) => boolean
+  dismissLevelUp: (noticeId: string) => void
 }
 
 export const GameStateContext = createContext<GameStateContextValue | null>(null)

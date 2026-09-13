@@ -58,7 +58,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const plant = state.ownedPlants.find((specimen) => specimen.id === plantId)
       const saleValue = plant ? getNpcSaleValue(plant) : null
       if (saleValue === null) return null
-      dispatch({ type: 'plant/sold-to-npc', plantId, expectedValue: saleValue })
+      dispatch({ type: 'plant/sold-to-npc', plantId, expectedValue: saleValue, now: Date.now() })
       return saleValue
     },
     listPlant(plantId, price) {
@@ -74,6 +74,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       if (!canCancelListing(state, listingId)) return false
       dispatch({ type: 'marketplace/cancelled', listingId, now: Date.now() })
       return true
+    },
+    dismissLevelUp(noticeId) {
+      dispatch({ type: 'progression/notice-dismissed', noticeId })
     },
   }), [state])
 

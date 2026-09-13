@@ -6,4 +6,6 @@ export interface BredSeed {
   createdAt: string
   genetics: PlantGenetics
   parentPlantIds: [string, string]
+  parentSpeciesIds: [string, string]
+  isHybrid: boolean
 }

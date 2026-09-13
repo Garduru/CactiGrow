@@ -9,6 +9,8 @@ import { MarketplacePage } from '../features/marketplace/MarketplacePage'
 import { GameHeader } from '../components/layout/GameHeader'
 import { UtilityMenu } from '../components/layout/UtilityMenu'
 import { PageLayout } from '../components/layout/PageLayout'
+import { AchievementsPage } from '../features/achievements/AchievementsPage'
+import { LevelUpNotice } from '../features/progression/LevelUpNotice'
 
 export function AppRouter() {
   return (
@@ -27,12 +29,14 @@ export function AppRouter() {
             <Route path="/inventory" element={<InventoryPage />} />
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/market" element={<MarketplacePage />} />
+            <Route path="/achievements" element={<AchievementsPage />} />
             <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
           </Route>
         </Routes>
       </main>
 
       <UtilityMenu />
+      <LevelUpNotice />
     </BrowserRouter>
   )
 }

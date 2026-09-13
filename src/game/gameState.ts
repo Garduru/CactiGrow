@@ -2,29 +2,30 @@ import { canBreed, createBredSeed, hasValidGenetics, resolveOffspringSpecies } f
 import { calculateNurseryGrowth, createInitialNurserySlots, createNurseryPlant, createNurseryPlantFromBredSeed, type NurserySlotState } from '../features/nursery/nurseryModel'
 import { canCancelListing, canListPlant, getActiveListings, getListingForPlant } from '../features/marketplace/marketplaceModel'
 import { canSellPlantToNpc, getNpcSaleValue } from '../features/marketplace/sellModel'
+import { createAchievementProgress, evaluateAchievements, type ProgressionEventCounts } from '../features/achievements/achievementsModel'
+import { addXp, getLevelFromXp } from '../features/progression/progressionModel'
+import { XP_REWARDS, type XpRewardSource } from '../features/progression/rewardConfig'
+import type { AchievementProgress } from '../types/achievement'
 import type { BredSeed } from '../types/bredSeed'
 import type { InventoryItem } from '../types/inventory'
 import type { MarketplaceListing } from '../types/marketplace'
 import type { Plant } from '../types/plant'
+import type { PlayerState } from '../types/player'
 
 export interface CollectedPlant extends Plant {
   collectedAt: string
 }
 
 export interface GameState {
-  player: {
-    id: string
-    username: string
-    tokens: number
-    level: number
-    xp: number
-    xpRequired: number
-  }
+  player: PlayerState
   inventory: InventoryItem[]
   nurserySlots: NurserySlotState[]
   ownedPlants: CollectedPlant[]
   bredSeeds: BredSeed[]
   marketplaceListings: MarketplaceListing[]
+  achievements: AchievementProgress[]
+  progressionEvents: ProgressionEventCounts
+  levelUpNotice: { id: string; oldLevel: number; newLevel: number } | null
 }
 
 export type GameAction =
@@ -34,9 +35,10 @@ export type GameAction =
   | { type: 'inventory/removed'; itemId: string; quantity: number }
   | { type: 'offspring/created'; seed: BredSeed }
   | { type: 'bred-seed/planted'; slotId: string; seedId: string; now: number }
-  | { type: 'plant/sold-to-npc'; plantId: string; expectedValue: number }
+  | { type: 'plant/sold-to-npc'; plantId: string; expectedValue: number; now: number }
   | { type: 'marketplace/listed'; listing: MarketplaceListing }
   | { type: 'marketplace/cancelled'; listingId: string; now: number }
+  | { type: 'progression/notice-dismissed'; noticeId: string }
 
 export function createInitialGameState(now = Date.now()): GameState {
   return {
@@ -44,9 +46,7 @@ export function createInitialGameState(now = Date.now()): GameState {
       id: 'local-player',
       username: 'Player',
       tokens: 1216,
-      level: 4,
       xp: 315,
-      xpRequired: 388,
     },
     inventory: [
       { id: 'seed-echinopsis-pachanoi', itemType: 'seed', itemKey: 'echinopsis-pachanoi', quantity: 4 },
@@ -56,6 +56,42 @@ export function createInitialGameState(now = Date.now()): GameState {
     ownedPlants: [],
     bredSeeds: [],
     marketplaceListings: [],
+    achievements: createAchievementProgress(),
+    progressionEvents: {
+      plantSeed: 0,
+      plantBredSeed: 0,
+      collectPlant: 0,
+      breedPlant: 0,
+      npcSale: 0,
+      marketplaceListing: 0,
+    },
+    levelUpNotice: null,
+  }
+}
+
+export function awardXpForEvent(
+  state: GameState,
+  source: XpRewardSource,
+  occurredAt: number,
+): GameState {
+  const nextXp = addXp(state.player.xp, XP_REWARDS[source])
+  if (nextXp === null) return state
+  const oldLevel = getLevelFromXp(state.player.xp)
+  const newLevel = getLevelFromXp(nextXp)
+  const progressionEvents = {
+    ...state.progressionEvents,
+    [source]: state.progressionEvents[source] + 1,
+  }
+  const completedAt = new Date(occurredAt).toISOString()
+
+  return {
+    ...state,
+    player: { ...state.player, xp: nextXp },
+    progressionEvents,
+    achievements: evaluateAchievements(state.achievements, progressionEvents, nextXp, completedAt),
+    levelUpNotice: newLevel > oldLevel
+      ? { id: `${source}-${occurredAt}-${newLevel}`, oldLevel, newLevel }
+      : state.levelUpNotice,
   }
 }
 
@@ -97,7 +133,7 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
     case 'seed/planted': {
       if (!canPlantSeed(state, action.slotId, action.speciesId)) return state
 
-      return {
+      return awardXpForEvent({
         ...state,
         inventory: state.inventory.map((item) => (
           item.itemType === 'seed' && item.itemKey === action.speciesId
@@ -109,7 +145,7 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
             ? { ...slot, plant: createNurseryPlant(action.speciesId, action.now) }
             : slot
         )),
-      }
+      }, 'plantSeed', action.now)
     }
 
     case 'plant/collected': {
@@ -118,7 +154,7 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
       if (!plant) return state
 
       const collectedAt = new Date(action.now).toISOString()
-      return {
+      return awardXpForEvent({
         ...state,
         nurserySlots: state.nurserySlots.map((slot) => (
           slot.id === action.slotId ? { ...slot, plant: null } : slot
@@ -133,7 +169,7 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
             collectedAt,
           },
         ],
-      }
+      }, 'collectPlant', action.now)
     }
 
     case 'inventory/added': {
@@ -166,22 +202,32 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
       const parent1 = state.ownedPlants.find((plant) => plant.id === parent1Id)
       const parent2 = state.ownedPlants.find((plant) => plant.id === parent2Id)
       if (!parent1 || !parent2 || !canBreed(parent1, parent2) || !hasValidGenetics(action.seed.genetics)) return state
-      if (action.seed.speciesId !== resolveOffspringSpecies(parent1)) return state
+      if (!Number.isFinite(Date.parse(action.seed.createdAt))) return state
+      const speciesResolution = resolveOffspringSpecies(parent1, parent2)
+      if (!speciesResolution) return state
+      if (action.seed.speciesId !== speciesResolution.speciesId) return state
+      if (action.seed.isHybrid !== speciesResolution.isHybrid) return state
+      if (action.seed.parentSpeciesIds[0] !== speciesResolution.parentSpeciesIds[0]
+        || action.seed.parentSpeciesIds[1] !== speciesResolution.parentSpeciesIds[1]) return state
       if (state.bredSeeds.some((seed) => seed.id === action.seed.id)) return state
-      return { ...state, bredSeeds: [...state.bredSeeds, action.seed] }
+      return awardXpForEvent(
+        { ...state, bredSeeds: [...state.bredSeeds, action.seed] },
+        'breedPlant',
+        Date.parse(action.seed.createdAt),
+      )
     }
 
     case 'bred-seed/planted': {
       if (!canPlantBredSeed(state, action.slotId, action.seedId)) return state
       const seed = state.bredSeeds.find((entry) => entry.id === action.seedId)
       if (!seed) return state
-      return {
+      return awardXpForEvent({
         ...state,
         bredSeeds: state.bredSeeds.filter((entry) => entry.id !== action.seedId),
         nurserySlots: state.nurserySlots.map((slot) => slot.id === action.slotId
           ? { ...slot, plant: createNurseryPlantFromBredSeed(seed, action.now) }
           : slot),
-      }
+      }, 'plantBredSeed', action.now)
     }
 
     case 'plant/sold-to-npc': {
@@ -193,11 +239,11 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
       const nextTokens = state.player.tokens + saleValue
       if (!Number.isSafeInteger(nextTokens) || nextTokens < 0) return state
 
-      return {
+      return awardXpForEvent({
         ...state,
         player: { ...state.player, tokens: nextTokens },
         ownedPlants: state.ownedPlants.filter((specimen) => specimen.id !== action.plantId),
-      }
+      }, 'npcSale', action.now)
     }
 
     case 'marketplace/listed': {
@@ -209,13 +255,13 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
       const plant = state.ownedPlants.find((specimen) => specimen.id === listing.plantId)
       if (!plant) return state
 
-      return {
+      return awardXpForEvent({
         ...state,
         ownedPlants: state.ownedPlants.map((specimen) => specimen.id === listing.plantId
           ? { ...specimen, isListedForSale: true }
           : specimen),
         marketplaceListings: [...state.marketplaceListings, listing],
-      }
+      }, 'marketplaceListing', Date.parse(listing.createdAt))
     }
 
     case 'marketplace/cancelled': {
@@ -233,6 +279,11 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
           ? { ...entry, status: 'cancelled', cancelledAt }
           : entry),
       }
+    }
+
+    case 'progression/notice-dismissed': {
+      if (state.levelUpNotice?.id !== action.noticeId) return state
+      return { ...state, levelUpNotice: null }
     }
   }
 }

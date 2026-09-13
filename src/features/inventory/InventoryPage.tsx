@@ -23,7 +23,7 @@ export function InventoryPage() {
         })}
         {state.bredSeeds.map((seed) => {
           const seedSpecies = getSpeciesById(seed.speciesId)
-          return <article className="inventory-item inventory-item--bred" key={seed.id}><div><strong>{seedSpecies?.commonName ?? 'Bred offspring'} seed</strong><span>Unique bred seed · {seed.id}</span><small>Parents: {seed.parentPlantIds.join(' + ')}</small></div><span className="inventory-item__quantity">Bred</span></article>
+          return <article className="inventory-item inventory-item--bred" key={seed.id}><div><strong>{seedSpecies?.commonName ?? 'Bred offspring'} seed</strong><span>Unique {seed.isHybrid ? 'hybrid ' : ''}bred seed · {seed.id}</span><small>Parents: {seed.parentPlantIds.join(' + ')}</small></div><span className="inventory-item__quantity">{seed.isHybrid ? 'Hybrid' : 'Bred'}</span></article>
         })}
       </div>
     </section>

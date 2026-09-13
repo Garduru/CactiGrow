@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom'
 import { getTotalSeedQuantity } from '../../game/gameState'
 import { useGameState } from '../../game/useGameState'
 import { ProgressBar } from '../ui/ProgressBar'
+import { getProgressionSnapshot } from '../../features/progression/progressionModel'
 
 export function GameHeader() {
   const { state } = useGameState()
   const { player } = state
+  const progression = getProgressionSnapshot(player.xp)
 
   return (
     <header className="game-header">
@@ -28,15 +30,28 @@ export function GameHeader() {
 
           <div className="game-header__level">
             <div className="game-header__level-title">
-              <strong>Lv. {player.level}</strong>
+              <strong>{progression.isMaxLevel ? 'Lv. 99 MAX' : `Lv. ${progression.level}`}</strong>
               <span>{player.username}</span>
             </div>
 
-            <ProgressBar
-              value={player.xp}
-              max={player.xpRequired}
-              label="XP"
-            />
+            {progression.isMaxLevel ? (
+              <ProgressBar
+                value={1}
+                max={1}
+                label="XP"
+                displayValue="MAX"
+                ariaLabel="Experience: maximum level"
+                ariaValueText={`${progression.totalXp.toLocaleString()} total XP, maximum level`}
+              />
+            ) : (
+              <ProgressBar
+                value={progression.progressXp}
+                max={progression.requiredXp}
+                label="XP"
+                ariaLabel={`Level ${progression.level} experience progress`}
+                ariaValueText={`${progression.progressXp.toLocaleString()} of ${progression.requiredXp.toLocaleString()} XP toward level ${progression.level + 1}; ${progression.totalXp.toLocaleString()} total XP`}
+              />
+            )}
           </div>
         </div>
       </div>

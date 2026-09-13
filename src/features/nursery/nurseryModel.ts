@@ -76,6 +76,8 @@ export function createNurseryPlantFromBredSeed(seed: BredSeed, now: number): Nur
     lastUpdatedAt: timestamp,
     genetics: seed.genetics,
     parentPlantIds: seed.parentPlantIds,
+    parentSpeciesIds: seed.parentSpeciesIds,
+    isHybrid: seed.isHybrid,
     isHarvestable: false,
     isListedForSale: false,
   }

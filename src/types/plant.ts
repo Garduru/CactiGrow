@@ -15,6 +15,8 @@ export interface Plant {
   genetics: PlantGenetics
 
   parentPlantIds?: [string, string]
+  parentSpeciesIds?: [string, string]
+  isHybrid?: boolean
 
   isHarvestable: boolean
   isListedForSale: boolean

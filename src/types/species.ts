@@ -9,6 +9,7 @@ export interface Species {
   id: string
   commonName: string
   scientificName: string
+  genus: string
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary'
   growthTimeHours: number
   baseValue: number

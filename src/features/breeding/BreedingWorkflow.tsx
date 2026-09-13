@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getSpeciesById } from '../../data/species'
 import type { CollectedPlant } from '../../game/gameState'
 import { useGameState } from '../../game/useGameState'
 import type { BredSeed } from '../../types/bredSeed'
-import { previewOffspringGenetics } from './breedingModel'
+import { canBreed, previewOffspringGenetics, resolveOffspringSpecies } from './breedingModel'
 
 interface BreedingWorkflowProps {
   parent1Id: string
@@ -25,6 +25,7 @@ function ParentCard({ plant }: { plant: CollectedPlant }) {
     <div className="breeding-parent">
       <strong>{species?.commonName ?? 'Unknown cactus'}</strong>
       <em>{species?.scientificName}</em>
+      {species && <small>Genus: {species.genus}</small>}
       <small>{plant.id}</small>
       <div className="breeding-traits">
         {traits.map(([label, key]) => <span key={key}>{label} <b>{plant.genetics[key]}</b></span>)}
@@ -38,17 +39,17 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
   const { state, breedPlants } = useGameState()
   const [parent2Id, setParent2Id] = useState<string | null>(null)
   const [result, setResult] = useState<BredSeed | null>(null)
+  const [validationError, setValidationError] = useState('')
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const parent1 = state.ownedPlants.find((plant) => plant.id === parent1Id)
   const parent2 = state.ownedPlants.find((plant) => plant.id === parent2Id)
-  const eligible = state.ownedPlants.filter((plant) => (
-    plant.id !== parent1Id && plant.stage === 'mature' && !plant.isListedForSale
-  ))
-  const preview = useMemo(
-    () => parent1 && parent2 ? previewOffspringGenetics(parent1, parent2) : null,
-    [parent1, parent2],
-  )
+  const eligible = state.ownedPlants.filter((plant) => canBreed(parent1, plant))
+  const pairIsCompatible = canBreed(parent1, parent2)
+  const speciesPreview = parent1 && parent2 ? resolveOffspringSpecies(parent1, parent2) : null
+  const preview = parent1 && parent2 && pairIsCompatible
+    ? previewOffspringGenetics(parent1, parent2)
+    : null
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -86,7 +87,12 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
   function confirmBreed() {
     if (!parent2Id) return
     const seed = breedPlants(parent1Id, parent2Id)
-    if (seed) setResult(seed)
+    if (seed) {
+      setResult(seed)
+      setValidationError('')
+    } else {
+      setValidationError('These specimens are no longer compatible or eligible to breed.')
+    }
   }
 
   return (
@@ -124,11 +130,13 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
           <div className="breeding-result">
             <span className="nursery-stage nursery-stage--mature">Seed created</span>
             <h3>{getSpeciesById(result.speciesId)?.commonName ?? 'Offspring'} seed</h3>
+            {result.isHybrid && <p><strong>Hybrid offspring</strong> from two species in the same genus.</p>}
             <p>Added to Inventory as a unique bred seed.</p>
             <div className="breeding-traits">
               {traits.map(([label, key]) => <span key={key}>{label} <b>{result.genetics[key]}</b></span>)}
             </div>
             <small>Parents: {result.parentPlantIds.join(' + ')}</small>
+            <small>Parent species: {result.parentSpeciesIds.map((id) => getSpeciesById(id)?.scientificName ?? id).join(' + ')}</small>
             <button className="nursery-button" type="button" onClick={onClose}>Finish</button>
           </div>
         ) : (
@@ -151,9 +159,16 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
                   </div>
                 ) : (
                   <p className="breeding-empty">
-                    No other mature specimens are eligible yet. Collect another plant from the Nursery first.
+                    No compatible breeding partner available. Collect another mature specimen from the same genus to breed.
                   </p>
                 )}
+              </section>
+            ) : !pairIsCompatible ? (
+              <section className="breeding-section">
+                <p className="breeding-empty" role="alert">
+                  The selected partner is no longer compatible or eligible. Choose another specimen from the same genus.
+                </p>
+                <button type="button" onClick={() => { setParent2Id(null); setValidationError('') }}>Choose another partner</button>
               </section>
             ) : (
               <>
@@ -169,6 +184,7 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
                 </section>
                 <section className="breeding-section">
                   <h3>Expected offspring</h3>
+                  {speciesPreview?.isHybrid && <p><strong>Hybrid:</strong> both parent species will be preserved in its record.</p>}
                   <p>Values center on both parents. Final inheritance includes bounded variation and a chance of mutation.</p>
                   {preview && (
                     <div className="breeding-preview">
@@ -180,6 +196,7 @@ export function BreedingWorkflow({ parent1Id, onClose }: BreedingWorkflowProps) 
                   <button className="nursery-button" type="button" onClick={confirmBreed}>
                     Confirm breeding
                   </button>
+                  {validationError && <p className="form-error" role="alert">{validationError}</p>}
                 </section>
               </>
             )}

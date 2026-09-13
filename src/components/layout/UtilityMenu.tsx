@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export function UtilityMenu() {
   const [open, setOpen] = useState(false)
@@ -32,8 +33,9 @@ export function UtilityMenu() {
   return (
     <div className="utility-menu" ref={containerRef}>
       {open && (
-        <div className="utility-menu__panel" id="utility-panel" role="group" aria-label="Utilities — coming soon">
-          {['Achievements', 'Grow Log', 'Settings', 'Help', 'CactiSwap'].map((item) => (
+        <div className="utility-menu__panel" id="utility-panel" role="group" aria-label="Utilities">
+          <Link to="/achievements" onClick={() => setOpen(false)}>Achievements</Link>
+          {['Grow Log', 'Settings', 'Help', 'CactiSwap'].map((item) => (
             <button key={item} type="button" aria-disabled="true" title="Coming soon">{item}</button>
           ))}
         </div>

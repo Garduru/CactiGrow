@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { CollectedPlant } from '../../game/gameState'
 import type { Species } from '../../types/species'
+import { getSpeciesById } from '../../data/species'
 
 interface PlantDetailsProps {
   plant: CollectedPlant
@@ -97,6 +98,7 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, isListe
           <div><dt>Specimen ID</dt><dd>{plant.id}</dd></div>
           <div><dt>Stage</dt><dd>{plant.stage}</dd></div>
           {species && <div><dt>Rarity</dt><dd>{species.rarity}</dd></div>}
+          {plant.isHybrid && <div><dt>Type</dt><dd>Same-genus hybrid</dd></div>}
           <div><dt>Planted</dt><dd>{new Date(plant.plantedAt).toLocaleString()}</dd></div>
           <div><dt>Collected</dt><dd>{new Date(plant.collectedAt).toLocaleString()}</dd></div>
         </dl>
@@ -112,6 +114,19 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, isListe
 
         <section className="plant-details__section" aria-labelledby="lineage-title">
           <h3 id="lineage-title">Lineage</h3>
+          {plant.isHybrid && plant.parentSpeciesIds && (
+            <dl className="plant-details__identity">
+              {plant.parentSpeciesIds.map((speciesId, index) => {
+                const parentSpecies = getSpeciesById(speciesId)
+                return (
+                  <div key={`${speciesId}-${index}`}>
+                    <dt>Parent species {index + 1}</dt>
+                    <dd>{parentSpecies?.scientificName ?? speciesId}</dd>
+                  </div>
+                )
+              })}
+            </dl>
+          )}
           {plant.parentPlantIds ? (
             <ul className="plant-details__parents">
               {plant.parentPlantIds.map((parentId) => <li key={parentId}>{parentId}</li>)}

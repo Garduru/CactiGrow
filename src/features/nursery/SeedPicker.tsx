@@ -38,7 +38,7 @@ export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClo
           })}
           {bredSeeds.map((seed) => {
             const seedSpecies = getSpeciesById(seed.speciesId)
-            return <button className="seed-option seed-option--bred" key={seed.id} type="button" onClick={() => onSelectBredSeed(seed.id)}><span className="seed-option__icon" aria-hidden="true">◆</span><span><strong>{seedSpecies?.commonName ?? 'Bred offspring'} seed</strong><small>Unique · Parents {seed.parentPlantIds.join(' + ')}</small></span><span className="seed-option__quantity">Bred</span></button>
+            return <button className="seed-option seed-option--bred" key={seed.id} type="button" onClick={() => onSelectBredSeed(seed.id)}><span className="seed-option__icon" aria-hidden="true">◆</span><span><strong>{seedSpecies?.commonName ?? 'Bred offspring'} seed</strong><small>Unique {seed.isHybrid ? 'hybrid ' : ''}· Parents {seed.parentPlantIds.join(' + ')}</small></span><span className="seed-option__quantity">{seed.isHybrid ? 'Hybrid' : 'Bred'}</span></button>
           })}
         </div>
         <p className="seed-picker__note">Prototype growth is accelerated to about two minutes.</p>
