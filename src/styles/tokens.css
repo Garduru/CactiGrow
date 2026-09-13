@@ -29,5 +29,13 @@
 
   /* Layout */
   --cg-content-width: 1200px;
+  --cg-world-width: 1120px;
+  --cg-page-gutter: clamp(12px, 3vw, 32px);
+  --cg-section-space: clamp(16px, 2.5vw, 28px);
+  --cg-card-gap: clamp(12px, 2vw, 18px);
+  --cg-card-min: 280px;
+  --cg-touch-target: 44px;
   --cg-header-height: 56px;
+  --cg-header-padding: 4px;
+  --cg-shell-bottom-space: calc(72px + env(safe-area-inset-bottom, 0px));
 }
