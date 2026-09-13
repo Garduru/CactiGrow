@@ -7,7 +7,7 @@ import { getProgressionSnapshot } from '../../features/progression/progressionMo
 export function GameHeader() {
   const { state } = useGameState()
   const { player } = state
-  const progression = getProgressionSnapshot(player.xp)
+  const progression = getProgressionSnapshot(player.skills.cultivation.xp)
 
   return (
     <header className="game-header">
@@ -30,7 +30,7 @@ export function GameHeader() {
 
           <div className="game-header__level">
             <div className="game-header__level-title">
-              <strong>{progression.isMaxLevel ? 'Lv. 99 MAX' : `Lv. ${progression.level}`}</strong>
+              <strong><span className="game-header__skill-name">Cultivation </span>{progression.isMaxLevel ? 'Lv. 99 MAX' : `Lv. ${progression.level}`}</strong>
               <span>{player.username}</span>
             </div>
 
@@ -40,7 +40,7 @@ export function GameHeader() {
                 max={1}
                 label="XP"
                 displayValue="MAX"
-                ariaLabel="Experience: maximum level"
+                ariaLabel="Cultivation experience: maximum level"
                 ariaValueText={`${progression.totalXp.toLocaleString()} total XP, maximum level`}
               />
             ) : (
@@ -48,8 +48,8 @@ export function GameHeader() {
                 value={progression.progressXp}
                 max={progression.requiredXp}
                 label="XP"
-                ariaLabel={`Level ${progression.level} experience progress`}
-                ariaValueText={`${progression.progressXp.toLocaleString()} of ${progression.requiredXp.toLocaleString()} XP toward level ${progression.level + 1}; ${progression.totalXp.toLocaleString()} total XP`}
+                ariaLabel={`Cultivation level ${progression.level} experience progress`}
+                ariaValueText={`${progression.progressXp.toLocaleString()} of ${progression.requiredXp.toLocaleString()} Cultivation XP toward level ${progression.level + 1}; ${progression.totalXp.toLocaleString()} total XP`}
               />
             )}
           </div>

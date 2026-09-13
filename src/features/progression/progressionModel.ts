@@ -65,3 +65,14 @@ export function addXp(currentXp: number, amount: number): number | null {
   const safeCurrentXp = clampXp(currentXp)
   return clampXp(safeCurrentXp + Math.min(amount, Number.MAX_SAFE_INTEGER - safeCurrentXp))
 }
+
+export function awardSkillXp(
+  skills: PlayerSkills,
+  skillId: SkillId,
+  amount: number,
+): PlayerSkills | null {
+  const nextXp = addXp(skills[skillId].xp, amount)
+  if (nextXp === null) return null
+  return { ...skills, [skillId]: { xp: nextXp } }
+}
+import type { PlayerSkills, SkillId } from '../../types/skill'

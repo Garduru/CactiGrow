@@ -49,6 +49,10 @@ The current pass refines the shell, replaces temporary GameNav with a simple Rea
 
 Likely later technologies are Cloudflare Workers, PostgreSQL, Cloudflare R2, Tauri, and Capacitor or similar. These are directions, not instructions to install, connect, or deploy anything now.
 
+Future Genetics systems should keep inherited natural genetics separate from interventions. A future `GeneticExtract` may reference a source specimen, stat, trait, or mutation and carry quality and limited-use data. Seed treatments may influence ranges or probabilities, including rare mutation probability, without rewriting either parent’s historical genetics.
+
+The future Field Journal records permanent species discovery, rarity, discovery source, and meaningful botanical discovery counts. Individual crosses, hybrids, generations, and pedigrees belong in specimen lineage and breeding history rather than creating Field Journal species entries. Future expeditions may discover wild populations and limited founder seeds that return to the Nursery; the Shop should not automatically expose every future species.
+
 ## Working conventions
 
 Inspect existing code before editing. Prefer small typed components, readable names, shared configuration, and separation of gameplay logic, rendering, and external integrations. Make incremental visible changes; avoid unrelated rewrites, premature abstractions, duplicated constants, and unnecessary dependencies. Preserve uncommitted user work. Remove `.gitkeep` when a directory gains actual files.

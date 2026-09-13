@@ -19,6 +19,7 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .game-header__level { width: 152px; }
 .game-header__level-title { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; margin-bottom: 2px; }
 .game-header__level-title span { color: var(--cg-text-muted); }
+.game-header__level-title .game-header__skill-name { color: var(--cg-text); }
 .progress__info { display: flex; justify-content: space-between; gap: 5px; font-size: 10px; color: var(--cg-text-muted); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
 .progress__track { height: 4px; background: var(--cg-border); overflow: hidden; border-radius: 999px; }
 .progress__fill { height: 100%; background: var(--cg-accent); border-radius: inherit; }
@@ -578,6 +579,17 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
 .level-up-notice small { color: var(--cg-text-muted); }
 .level-up-notice button { width: var(--cg-touch-target); height: var(--cg-touch-target); flex: 0 0 var(--cg-touch-target); padding: 0; color: var(--cg-text); background: transparent; border: 1px solid var(--cg-border); border-radius: 50%; cursor: pointer; }
 
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: var(--cg-card-gap); margin-top: var(--cg-section-space); }
+.skill-card { min-width: 0; padding: clamp(15px, 2vw, 21px); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-md); }
+.skill-card header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.skill-card h2 { margin: 0; font-size: clamp(21px, 3vw, 26px); }
+.skill-card header strong { flex: 0 0 auto; color: #e5b16f; font-size: 12px; }
+.skill-card > p { min-height: 3.2em; margin: 9px 0 16px; font-size: 12px; }
+.skill-card dl { display: grid; gap: 7px; margin: 0 0 16px; }
+.skill-card dl div { display: flex; justify-content: space-between; gap: 12px; }
+.skill-card dt { color: var(--cg-text-muted); font-size: 11px; }
+.skill-card dd { margin: 0; text-align: right; font-size: 11px; font-variant-numeric: tabular-nums; }
+
 @media (max-width: 720px) {
   .nursery__header { align-items: flex-start; flex-direction: column; }
   .nursery__summary { justify-content: flex-start; }
@@ -586,6 +598,7 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
   .breeding-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sell-choices { grid-template-columns: 1fr; }
   .achievements-header { align-items: flex-start; flex-direction: column; }
+  .skill-card > p { min-height: 0; }
 }
 
 @media (max-width: 440px) {
@@ -597,6 +610,7 @@ p { color: var(--cg-text-muted); line-height: 1.6; }
   .sell-controls button { width: 100%; }
   .market-listing header { flex-direction: column; }
   .level-up-notice { bottom: max(8px, env(safe-area-inset-bottom)); }
+  .game-header__skill-name { display: none; }
 }
 
 @media (orientation: landscape) and (max-height: 500px) and (max-width: 950px) {

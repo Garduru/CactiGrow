@@ -11,6 +11,7 @@ import { UtilityMenu } from '../components/layout/UtilityMenu'
 import { PageLayout } from '../components/layout/PageLayout'
 import { AchievementsPage } from '../features/achievements/AchievementsPage'
 import { LevelUpNotice } from '../features/progression/LevelUpNotice'
+import { SkillsPage } from '../features/progression/SkillsPage'
 
 export function AppRouter() {
   return (
@@ -30,6 +31,7 @@ export function AppRouter() {
             <Route path="/shop" element={<ShopPage />} />
             <Route path="/market" element={<MarketplacePage />} />
             <Route path="/achievements" element={<AchievementsPage />} />
+            <Route path="/skills" element={<SkillsPage />} />
             <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
           </Route>
         </Routes>
