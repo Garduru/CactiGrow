@@ -5,6 +5,7 @@ import type { BredSeed } from '../types/bredSeed'
 import type { MarketplaceListing } from '../types/marketplace'
 import type { ExtractionAttempt, GeneticsLabTierId, QuantitativeExtractTarget, TissueSample } from '../types/lab'
 import type { QuantitativeSeedTreatment } from '../types/treatment'
+import type { FarmAccessPreference } from '../types/property'
 
 export interface GameStateContextValue {
   state: GameState
@@ -23,6 +24,7 @@ export interface GameStateContextValue {
   comparePlants: (firstPlantId: string, secondPlantId: string) => void
   upgradeLab: (targetTier: GeneticsLabTierId) => void
   upgradeProperty: (upgradeId: string) => boolean
+  setFarmAccessPreference: (preference: FarmAccessPreference) => void
   setGardenFavorite: (plantId: string, favorite: boolean) => boolean
   addGardenTag: (plantId: string, tag: string) => boolean
   removeGardenTag: (plantId: string, tag: string) => boolean

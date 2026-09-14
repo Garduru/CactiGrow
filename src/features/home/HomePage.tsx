@@ -1,21 +1,43 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useGameState } from '../../game/useGameState'
 import { farmLocations, resolveWorldBuilding } from '../farm/locations'
 import { geneticsLabTiers } from '../lab/labConfig'
 import { GARDEN_ORGANIZED_BEDS_UPGRADE_ID, getGardenLevelDefinition, getNurseryLevelDefinition, NURSERY_EXPANDED_BENCHES_UPGRADE_ID } from '../property/propertyConfig'
 import { getNextPropertyUpgrade, getNurseryCapacity, getPropertyUpgradeStatus } from '../property/propertyModel'
+import { farmAccessOptions } from './farmAccess'
+
+type HomeSection = 'property' | 'visitors' | 'social' | 'records'
+
+const homeSections: readonly { id: HomeSection; label: string }[] = [
+  { id: 'property', label: 'Property' },
+  { id: 'visitors', label: 'Visitors' },
+  { id: 'social', label: 'Social' },
+  { id: 'records', label: 'Records' },
+]
 
 export function HomePage() {
-  const { state, upgradeProperty } = useGameState()
+  const location = useLocation()
+  const { state, upgradeProperty, setFarmAccessPreference } = useGameState()
+  const [section, setSection] = useState<HomeSection>('property')
   const buildings = farmLocations.map((building) => resolveWorldBuilding(building, state.property, state.geneticsLab))
   const currentLab = geneticsLabTiers.find((tier) => tier.id === state.geneticsLab.tier)!
   const nextLab = geneticsLabTiers.find((tier) => tier.id === state.geneticsLab.tier + 1)
+  const activeAccess = farmAccessOptions.find((option) => option.id === state.property.farmAccessPreference)!
 
   return <section className="home-interior" aria-labelledby="home-title">
-    <header className="home-heading"><div><span className="eyebrow">Your homestead</span><h1 id="home-title">Home</h1></div><p>A warm base for keeping an eye on the whole cactus property.</p></header>
-    <section className="home-room home-room--property" aria-labelledby="property-title">
-      <header><span>Property Management</span><h2 id="property-title">Your buildings</h2></header>
-      <p>Review building levels and available property upgrades here.</p>
+    <header className="home-heading">
+      <div><span className="eyebrow">Property management</span><h1 id="home-title">Home</h1></div>
+      <p>Manage your personal Farm, visitor preference, and future social controls.</p>
+    </header>
+
+    <nav className="home-nav" aria-label="Home sections">
+      {homeSections.map((item) => <button key={item.id} type="button" className={section === item.id ? 'home-nav__item home-nav__item--active' : 'home-nav__item'} aria-current={section === item.id ? 'page' : undefined} onClick={() => setSection(item.id)}>{item.label}</button>)}
+    </nav>
+
+    {section === 'property' && <section className="home-room home-room--property" aria-labelledby="property-title">
+      <header><span>Property</span><h2 id="property-title">Your buildings</h2></header>
+      <p>Review building levels and available property upgrades.</p>
       <div className="property-building-list">
         {buildings.map((building) => {
           const isLab = building.id === 'lab'
@@ -39,8 +61,24 @@ export function HomePage() {
           </article>
         })}
       </div>
-    </section>
-    <section className="home-room" aria-labelledby="homestead-summary-title"><header><span>Player base</span><h2 id="homestead-summary-title">Homestead Summary</h2></header><p>Home is Level {state.property.buildings.home.level}. Property management is available; additional house progression has not been configured.</p></section>
-    <section className="home-room" aria-labelledby="future-home-title"><header><span>Coming later</span><h2 id="future-home-title">Future House Features</h2></header><p>Storage, customization, trophy space, and property-wide conveniences will be designed in later progression passes.</p></section>
+    </section>}
+
+    {section === 'visitors' && <section className="home-section-grid" aria-labelledby="visitors-title">
+      <section className="home-room"><header><span>Visitors</span><h2 id="visitors-title">Farm Access</h2></header><p className="home-prototype-note">Prototype preference only. Multiplayer access is not currently enforced.</p>
+        <fieldset className="farm-access"><legend className="sr-only">Choose who may visit your Farm</legend>{farmAccessOptions.map((option) => <label key={option.id} className={state.property.farmAccessPreference === option.id ? 'farm-access__option farm-access__option--selected' : 'farm-access__option'}><input type="radio" name="farm-access" value={option.id} checked={state.property.farmAccessPreference === option.id} onChange={() => setFarmAccessPreference(option.id)} /><span><strong>{option.label}</strong><small>{option.description}</small></span></label>)}</fieldset>
+        <p className="farm-access__status" role="status">Selected: <strong>{activeAccess.label}</strong></p>
+      </section>
+      <div className="home-section-stack">
+        <section className="home-room"><header><span>Boundaries</span><h2>Visitor permissions</h2></header><p>Visitors can walk around and socialize but do not gain control of your Farm.</p><p className="home-compact-note">They cannot plant, harvest, breed, sell, spend Tokens, upgrade buildings, or access private research or inventory.</p></section>
+        <section className="home-room"><header><span>Future</span><h2>Farm Invites</h2></header><p>No active Farm invites.</p><p className="home-compact-note">Future invitation controls will appear here.</p></section>
+      </div>
+    </section>}
+
+    {section === 'social' && <section className="home-section-grid" aria-labelledby="social-title">
+      <section className="home-room"><header><span>Connections</span><h2 id="social-title">Friends</h2></header><p>Open Friends for relationship categories and future Farm visit actions.</p><Link className="cg-button cg-button--secondary" to="/friends" state={location.state}>Open Friends</Link></section>
+      <section className="home-room"><header><span>Conversations</span><h2>Chat</h2></header><p>Open Chat for the World and Direct Messages UI shells.</p><Link className="cg-button cg-button--secondary" to="/chat" state={location.state}>Open Chat</Link><p className="home-compact-note">Persistent Mail remains separate at the physical Farm Mailbox.</p></section>
+    </section>}
+
+    {section === 'records' && <section className="home-room home-room--records" aria-labelledby="records-title"><header><span>Records</span><h2 id="records-title">Property Summary</h2></header><p>Home is Level {state.property.buildings.home.level}. You have {state.property.completedUpgradeIds.length} completed property {state.property.completedUpgradeIds.length === 1 ? 'upgrade' : 'upgrades'}.</p><p className="home-compact-note">More personal and property records will appear here when those systems exist.</p></section>}
   </section>
 }

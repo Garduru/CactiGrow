@@ -13,6 +13,7 @@ export function createPropertyState(now: number): PropertyState {
   return {
     buildings: Object.fromEntries(propertyBuildingIds.map((buildingId) => [buildingId, { buildingId, level: DEFAULT_DEVELOPED_BUILDING_LEVEL, installedAt }])) as PropertyState['buildings'],
     completedUpgradeIds: [],
+    farmAccessPreference: 'nobody',
   }
 }
 

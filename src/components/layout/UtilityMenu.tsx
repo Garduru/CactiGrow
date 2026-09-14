@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { createPhaserPreviewReturnState, PHASER_PREVIEW_RETURN_PATH } from '../../app/farmReturnNavigation'
 
 export function UtilityMenu() {
+  const location = useLocation()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
+  const socialReturnState = location.pathname === PHASER_PREVIEW_RETURN_PATH ? createPhaserPreviewReturnState() : undefined
 
   useEffect(() => {
     if (!open) return
@@ -38,8 +41,10 @@ export function UtilityMenu() {
           <Link to="/skills" onClick={() => setOpen(false)}>Skills</Link>
           <Link to="/journal" onClick={() => setOpen(false)}>Field Journal</Link>
           <Link to="/research" onClick={() => setOpen(false)}>Research Log</Link>
+          <Link className="utility-menu__group-start" to="/friends" state={socialReturnState} onClick={() => setOpen(false)}>Friends</Link>
+          <Link to="/chat" state={socialReturnState} onClick={() => setOpen(false)}>Chat</Link>
           {['Settings', 'Help', 'CactiSwap'].map((item) => (
-            <button key={item} type="button" aria-disabled="true" title="Coming soon">{item}</button>
+            <button className={item === 'Settings' ? 'utility-menu__group-start' : undefined} key={item} type="button" aria-disabled="true" title="Coming soon">{item}</button>
           ))}
         </div>
       )}

@@ -10,18 +10,19 @@ Do not add major dependencies without a clear need. React handles the HUD, inven
 
 ## Navigation and gameplay direction
 
-- Farm (`/`) is the outdoor property hub and primary navigation world, with no separate dashboard or permanent world navbar. Home (`/home`) is the player's physical house and property-management location.
-- Click physical Farm locations to enter Home, Nursery, Garden, Shop, Marketplace, and Genetics Lab.
+- Farm (`/`) is the player's owned, eventually visitable cactus property and primary personal navigation world. Home (`/home`) is the physical house and property-management hub for personal Farm progression, visitor access preferences, and future social/property controls.
+- Farm contains Home, Nursery, Garden, Genetics Lab, Mailbox, and Road to Town. Shop and Marketplace are public Town facilities rather than Farm buildings.
 - Farm is a visual world hub for building navigation. Destination names and descriptions do not permanently clutter the scene: hover or keyboard focus reveals only a compact building name, while click, tap, Enter, or Space enters immediately. Detailed building management belongs in a future dedicated facility/property interface rather than on the Farm.
 - Nursery handles planting seeds, growth, collecting mature plants, capacity and upgrades; trays, benches, and pots can come later.
 - Garden replaces the player-facing Collection name. It will display prized plants, expose the full collection, and open specimen details.
 - Breeding starts at Garden > plant details > Breed > second parent > workflow. It is not a primary destination.
 - Selling starts at plant details, through NPC sales or marketplace listings. Marketplace handles buying, player listings, and eventual trade history.
 - Inventory belongs in the HUD, showing total seed count. The current inventory route is acceptable until a compact panel is useful.
-- Physical world destinations are Home, Nursery, Garden, Shop, Marketplace, and Genetics Lab. The Lab is a player-owned physical facility, not a utility page; its Research Center, Microscope Station, Extraction Station, Advanced Genetics area, and upgrades exist inside it.
-- Utility and reference destinations are Skills, Field Journal, Research Log, Achievements, Grow Log, Settings, Help, and CactiSwap. Research Log remains the player's persistent notebook and reference interface, while the Research Center inside the Lab provides its research summary and access point. Never put physical world destinations in the utility menu.
+- Personal Farm destinations are Home, Nursery, Garden, Genetics Lab, Mailbox, and Road to Town. Town is a separate future public multiplayer scene containing Shop and Marketplace initially. The Lab remains a player-owned physical facility, not a utility page.
+- Home stores a local prototype Farm-access preference. It is not authoritative or enforced until a multiplayer backend exists. Friends and Chat remain separate future social systems; persistent Mail remains primarily accessed through the physical Farm Mailbox and `/mail`.
+- Utility and reference destinations are Friends, Chat, Skills, Field Journal, Research Log, Achievements, Grow Log, Settings, Help, and CactiSwap. Friends and Chat are globally available through the utility menu and secondarily from Home. Research Log remains the player's persistent notebook and reference interface, while the Research Center inside the Lab provides its research summary and access point. Never put physical world destinations in the utility menu.
 - Interior screens provide a small Back to Farm link. Maintain real routes and working browser history/deep links.
-- Canonical routes: `/` (Farm), `/home`, `/nursery`, `/garden`, `/market`, `/shop`, `/inventory`. `/farm`, `/collection`, and `/marketplace` redirect to canonical destinations. The existing `/breeding` workflow placeholder remains unpromoted.
+- Canonical routes: `/` (Farm), `/home`, `/nursery`, `/garden`, `/mail`, `/town`, `/market`, `/shop`, `/inventory`, `/friends`, `/chat`. `/farm`, `/collection`, and `/marketplace` redirect to canonical destinations. The existing `/breeding` workflow placeholder remains unpromoted.
 
 ## Visual direction
 
@@ -50,6 +51,20 @@ Garden is the player's specimen collection and currently has no hard ownership-c
 Garden progression direction is Level 1 Cactus Garden, Level 2 Organized Beds, Level 3 Breeder's Garden, Level 4 Clone Grove, and Level 5 Exhibition Garden. Only Level 2 is currently implemented and purchasable. Organized Beds unlocks player-owned organization metadata keyed by physical specimen ID: favorites, free-text tags, visible-information filters, and stable sorting/grouping. This metadata is separate from botanical, genetic, lineage, research, and market truth and grants no gameplay power or XP. Levels 3–5 remain future parent-shortlist, clone-line-history, and curated-display directions.
 
 ## Current foundation and immediate scope
+
+The first Phaser 3 renderer milestone is available as an isolated temporary Farm test scene at `/world-preview`; the existing React/CSS Farm at `/` remains the production-facing prototype. The milestone proves a React-owned lifecycle, narrow property-state projection, semantic renderer-to-router intents, responsive camera, normalized keyboard movement, tap/click movement, collision, and reusable proximity interaction zones. It uses generated placeholder geometry only and does not establish final world composition or art.
+
+**Farm Graybox milestone complete:** `/world-preview` now contains the full six-location property layout for Home, Nursery, Garden, Genetics Lab, Shop, and Marketplace. Its generated geometry establishes provisional world scale, path hierarchy, collision, interaction spacing, render-depth conventions, and responsive camera framing before production art. It remains an isolated migration preview; `/` continues to serve the legacy React Farm.
+
+Farm preview cameras support bounded, canvas-scoped mouse-wheel and two-finger pinch zoom while retaining responsive starting zoom, player follow, and fixed orientation. The minimum zoom is calculated from the active viewport and world dimensions so players can reach a full-property overview without making that overview the default view.
+
+Shop and Marketplace move to the future shared Town, while the Farm entrance now contains a physical Mailbox, a reserved visitor-arrival area, and the Road to Town. `/mail` and `/town` are lightweight React placeholders. Existing `/shop` and `/market` gameplay routes remain functional during migration.
+
+Farm instances are owner-authoritative but may later admit authorized visitors. Future projections include viewer-appropriate public data only; merely seeing a specimen never reveals private genetics, research, inventory, or provenance. Server authority will determine Farm access, roles, presence, positions, social delivery, trades, ownership, currency, and permissions. CactiSwap may provide identity/profile entry points such as Add Friend or Visit Farm only through a replaceable adapter.
+
+Future social systems remain distinct: Town world chat is public/local; Direct Messages are live and require both users online; Mail is persistent asynchronous text with no attachments; Direct Trade is synchronous and atomically server-authoritative; Marketplace is asynchronous listings; Friends manages relationships and visit entry; Farm visiting manages presence in another player's Farm. None of these systems is implemented by the current placeholders or graybox.
+
+`/friends` and `/chat` currently provide empty React UI shells only. World Chat is location/instance aware rather than one server-wide channel; Direct Messages never silently become persistent Mail. Future servers own friendships, requests, presence, chat and DM delivery, availability, and Farm authorization. React owns social workflows, while Phaser may receive viewer-appropriate temporary overhead-chat presentation and emit semantic player-interaction intents. No social backend, notification counts, or real player data is connected yet.
 
 Use the existing feature-based organization (`src/features`), shared layout/UI components, types, styles, and centralized data. Early models include Species, GrowthStage, Plant, PlantGenetics, InventoryItem, and PlayerProfile; these may evolve. Species data stays centralized in `src/data/species.ts`; do not duplicate values across features. Long term, content should be editable without rewriting feature code.
 

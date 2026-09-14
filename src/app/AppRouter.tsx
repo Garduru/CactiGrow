@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { FarmPage } from '../features/farm/FarmPage'
 import { NurseryPage } from '../features/nursery/NurseryPage'
@@ -16,6 +17,12 @@ import { FieldJournalPage } from '../features/journal/FieldJournalPage'
 import { ResearchLogPage } from '../features/research/ResearchLogPage'
 import { GeneticsLabPage } from '../features/lab/GeneticsLabPage'
 import { HomePage } from '../features/home/HomePage'
+import { MailPage } from '../features/mail/MailPage'
+import { TownPage } from '../features/town/TownPage'
+import { FriendsPage } from '../features/social/FriendsPage'
+import { ChatPage } from '../features/social/ChatPage'
+
+const FarmWorldPreviewPage = lazy(() => import('../game-world/FarmWorldPreviewPage').then((module) => ({ default: module.FarmWorldPreviewPage })))
 
 export function AppRouter() {
   return (
@@ -25,6 +32,7 @@ export function AppRouter() {
         <Routes>
           <Route path="/" element={<FarmPage />} />
           <Route path="/farm" element={<Navigate to="/" replace />} />
+          <Route path="/world-preview" element={<Suspense fallback={<p className="world-preview__loading">Loading world renderer…</p>}><FarmWorldPreviewPage /></Suspense>} />
           <Route path="/collection" element={<Navigate to="/garden" replace />} />
           <Route path="/marketplace" element={<Navigate to="/market" replace />} />
           <Route element={<PageLayout />}>
@@ -40,6 +48,10 @@ export function AppRouter() {
             <Route path="/journal" element={<FieldJournalPage />} />
             <Route path="/research" element={<ResearchLogPage />} />
             <Route path="/lab" element={<GeneticsLabPage />} />
+            <Route path="/mail" element={<MailPage />} />
+            <Route path="/town" element={<TownPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
           </Route>
         </Routes>

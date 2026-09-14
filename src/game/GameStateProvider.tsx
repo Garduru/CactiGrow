@@ -97,6 +97,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'property/upgraded', upgradeId, now: Date.now() })
       return true
     },
+    setFarmAccessPreference(preference) {
+      dispatch({ type: 'property/farm-access-set', preference })
+    },
     setGardenFavorite(plantId, favorite) {
       if (state.property.buildings.garden.level < 2 || !state.ownedPlants.some((plant) => plant.id === plantId)) return false
       if (setGardenFavoriteForState(state.gardenOrganization, plantId, favorite) === state.gardenOrganization) return false

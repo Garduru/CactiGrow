@@ -1,6 +1,7 @@
 export type BuildingId = 'home' | 'nursery' | 'garden' | 'lab' | 'shop' | 'market'
 export type PropertyBuildingId = Exclude<BuildingId, 'lab'>
 export type DevelopedBuildingLevel = 1 | 2 | 3 | 4 | 5
+export type FarmAccessPreference = 'nobody' | 'friends' | 'invite' | 'anyone'
 
 export interface BuildingProgressionState {
   buildingId: PropertyBuildingId
@@ -12,6 +13,7 @@ export interface BuildingProgressionState {
 export interface PropertyState {
   buildings: Record<PropertyBuildingId, BuildingProgressionState>
   completedUpgradeIds: string[]
+  farmAccessPreference: FarmAccessPreference
 }
 
 export interface PropertySkillRequirement {

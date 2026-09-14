@@ -26,9 +26,9 @@ Use one **elevated three-quarter camera with restrained perspective**, visually 
 - Camera yaw remains fixed across all production assets and scenes.
 - Camera elevation targets roughly 35 degrees downward from horizontal.
 - Perspective is mild. Buildings retain depth, while paths and small objects remain easy to select.
-- The camera never freely rotates. Rotation would multiply asset work, complicate occlusion, and weaken visual consistency.
-- Desktop supports a small, bounded zoom range and gentle camera follow.
-- Mobile uses authored zoom stops chosen per scene. Pinch zoom is optional later and cannot be required for basic interaction.
+- The camera never freely rotates or pans. Rotation would multiply asset work, complicate occlusion, and weaken visual consistency.
+- Players have bounded zoom from a full-property overview to closer inspection while the camera continues following the avatar.
+- Desktop uses wheel zoom and mobile uses pinch zoom. Each layout keeps an authored exploration default, and basic interaction never requires zooming.
 - The visible area should show one meaningful neighborhood of a location, with short movement between landmarks.
 - Interiors use the same view family, with cutaway walls, hidden roofs, or open-sided sets rather than a new camera language.
 - Scene composition may shift safe framing for portrait screens, but asset perspective and world coordinates remain unchanged.
@@ -235,9 +235,9 @@ Do not pursue a seamless open world. Separate scenes reduce memory pressure, sup
 
 ### Farm
 
-The Farm is the outdoor property hub containing physical Home, Nursery, Garden, Genetics Lab, Shop, and Marketplace destinations. It includes connected paths, property fencing, cactus landscaping, rocks, dry vegetation, tools, irrigation details, signs, staging space, and distant desert scenery. Buildings form distinct silhouettes and progression may swap visual variants using authoritative building level or Lab tier.
+The Farm is one player's owned cactus property and may later host authorized visitors. It contains Home, Nursery, Garden, Genetics Lab, a physical Mailbox, personal landscaping and display space, a visitor-arrival area, and the Road to Town. Shop and Marketplace are Town facilities. The Farm includes connected paths, property fencing, cactus landscaping, rocks, dry vegetation, tools, irrigation details, signs, staging space, and distant desert scenery. Buildings form distinct silhouettes and progression may swap visual variants using authoritative building level or Lab tier.
 
-The player walks between buildings and interacts at doors, gates, counters, or approach zones. The current React Farm remains available until the scene supports every destination, keyboard/touch access, and state-derived building presentation.
+The owner and permitted visitors walk between public world targets, but the renderer never grants permissions. Owner-authoritative commands determine planting, collecting, breeding, research, inventory, commerce, organization, and upgrades. The current React Farm remains available until the scene supports every destination, keyboard/touch access, and state-derived building presentation.
 
 ### Nursery
 
@@ -282,11 +282,43 @@ Home is a compact physical residence centered on a property desk, records, windo
 
 ### Shop
 
-The Shop is a small grower-supply space with a seed display, pot and soil shelves, shaded exterior stock, counter, labels, and room for a future vendor. Until purchasing exists, it can remain closed, lightly staged, or provide an intentional unavailable message. Do not simulate stock or NPC behavior.
+The Shop is a public facility in Town with a seed display, pot and soil shelves, shaded exterior stock, counter, labels, and room for a future vendor. Its shared exterior remains coherent for every player. Until purchasing exists, it can remain closed, lightly staged, or provide an intentional unavailable message. Do not simulate stock or NPC behavior.
 
 ### Marketplace
 
-The Marketplace is an outdoor trading court with canvas stalls, display tables, specimen stands, listing boards, and clear walking lanes. Current listings can project to a limited set of display anchors while React presents full listing details and seller actions. Empty stands communicate no listings. Do not create fake buyers or transactions.
+The Marketplace or Exchange is an asynchronous listing facility in Town with canvas stalls, display tables, specimen stands, listing boards, and clear walking lanes. Current listings can project to a limited set of display anchors while React presents full listing details and seller actions. It remains distinct from synchronous Direct Trade. Empty stands communicate no listings. Do not create fake buyers or transactions.
+
+### Shared public Town
+
+Town is a separate future Phaser scene and CactiGrow's main public multiplayer hub. It can show many online players and support meeting, local world chat, direct-trade initiation, and public facilities. Its initial facilities are Shop and Marketplace/Exchange, with room for a small number of later services. Do not turn Town into an enormous building catalog.
+
+Farm and Town never form one seamless map. The authored transition is Farm → Road to Town → scene transition → shared Town. Town's exit or Return Home action loads the player's Farm. Routes remain the navigation contract while future server authority assigns Town and Farm instances.
+
+Shared Town exteriors remain visually coherent for all players. Player-specific Shop or other facility progression may change available services, React UI, access, or a personal/instanced interior, but cannot give the same public exterior contradictory geometry for different viewers.
+
+## Farm ownership, visiting, and privacy
+
+A future Farm session distinguishes `farmOwnerId`, `localPlayerId`, and viewer role (`owner` or `visitor`). These concepts belong to authoritative session/projection data, not Phaser permissions. Visitors may walk, see public displays and permitted players, chat socially, and inspect explicitly public profile information. They cannot automatically plant, collect, breed, sample, research, extract, treat, organize, move, sell, list, spend, upgrade, or access private inventory and research.
+
+Farm access policy must allow future choices such as Nobody, Friends Only, Invite Only, or Anyone. Entry may begin from a CactiSwap profile, CactiGrow friends list, explicit invitation, or future player interaction. The server checks access, joins the owner’s Farm instance, and places a visitor in the reserved collision-free arrival area near the entrance, Mailbox, and Road to Town. No single relationship type is hardcoded as the only access rule.
+
+World projections expose only viewer-appropriate data. Physical visibility of a cactus never grants hidden carriers, private analysis, research depth, treatment provenance, notes, inventory, or non-public clone/provenance details. Existing genetics and research privacy boundaries remain authoritative.
+
+## Social and economy boundaries
+
+Keep these systems separate:
+
+- **World Chat:** public/local live chat in shared spaces such as Town, presented through a chat panel and brief styled text above the speaking avatar.
+- **Direct Message:** private live conversation only while both users are online and available. An offline message is not silently stored as a DM; use Mail instead.
+- **Mail:** persistent asynchronous text that can be read later. Initial Mail has no Tokens, specimens, seeds, samples, extracts, inventory items, or other attachments. The Farm Mailbox opens its React workflow.
+- **Direct Trade:** synchronous player-to-player exchange after request, acceptance, both offers, review, and both confirmations. The server atomically validates and executes eligible item/specimen and Token ownership changes.
+- **Marketplace:** asynchronous listings and offline exchange in Town, independent from Direct Trade.
+- **Friends:** relationship and access layer supporting request, accept, decline, removal, appropriate online status, Visit Farm, and live DM entry.
+- **Farm Visiting:** authorized presence in another player's owned Farm instance.
+
+Selecting another player may later offer View Profile, friendship action, Direct Message, Trade, Visit Farm, Report, and Cancel, adjusted for Town versus Farm context and current permissions. CactiSwap profiles may expose Add Friend and Visit Farm through an isolated identity/profile adapter; Base44 never becomes CactiGrow's gameplay or multiplayer authority.
+
+Future server authority covers identity, online presence, synchronized positions, Farm ownership and access, Farm/Town instance membership, friends, chat and DM delivery, persistent Mail, trade sessions and confirmations, ownership, Tokens, items, specimens, duplicate/race prevention, disconnect handling, and required moderation, block, or report controls. Phaser supplies presentation/input and React supplies UI/workflows; neither independently mutates authoritative multiplayer state.
 
 ## Renderer responsibility
 

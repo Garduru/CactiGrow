@@ -24,7 +24,7 @@ import type { ExtractionAttempt, GeneticsLabState, GeneticsLabTierId, Quantitati
 import { addTissueSample, canUpgradeLab, createGeneticsLabState, createTissueSample, getSampleQualityBand, getTissueSamplingStatus, normalizeTissueSample } from '../features/lab/labModel'
 import { getLabTierDefinition } from '../features/lab/labConfig'
 import { canExtractQuantitative, createExtractionAttempt, quantitativeExtractTargets } from '../features/lab/extractionModel'
-import type { PropertyState } from '../types/property'
+import type { FarmAccessPreference, PropertyState } from '../types/property'
 import { createPropertyState, getNurseryCapacity, getPropertyUpgradeStatus } from '../features/property/propertyModel'
 import type { GardenOrganizationState } from '../types/garden'
 import { addGardenTag, removeGardenOrganization, removeGardenTag, setGardenFavorite } from '../features/garden/gardenOrganizationModel'
@@ -69,6 +69,7 @@ export type GameAction =
   | { type: 'research/compared'; firstPlantId: string; secondPlantId: string; now: number }
   | { type: 'lab/upgraded'; targetTier: GeneticsLabTierId; now: number }
   | { type: 'property/upgraded'; upgradeId: string; now: number }
+  | { type: 'property/farm-access-set'; preference: FarmAccessPreference }
   | { type: 'garden/favorite-set'; plantId: string; favorite: boolean }
   | { type: 'garden/tag-added'; plantId: string; tag: string }
   | { type: 'garden/tag-removed'; plantId: string; tag: string }
@@ -553,6 +554,12 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
           ? ensureNurserySlotCapacity(state.nurserySlots, getNurseryCapacity(property))
           : state.nurserySlots,
       }
+    }
+
+    case 'property/farm-access-set': {
+      const validPreferences: readonly FarmAccessPreference[] = ['nobody', 'friends', 'invite', 'anyone']
+      if (!validPreferences.includes(action.preference) || state.property.farmAccessPreference === action.preference) return state
+      return { ...state, property: { ...state.property, farmAccessPreference: action.preference } }
     }
 
     case 'garden/favorite-set': {

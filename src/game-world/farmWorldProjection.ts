@@ -1,0 +1,26 @@
+import type { PropertyState } from '../types/property'
+import type { GeneticsLabState } from '../types/lab'
+import { farmLocations, resolveWorldBuilding } from '../features/farm/locations'
+import type { FarmWorldProjection } from './worldTypes'
+
+export function createFarmWorldProjection(property: PropertyState, lab: GeneticsLabState): FarmWorldProjection {
+  const farmBuildingIds = ['home', 'nursery', 'garden', 'lab'] as const
+  return {
+    locations: [
+      ...farmBuildingIds.map((id) => {
+        const definition = farmLocations.find((location) => location.id === id)!
+        const building = resolveWorldBuilding(definition, property, lab)
+        return {
+          id,
+          displayName: building.displayName,
+          route: building.route as '/home' | '/nursery' | '/garden' | '/lab',
+          progressionKind: id === 'lab' ? 'tier' as const : 'level' as const,
+          progressionValue: building.level,
+          interactionLabel: 'Enter' as const,
+        }
+      }),
+      { id: 'mail', displayName: 'Mailbox', route: '/mail', interactionLabel: 'Check Mail' },
+      { id: 'town', displayName: 'Town', route: '/town', interactionLabel: 'Enter' },
+    ],
+  }
+}
