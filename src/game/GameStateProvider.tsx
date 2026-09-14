@@ -12,9 +12,12 @@ import {
   getSeedQuantity,
   collectTissueSampleForState,
   extractFromSampleForState,
+  createTreatmentForState,
 } from './gameState'
 import { canCancelListing, canListPlant, createMarketplaceListing } from '../features/marketplace/marketplaceModel'
 import { canSellPlantToNpc, getNpcSaleValue } from '../features/marketplace/sellModel'
+import { getPropertyUpgradeStatus } from '../features/property/propertyModel'
+import { addGardenTag as addGardenTagForState, removeGardenTag as removeGardenTagForState, setGardenFavorite as setGardenFavoriteForState } from '../features/garden/gardenOrganizationModel'
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameStateReducer, undefined, () => createInitialGameState())
@@ -52,7 +55,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     },
     plantBredSeed(slotId, seedId) {
       if (!canPlantBredSeed(state, slotId, seedId)) return false
-      dispatch({ type: 'bred-seed/planted', slotId, seedId, now: Date.now() })
+      dispatch({ type: 'bred-seed/planted', slotId, seedId, now: Date.now(), treatmentRolls: [Math.random(), Math.random()] })
       return true
     },
     sellPlantToNpc(plantId) {
@@ -89,6 +92,29 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     upgradeLab(targetTier) {
       dispatch({ type: 'lab/upgraded', targetTier, now: Date.now() })
     },
+    upgradeProperty(upgradeId) {
+      if (!getPropertyUpgradeStatus(state.property, state.player, upgradeId).eligible) return false
+      dispatch({ type: 'property/upgraded', upgradeId, now: Date.now() })
+      return true
+    },
+    setGardenFavorite(plantId, favorite) {
+      if (state.property.buildings.garden.level < 2 || !state.ownedPlants.some((plant) => plant.id === plantId)) return false
+      if (setGardenFavoriteForState(state.gardenOrganization, plantId, favorite) === state.gardenOrganization) return false
+      dispatch({ type: 'garden/favorite-set', plantId, favorite })
+      return true
+    },
+    addGardenTag(plantId, tag) {
+      if (state.property.buildings.garden.level < 2 || !state.ownedPlants.some((plant) => plant.id === plantId)) return false
+      if (addGardenTagForState(state.gardenOrganization, plantId, tag) === state.gardenOrganization) return false
+      dispatch({ type: 'garden/tag-added', plantId, tag })
+      return true
+    },
+    removeGardenTag(plantId, tag) {
+      if (state.property.buildings.garden.level < 2 || !state.ownedPlants.some((plant) => plant.id === plantId)) return false
+      if (removeGardenTagForState(state.gardenOrganization, plantId, tag) === state.gardenOrganization) return false
+      dispatch({ type: 'garden/tag-removed', plantId, tag })
+      return true
+    },
     collectTissueSample(plantId) {
       const sample = collectTissueSampleForState(state, plantId, Date.now())
       if (!sample) return null
@@ -100,6 +126,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       if (!attempt) return null
       dispatch({ type: 'extraction/attempted', attempt })
       return attempt
+    },
+    applyTreatment(extractId, seedId) {
+      const now = Date.now()
+      const treatment = createTreatmentForState(state, extractId, seedId, now)
+      if (!treatment) return null
+      dispatch({ type: 'treatment/applied', extractId, seedId, treatmentId: treatment.id, now })
+      return treatment
     },
     dismissLevelUp(noticeId) {
       dispatch({ type: 'progression/notice-dismissed', noticeId })

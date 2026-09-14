@@ -20,6 +20,10 @@ export const GENETICS_RESEARCH_REWARDS = {
   firstLowYieldExtract: 15,
   firstGoodExtraction: 25,
   firstExcellentExtraction: 50,
+  firstQuantitativeTreatment: 50,
+  firstTreatmentTarget: 25,
+  firstExpressedTreatment: 40,
+  firstMeaningfulTreatmentGain: 30,
   basicAnalysis: 25,
   inheritanceAnalysis: 40,
   carrierDetection: 30,
@@ -46,6 +50,10 @@ export const researchDiscoveryMilestoneIds = {
   firstLowYieldExtract: 'extraction:outcome:low-yield',
   firstGoodExtraction: 'extraction:quality:good',
   firstExcellentExtraction: 'extraction:quality:excellent',
+  firstQuantitativeTreatment: 'treatment:quantitative:first',
+  treatmentTarget: (target: string) => `treatment:target:${target}`,
+  firstExpressedTreatment: 'treatment:expressed:first',
+  firstMeaningfulTreatmentGain: 'treatment:meaningful-gain:first',
 } as const
 
 export const researchDepthDefinitions: readonly {

@@ -13,7 +13,18 @@ export function LocationArt({ location }: { location: FarmLocationId }) {
   return (
     <svg className="location-art" viewBox="0 0 280 190" aria-hidden="true" focusable="false">
       <ellipse cx="140" cy="169" rx="116" ry="15" fill="#100d0b" opacity=".3" />
-      {location === 'nursery' ? (
+      {location === 'home' ? (
+        <g strokeLinejoin="round">
+          <path d="M47 92 137 35 236 91V161H47Z" fill="#654735" stroke="#bd9364" strokeWidth="3" />
+          <path d="m31 96 105-70 116 70" fill="none" stroke="#a95f3d" strokeWidth="15" strokeLinecap="round" />
+          <path d="M105 161V105H157V161" fill="#39291f" stroke="#b98b60" strokeWidth="3" />
+          <path d="M63 108H94V136H63ZM181 105H220V136H181Z" fill="#e2a85e" stroke="#d3b180" strokeWidth="3" />
+          <path d="M89 162H221V172H82Z" fill="#8a6042" stroke="#ba9064" strokeWidth="3" />
+          <path d="M173 159V139H232V159M181 139V122H224V139" fill="#526c58" stroke="#a7a477" strokeWidth="3" />
+          <Cactus x={209} y={137} scale={.42} />
+          <path d="M69 159V139M58 151h22" stroke="#6f8259" strokeWidth="7" strokeLinecap="round" />
+        </g>
+      ) : location === 'nursery' ? (
         <g stroke="#bba17a" strokeWidth="3" strokeLinejoin="round">
           <path d="M39 91 105 35 232 58 232 151 104 175 39 145Z" fill="#344b42" />
           <path d="M39 91 105 35 167 94 104 175 39 145Z" fill="#698875" fillOpacity=".38" />

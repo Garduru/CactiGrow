@@ -4,6 +4,7 @@ import type { GameState } from './gameState'
 import type { BredSeed } from '../types/bredSeed'
 import type { MarketplaceListing } from '../types/marketplace'
 import type { ExtractionAttempt, GeneticsLabTierId, QuantitativeExtractTarget, TissueSample } from '../types/lab'
+import type { QuantitativeSeedTreatment } from '../types/treatment'
 
 export interface GameStateContextValue {
   state: GameState
@@ -21,8 +22,13 @@ export interface GameStateContextValue {
   analyzePlant: (plantId: string) => void
   comparePlants: (firstPlantId: string, secondPlantId: string) => void
   upgradeLab: (targetTier: GeneticsLabTierId) => void
+  upgradeProperty: (upgradeId: string) => boolean
+  setGardenFavorite: (plantId: string, favorite: boolean) => boolean
+  addGardenTag: (plantId: string, tag: string) => boolean
+  removeGardenTag: (plantId: string, tag: string) => boolean
   collectTissueSample: (plantId: string) => TissueSample | null
   extractFromSample: (sampleId: string, target: QuantitativeExtractTarget) => ExtractionAttempt | null
+  applyTreatment: (extractId: string, seedId: string) => QuantitativeSeedTreatment | null
   dismissLevelUp: (noticeId: string) => void
 }
 

@@ -34,7 +34,9 @@ export interface GeneticExtract {
   extractionQuality: number
   extractionQualityBand: TissueSampleQualityBand
   potency: number
-  status: 'stored'
+  status: 'stored' | 'consumed'
+  consumedAt?: string
+  consumedBySeedId?: string
 }
 export interface ExtractionAttempt { id: string; sampleId: string; target: QuantitativeExtractTarget; attemptedAt: string; outcome: ExtractionOutcome; extract?: GeneticExtract }
 

@@ -15,6 +15,7 @@ import { SkillsPage } from '../features/progression/SkillsPage'
 import { FieldJournalPage } from '../features/journal/FieldJournalPage'
 import { ResearchLogPage } from '../features/research/ResearchLogPage'
 import { GeneticsLabPage } from '../features/lab/GeneticsLabPage'
+import { HomePage } from '../features/home/HomePage'
 
 export function AppRouter() {
   return (
@@ -27,7 +28,8 @@ export function AppRouter() {
           <Route path="/collection" element={<Navigate to="/garden" replace />} />
           <Route path="/marketplace" element={<Navigate to="/market" replace />} />
           <Route element={<PageLayout />}>
-            <Route path="/nursery" element={<NurseryPage />} />
+          <Route path="/nursery" element={<NurseryPage />} />
+          <Route path="/home" element={<HomePage />} />
             <Route path="/breeding" element={<BreedingPage />} />
             <Route path="/garden" element={<GardenPage />} />
             <Route path="/inventory" element={<InventoryPage />} />

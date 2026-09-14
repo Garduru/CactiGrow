@@ -1,6 +1,10 @@
 import { getSpeciesById } from '../../data/species'
 import { getActiveListings } from '../../game/gameState'
 import { useGameState } from '../../game/useGameState'
+import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { LocationHeader } from '../../components/ui/LocationHeader'
 
 const traits = [
   ['Vigor', 'vigor'],
@@ -16,14 +20,10 @@ export function MarketplacePage() {
 
   return (
     <section aria-labelledby="market-title">
-      <h1 id="market-title">Marketplace</h1>
-      <p>Active local prototype listings. Player-to-player purchasing is not available yet.</p>
+      <LocationHeader titleId="market-title" eyebrow="Desert trading post" title="Marketplace" subtitle="Review active listings and manage specimens you have offered for sale." status={<Badge tone="warning">Buying coming later</Badge>} />
 
       {listings.length === 0 ? (
-        <div className="market-empty">
-          <strong>No active listings</strong>
-          <span>List a specimen from its Garden details.</span>
-        </div>
+        <EmptyState title="No active listings">List a specimen from its Garden details to see it here.</EmptyState>
       ) : (
         <div className="market-listings">
           {listings.map((listing) => {
@@ -35,7 +35,7 @@ export function MarketplacePage() {
               <article className="market-listing" key={listing.id}>
                 <header>
                   <div>
-                    <span className="nursery-stage">{listing.status}</span>
+                    <Badge tone="success">{listing.status}</Badge>
                     <h2>{species?.commonName ?? 'Unavailable specimen'}</h2>
                     {species?.scientificName && <em>{species.scientificName}</em>}
                   </div>
@@ -52,9 +52,9 @@ export function MarketplacePage() {
                   </div>
                 )}
                 {isOwnListing && (
-                  <button className="market-listing__cancel" type="button" onClick={() => cancelListing(listing.id)}>
+                  <Button className="market-listing__cancel" variant="danger" onClick={() => cancelListing(listing.id)}>
                     Cancel listing
-                  </button>
+                  </Button>
                 )}
               </article>
             )

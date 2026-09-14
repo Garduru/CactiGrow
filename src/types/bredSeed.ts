@@ -1,5 +1,6 @@
 import type { PlantGenetics } from './genetics'
 import type { GeneticFeatureState, SpecialVariantState } from './geneticFeature'
+import type { QuantitativeSeedTreatment } from './treatment'
 
 export interface BredSeed {
   id: string
@@ -12,4 +13,5 @@ export interface BredSeed {
   isHybrid: boolean
   geneticFeatures: GeneticFeatureState[]
   specialVariants: SpecialVariantState[]
+  quantitativeTreatments?: QuantitativeSeedTreatment[]
 }

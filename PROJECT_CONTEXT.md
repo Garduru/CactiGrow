@@ -10,18 +10,18 @@ Do not add major dependencies without a clear need. React handles the HUD, inven
 
 ## Navigation and gameplay direction
 
-- Farm is Home and the primary navigation world, with no separate dashboard or permanent world navbar.
-- Click physical Farm locations to enter Nursery, Garden, Shop, Marketplace, and Genetics Lab.
-- Farm visually prioritizes the property over menu-like labels. Destination names and descriptions do not permanently clutter the scene. Hover, keyboard focus, or selection identifies a building; selecting it opens contextual Building Details, and entering it is a deliberate second action.
+- Farm (`/`) is the outdoor property hub and primary navigation world, with no separate dashboard or permanent world navbar. Home (`/home`) is the player's physical house and property-management location.
+- Click physical Farm locations to enter Home, Nursery, Garden, Shop, Marketplace, and Genetics Lab.
+- Farm is a visual world hub for building navigation. Destination names and descriptions do not permanently clutter the scene: hover or keyboard focus reveals only a compact building name, while click, tap, Enter, or Space enters immediately. Detailed building management belongs in a future dedicated facility/property interface rather than on the Farm.
 - Nursery handles planting seeds, growth, collecting mature plants, capacity and upgrades; trays, benches, and pots can come later.
 - Garden replaces the player-facing Collection name. It will display prized plants, expose the full collection, and open specimen details.
 - Breeding starts at Garden > plant details > Breed > second parent > workflow. It is not a primary destination.
 - Selling starts at plant details, through NPC sales or marketplace listings. Marketplace handles buying, player listings, and eventual trade history.
 - Inventory belongs in the HUD, showing total seed count. The current inventory route is acceptable until a compact panel is useful.
-- Physical world destinations are Nursery, Garden, Shop, Marketplace, and Genetics Lab. The Lab is a player-owned physical facility, not a utility page; its Research Center, Microscope Station, Extraction Station, Advanced Genetics area, and upgrades exist inside it.
+- Physical world destinations are Home, Nursery, Garden, Shop, Marketplace, and Genetics Lab. The Lab is a player-owned physical facility, not a utility page; its Research Center, Microscope Station, Extraction Station, Advanced Genetics area, and upgrades exist inside it.
 - Utility and reference destinations are Skills, Field Journal, Research Log, Achievements, Grow Log, Settings, Help, and CactiSwap. Research Log remains the player's persistent notebook and reference interface, while the Research Center inside the Lab provides its research summary and access point. Never put physical world destinations in the utility menu.
 - Interior screens provide a small Back to Farm link. Maintain real routes and working browser history/deep links.
-- Canonical routes: `/` (Farm), `/nursery`, `/garden`, `/market`, `/shop`, `/inventory`. `/farm`, `/collection`, and `/marketplace` redirect to canonical destinations. The existing `/breeding` workflow placeholder remains unpromoted.
+- Canonical routes: `/` (Farm), `/home`, `/nursery`, `/garden`, `/market`, `/shop`, `/inventory`. `/farm`, `/collection`, and `/marketplace` redirect to canonical destinations. The existing `/breeding` workflow placeholder remains unpromoted.
 
 ## Visual direction
 
@@ -31,7 +31,23 @@ Use one compact supplied CactiGrow logo, without separate emoji branding or a ta
 
 The compact HUD retains mock tokens, Inventory/Seeds, level, username, and XP. Aim for approximately 56px desktop height and allow narrow-screen wrapping. Keep the utility panel about 160px wide with short desktop rows, modest padding, and accessible touch targets.
 
-World buildings may eventually grant passive bonuses and visually evolve as they upgrade. Building bonus definitions must remain centralized and data-driven, while each feature's domain model remains authoritative for its rules. Only implemented bonuses may affect gameplay or appear as active. Future directions include Nursery capacity and cultivation efficiency, Garden capacity and support, Lab research/sample/extraction improvements, Shop stock and purchasing services, and Marketplace listing or fee services; these are not current gameplay effects.
+### Production art and explorable-world direction
+
+The current React/CSS Farm, Nursery, Garden, Lab, Home, Shop, and Marketplace presentations are functional prototypes. Production locations will become small, dense, separate explorable scenes using stylized, hand-painted 3D-looking rendered art. The primary camera is a fixed elevated three-quarter view with restrained perspective and no free rotation. Desktop uses hybrid keyboard/click movement; touch uses tap-to-move and contextual interaction.
+
+When authorized, Phaser 3 should own world rendering, camera, movement, simple collision, interaction zones, environmental animation, and layered sprites. React continues to own the HUD, dialogs, inventory, collection management, Plant Details, breeding, commerce, research, Lab workflows, property management, settings, achievements, and utility screens. Renderer scenes consume narrow world projections and emit semantic interaction intents; they never own gameplay truth or inspect the full raw game state.
+
+The authoritative production reference is [`docs/CACTIGROW_ART_WORLD_BIBLE.md`](docs/CACTIGROW_ART_WORLD_BIBLE.md). Future world, plant, location, and asset-generation work must follow its camera, lighting, material, composition, pipeline, and migration rules unless the user explicitly changes that direction.
+
+World buildings may eventually grant passive bonuses and visually evolve as they upgrade. Building bonus definitions must remain centralized and data-driven, while each feature's domain model remains authoritative for its rules. Only implemented bonuses may affect gameplay or appear as active. Nursery Level 2, Expanded Benches, is the first implemented non-Lab property upgrade: it requires Cultivation Level 10, costs the centrally configured provisional Token amount, and raises grow-slot capacity from 6 to 8 without disturbing existing slots or plants. Future Nursery capacity targets are Level 3: 12, Level 4: 16, and Level 5: 20, with later batch planting, cultivation efficiency, and advanced growing support still unimplemented. Future directions also include Garden support, Shop stock and purchasing services, and Marketplace listing or fee services; these are not current gameplay effects.
+
+Hover/focus labels derive from centralized state and use `Building Name · Lv. X`; Farm itself never displays detailed building statistics. Player-owned building progression is centralized with a provisional Level 1–5 architecture. Home, Nursery, Garden, Shop, and Marketplace currently begin at Level 1 with intentionally unconfigured upgrade paths. Genetics Lab display level derives directly from its authoritative Tier 0–5 state and must never use a duplicate counter.
+
+Home Property Management provides the all-building overview, levels, implemented bonuses, upgrade availability, and property progression. Individual buildings own their detailed upgrade trees, exact purchases, specialized statistics, and capabilities. The shared property-upgrade definition and reducer foundation validates requirements and applies local prototype purchases atomically. The Genetics Lab's internal Facility Upgrades section remains its separate authoritative purchase interface. Future economy-sensitive upgrade purchases, Token deductions, level changes, and gameplay effects must become server-authoritative.
+
+Garden is the player's specimen collection and currently has no hard ownership-capacity limit. Future Garden building upgrades may add display, organization, support, or other benefits, but must not silently impose a specimen ownership cap.
+
+Garden progression direction is Level 1 Cactus Garden, Level 2 Organized Beds, Level 3 Breeder's Garden, Level 4 Clone Grove, and Level 5 Exhibition Garden. Only Level 2 is currently implemented and purchasable. Organized Beds unlocks player-owned organization metadata keyed by physical specimen ID: favorites, free-text tags, visible-information filters, and stable sorting/grouping. This metadata is separate from botanical, genetic, lineage, research, and market truth and grants no gameplay power or XP. Levels 3–5 remain future parent-shortlist, clone-line-history, and curated-display directions.
 
 ## Current foundation and immediate scope
 
@@ -75,11 +91,15 @@ Future research commands may require a lab tier, equipment, consumables, and ser
 
 Genetics lab progression is separate from Genetics skill level. Tissue sampling unlocks at Genetics Level 40 and requires a Microscope Station (lab tier 2) or higher. Sampling never consumes a plant, creates a clone, or changes donor genetics, clone identity, features, or Shiny state. Tissue samples live outside seed inventory and permanently preserve donor specimen, clone-line, species, collector, and collection-time provenance. Sample preparation quality is a once-resolved gameplay rating rather than genetic potency.
 
-The provisional 24-hour sampling cooldown is keyed by physical specimen, while research knowledge and first-sampled-clone XP remain keyed by clone line. Repeat samples provide no recurring Genetics XP. Extraction remains deferred, and future economy-sensitive sampling, lab, and extraction outcomes should become server-authoritative.
+The provisional 24-hour sampling cooldown is keyed by physical specimen, while research knowledge and first-sampled-clone XP remain keyed by clone line. Repeat samples provide no recurring Genetics XP. Future economy-sensitive sampling, lab, and extraction outcomes should become server-authoritative.
 
 Tissue samples contain limited extraction material assigned once from their stored quality band: Poor 1 use, Standard 2, Good 3, and Excellent 3. Every valid extraction attempt consumes one use, including failure; invalid attempts consume nothing. Depleted samples remain as provenance history, and extraction never changes the donor's 24-hour physical-specimen sampling cooldown.
 
-Quantitative extraction requires Genetics Level 50 and a Tier 3 Genetics Lab. Its only current targets are Vigor, Growth Speed, Size, Flowering, and Mutation Tendency. Sample quality, extraction quality, and potency are separate stored gameplay values. Extracts preserve sample, donor specimen, clone-line, and species provenance, never carry Shiny, and cannot yet be applied to seeds. Feature or mutation extraction remains a future Level 60 system. Sample creation, uses, extraction outcomes, potency, consumption, and interventions must eventually become server-authoritative.
+Quantitative extraction requires Genetics Level 50 and a Tier 3 Genetics Lab. Its only current targets are Vigor, Growth Speed, Size, Flowering, and Mutation Tendency. Sample quality, extraction quality, and potency are separate stored gameplay values. Extracts preserve sample, donor specimen, clone-line, and species provenance and never carry Shiny. Feature or mutation extraction remains a future Level 60 system. Sample creation, uses, extraction outcomes, potency, consumption, and interventions must eventually become server-authoritative.
+
+Stored quantitative Genetic Extracts may be applied to eligible unique bred seeds at Genetics Level 50 with a Tier 3 Lab. Generic stackable seeds remain ineligible until they have safe authoritative unique identities. A seed currently accepts one quantitative treatment, whose target is fixed by the extract. Valid application consumes the extract while retaining its historical record and full donor/sample provenance; invalid attempts consume nothing. Treatment remains pending without changing seed genetics until it resolves exactly once during Nursery planting.
+
+Quantitative treatment is a bounded probabilistic influence rather than direct assignment. Only its target quantitative stat may increase, with no negative outcome in the current model. It cannot create mutations, alter feature state, species, hybrid status, lineage, clone-line identity, or affect Shiny in any way. Mutation Tendency treatment changes only that stored quantitative value and leaves later spontaneous mutation handling to the normal genetics system. Resolution provenance remains with the treated specimen through collection. A treated parent breeds from its resolved quantitative values through normal inheritance, while descendants do not inherit the parent's treatment record. Extract consumption, treatment creation, resolution randomness, resulting genetics, XP milestones, and marketplace provenance must become server-authoritative in production.
 
 ## Working conventions
 

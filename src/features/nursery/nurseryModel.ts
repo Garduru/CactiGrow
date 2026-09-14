@@ -82,6 +82,7 @@ export function createNurseryPlantFromBredSeed(seed: BredSeed, now: number): Nur
     genetics: seed.genetics,
     geneticFeatures: seed.geneticFeatures,
     specialVariants: seed.specialVariants,
+    quantitativeTreatments: seed.quantitativeTreatments,
     parentPlantIds: seed.parentPlantIds,
     parentSpeciesIds: seed.parentSpeciesIds,
     isHybrid: seed.isHybrid,
@@ -148,4 +149,20 @@ export function createInitialNurserySlots(now: number): NurserySlotState[] {
       plant: null,
     })),
   ]
+}
+
+export function ensureNurserySlotCapacity(slots: NurserySlotState[], capacity: number): NurserySlotState[] {
+  if (!Number.isSafeInteger(capacity) || capacity <= slots.length) return slots
+  const usedIds = new Set(slots.map((slot) => slot.id))
+  const additions: NurserySlotState[] = []
+  let slotNumber = 1
+  while (slots.length + additions.length < capacity) {
+    const id = `slot-${slotNumber}`
+    if (!usedIds.has(id)) {
+      additions.push({ id, plant: null })
+      usedIds.add(id)
+    }
+    slotNumber += 1
+  }
+  return [...slots, ...additions]
 }

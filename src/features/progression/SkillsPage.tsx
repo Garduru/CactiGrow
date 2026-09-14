@@ -1,4 +1,5 @@
 import { ProgressBar } from '../../components/ui/ProgressBar'
+import { GameCard } from '../../components/ui/GameCard'
 import { useGameState } from '../../game/useGameState'
 import { getProgressionSnapshot } from './progressionModel'
 import { skillDefinitions } from './skillDefinitions'
@@ -15,7 +16,7 @@ export function SkillsPage() {
         {skillDefinitions.map((skill) => {
           const progression = getProgressionSnapshot(state.player.skills[skill.id].xp)
           return (
-            <article className="skill-card" key={skill.id}>
+            <GameCard className="skill-card" key={skill.id}>
               <header>
                 <h2>{skill.name}</h2>
                 <strong>{progression.isMaxLevel ? 'Level 99 · MAX' : `Level ${progression.level}`}</strong>
@@ -43,7 +44,7 @@ export function SkillsPage() {
                   ariaValueText={`${progression.progressXp.toLocaleString()} of ${progression.requiredXp.toLocaleString()} XP toward level ${progression.level + 1}`}
                 />
               )}
-            </article>
+            </GameCard>
           )
         })}
       </div>

@@ -1,5 +1,7 @@
 import { useGameState } from '../../game/useGameState'
 import { achievementDefinitions } from './achievementsModel'
+import { Badge } from '../../components/ui/Badge'
+import { LocationHeader } from '../../components/ui/LocationHeader'
 
 export function AchievementsPage() {
   const { state } = useGameState()
@@ -7,13 +9,7 @@ export function AchievementsPage() {
 
   return (
     <section aria-labelledby="achievements-title">
-      <div className="achievements-header">
-        <div>
-          <h1 id="achievements-title">Achievements</h1>
-          <p>Milestones from your work around the Farm.</p>
-        </div>
-        <strong>{completedCount} / {achievementDefinitions.length} complete</strong>
-      </div>
+      <LocationHeader titleId="achievements-title" eyebrow="Milestones" title="Achievements" subtitle="Recognition earned through work around the Farm." status={<Badge tone="accent">{completedCount} / {achievementDefinitions.length} complete</Badge>} />
 
       <div className="achievement-list">
         {achievementDefinitions.map((definition) => {
@@ -21,7 +17,7 @@ export function AchievementsPage() {
           const completed = Boolean(progress?.completedAt)
           return (
             <article className={`achievement-card achievement-card--${completed ? 'complete' : 'locked'}`} key={definition.id}>
-              <span aria-label={completed ? 'Completed' : 'Locked'}>{completed ? 'Completed' : 'Locked'}</span>
+              <Badge tone={completed ? 'success' : 'locked'}>{completed ? 'Completed' : 'Locked'}</Badge>
               <h2>{definition.name}</h2>
               <p>{definition.description}</p>
               {progress?.completedAt && <time dateTime={progress.completedAt}>Earned {new Date(progress.completedAt).toLocaleString()}</time>}

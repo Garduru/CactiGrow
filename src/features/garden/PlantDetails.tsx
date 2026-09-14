@@ -4,6 +4,9 @@ import type { Species } from '../../types/species'
 import { getSpeciesById } from '../../data/species'
 import { getGeneticFeatureDefinition } from '../../data/geneticFeatures'
 import { getExpressedGeneticFeatures } from '../genetics/geneticFeatureModel'
+import type { GardenSpecimenOrganization } from '../../types/garden'
+import { GardenOrganizationControls } from './GardenOrganizationControls'
+import { TreatmentHistory } from '../lab/TreatmentHistory'
 
 interface PlantDetailsProps {
   plant: CollectedPlant
@@ -13,6 +16,11 @@ interface PlantDetailsProps {
   onSell: () => void
   onResearch: () => void
   isListed: boolean
+  organization?: GardenSpecimenOrganization
+  organizationUnlocked: boolean
+  onFavoriteChange: (favorite: boolean) => void
+  onAddTag: (tag: string) => boolean
+  onRemoveTag: (tag: string) => void
 }
 
 const detailFields = [
@@ -23,7 +31,7 @@ const detailFields = [
   ['Mutation tendency', 'mutationChance'],
 ] as const
 
-export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed }: PlantDetailsProps) {
+export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed, organization, organizationUnlocked, onFavoriteChange, onAddTag, onRemoveTag }: PlantDetailsProps) {
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const expressedFeatures = getExpressedGeneticFeatures(plant.geneticFeatures)
@@ -158,6 +166,9 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
             <p className="plant-details__missing">No parent specimens recorded.</p>
           )}
         </section>
+
+        {organizationUnlocked && <GardenOrganizationControls metadata={organization} onFavoriteChange={onFavoriteChange} onAddTag={onAddTag} onRemoveTag={onRemoveTag} />}
+        <TreatmentHistory treatments={plant.quantitativeTreatments} />
 
         <footer className="plant-details__actions">
           <span>{isListed ? 'Listed on Marketplace' : 'Specimen actions'}</span>

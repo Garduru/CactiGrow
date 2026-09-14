@@ -63,3 +63,18 @@ export function registerActiveSpecimen(
     },
   }
 }
+
+export function unregisterActiveSpecimen(registry: CloneLineRegistry, cloneLineId: string): CloneLineRegistry {
+  const cloneLine = registry[cloneLineId]
+  if (!cloneLine || cloneLine.localStats.activeKnownSpecimens <= 0) return registry
+  return {
+    ...registry,
+    [cloneLineId]: {
+      ...cloneLine,
+      localStats: {
+        ...cloneLine.localStats,
+        activeKnownSpecimens: cloneLine.localStats.activeKnownSpecimens - 1,
+      },
+    },
+  }
+}

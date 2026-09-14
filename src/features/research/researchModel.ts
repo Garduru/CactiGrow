@@ -82,7 +82,20 @@ function discoveryReward(id: string): number {
   if (id === researchDiscoveryMilestoneIds.firstLowYieldExtract) return GENETICS_RESEARCH_REWARDS.firstLowYieldExtract
   if (id === researchDiscoveryMilestoneIds.firstGoodExtraction) return GENETICS_RESEARCH_REWARDS.firstGoodExtraction
   if (id === researchDiscoveryMilestoneIds.firstExcellentExtraction) return GENETICS_RESEARCH_REWARDS.firstExcellentExtraction
+  if (id === researchDiscoveryMilestoneIds.firstQuantitativeTreatment) return GENETICS_RESEARCH_REWARDS.firstQuantitativeTreatment
+  if (id.startsWith('treatment:target:')) return GENETICS_RESEARCH_REWARDS.firstTreatmentTarget
+  if (id === researchDiscoveryMilestoneIds.firstExpressedTreatment) return GENETICS_RESEARCH_REWARDS.firstExpressedTreatment
+  if (id === researchDiscoveryMilestoneIds.firstMeaningfulTreatmentGain) return GENETICS_RESEARCH_REWARDS.firstMeaningfulTreatmentGain
   return 0
+}
+
+export function recordTreatmentMilestones(research: GeneticsResearchState, target: string, gain?: number, meaningfulGain = 10): ResearchResult {
+  const ids = gain === undefined
+    ? [researchDiscoveryMilestoneIds.firstQuantitativeTreatment, researchDiscoveryMilestoneIds.treatmentTarget(target)]
+    : [...(gain > 0 ? [researchDiscoveryMilestoneIds.firstExpressedTreatment] : []), ...(gain >= meaningfulGain ? [researchDiscoveryMilestoneIds.firstMeaningfulTreatmentGain] : [])]
+  const additions = ids.filter((id) => !research.completedDiscoveryMilestoneIds.includes(id))
+  if (!additions.length) return { research, xpAwarded: 0, changed: false }
+  return { research: { ...research, completedDiscoveryMilestoneIds: [...research.completedDiscoveryMilestoneIds, ...additions] }, xpAwarded: additions.reduce((sum, id) => sum + discoveryReward(id), 0), changed: true }
 }
 
 export function recordExtractionMilestones(research: GeneticsResearchState, target: string, outcome: 'success' | 'low-yield', qualityBand: 'poor' | 'standard' | 'good' | 'excellent'): ResearchResult {

@@ -4,6 +4,8 @@ import { getLevelFromXp } from '../progression/progressionModel'
 import { GeneticKnowledgeView } from './GeneticKnowledgeView'
 import { getResearchDepthDefinition } from './researchConfig'
 import { projectGeneticKnowledge } from './researchModel'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { RequirementNotice } from '../../components/ui/RequirementNotice'
 
 export function ResearchLogPage() {
   const { state, comparePlants } = useGameState()
@@ -37,7 +39,7 @@ export function ResearchLogPage() {
 
       <section className="research-comparison" aria-labelledby="comparison-title">
         <div><h2 id="comparison-title">Specimen Comparison</h2><p>Compare observed facts from two owned clone lines. This is not clone verification.</p></div>
-        {level < 5 ? <strong>Unlocks at Genetics Level 5</strong> : (
+        {level < 5 ? <RequirementNotice>Requires Genetics Level 5</RequirementNotice> : (
           <div className="research-comparison__controls">
             <label>First specimen<select value={firstPlantId} onChange={(event) => setFirstPlantId(event.target.value)}><option value="">Choose specimen</option>{researchedPlants.map((plant) => <option key={plant.id} value={plant.id}>{plant.id}</option>)}</select></label>
             <label>Second specimen<select value={secondPlantId} onChange={(event) => setSecondPlantId(event.target.value)}><option value="">Choose specimen</option>{researchedPlants.map((plant) => <option key={plant.id} value={plant.id}>{plant.id}</option>)}</select></label>
@@ -68,7 +70,7 @@ export function ResearchLogPage() {
             )
           })}
         </div>
-      ) : <div className="garden-empty"><strong>No clone lines studied yet</strong><span>Open an owned specimen in Garden and choose Study Genetics.</span></div>}
+      ) : <EmptyState title="No clone lines studied yet">Open an owned specimen in Garden and choose Study Genetics.</EmptyState>}
     </section>
   )
 }

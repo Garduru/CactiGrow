@@ -16,7 +16,7 @@ export function createGeneticsLabState(): GeneticsLabState {
 
 export function getInitialSampleUses(band: TissueSampleQualityBand): number { return band === 'poor' ? 1 : band === 'standard' ? 2 : 3 }
 export function normalizeTissueSample(sample: TissueSample): TissueSample {
-  const initialUses = Number.isSafeInteger(sample.initialUses) ? sample.initialUses : getInitialSampleUses(sample.qualityBand)
+  const initialUses = getInitialSampleUses(sample.qualityBand)
   const remainingUses = Number.isSafeInteger(sample.remainingUses) ? Math.min(initialUses, Math.max(0, sample.remainingUses)) : initialUses
   return { ...sample, initialUses, remainingUses, status: remainingUses === 0 ? 'depleted' : 'stored' }
 }

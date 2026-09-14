@@ -3,15 +3,20 @@
   --cg-bg: #100d0b;
   --cg-surface: #191411;
   --cg-surface-raised: #211a16;
+  --cg-surface-elevated: #2a211b;
   --cg-surface-hover: #29201a;
+  --cg-surface-selected: #38261c;
 
   /* Borders */
   --cg-border: #392e27;
   --cg-border-strong: #4a3a30;
+  --cg-border-interactive: #765039;
 
   /* Text */
   --cg-text: #f4eee8;
+  --cg-text-secondary: #d8c8b5;
   --cg-text-muted: #a99b8c;
+  --cg-text-disabled: #776d63;
 
   /* CactiSwap/CactiGrow accent */
   --cg-accent: #dc6841;
@@ -19,13 +24,32 @@
 
   /* Game states */
   --cg-success: #22c98d;
+  --cg-cactus: #82a65d;
   --cg-warning: #e5a84b;
   --cg-danger: #df5b55;
+  --cg-locked: #82786e;
 
   /* Shape */
   --cg-radius-sm: 10px;
   --cg-radius-md: 16px;
   --cg-radius-lg: 22px;
+
+  /* Rhythm and interaction */
+  --cg-space-xs: 6px;
+  --cg-space-sm: 10px;
+  --cg-space-md: 16px;
+  --cg-space-lg: 24px;
+  --cg-control-height: 44px;
+  --cg-font-display: Georgia, 'Times New Roman', serif;
+  --cg-font-ui: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --cg-font-page-title: clamp(28px, 4vw, 42px);
+  --cg-font-section-title: clamp(20px, 2.5vw, 26px);
+  --cg-font-panel-title: 18px;
+  --cg-font-body: 14px;
+  --cg-font-meta: 11px;
+  --cg-shadow-panel: 0 12px 32px #0004;
+  --cg-shadow-dialog: 0 24px 70px #000b;
+  --cg-motion-fast: 140ms ease;
 
   /* Layout */
   --cg-content-width: 1200px;
@@ -34,8 +58,8 @@
   --cg-section-space: clamp(16px, 2.5vw, 28px);
   --cg-card-gap: clamp(12px, 2vw, 18px);
   --cg-card-min: 280px;
-  --cg-touch-target: 44px;
+  --cg-touch-target: var(--cg-control-height);
   --cg-header-height: 56px;
   --cg-header-padding: 4px;
-  --cg-shell-bottom-space: calc(72px + env(safe-area-inset-bottom, 0px));
+  --cg-shell-bottom-space: calc(96px + env(safe-area-inset-bottom, 0px));
 }
