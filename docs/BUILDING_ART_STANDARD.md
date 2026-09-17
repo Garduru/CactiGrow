@@ -41,7 +41,7 @@ Every building and placeable world object has four independently authored geomet
 3. **Interaction zone:** localized activation geometry for a door, station, or contextual action. It remains independent from placement and collision.
 4. **Visual sprite bounds:** rendering canvas that may contain roofs, awnings, signs, plants, antennas, trim, or transparent padding. Sprite bounds never define collision.
 
-Avoid zigzag collision, stair-step approximations, numerous overlapping bodies, roof-derived collision, and canvas-derived collision. Author the ground footprint, front door, and player approach before generating final art.
+Avoid zigzag collision, stair-step approximations, numerous overlapping bodies, roof-derived collision, and canvas-derived collision. Author the ground footprint, front door, and player approach before generating final art. The human-approved long Home V1 uses five simple overlapping rectangles to protect its lower body, roof wings, gable, and chimney. The human-approved Genetics Lab V1 uses four simple overlapping rectangles around its lower body, dome, right technical roof, and left AC. Both are building-specific exceptions driven by their silhouettes and the always-on-top local player; neither changes the simple-collider starting preference for future structures.
 
 ## Occlusion and asset package
 

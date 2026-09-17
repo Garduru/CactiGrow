@@ -3,6 +3,7 @@ import type { WorldBridge } from './WorldBridge'
 import { TOWN_WORLD_HEIGHT, TOWN_WORLD_WIDTH, townWorldLayout, townWorldSpawns, type TownLocationLayout } from './townWorldLayout'
 import type { TownWorldLocationProjection, TownWorldSpawnId } from './worldTypes'
 import { WORLD_DEPTH } from './worldDepth'
+import type { EditorObject, WorldEditorController } from './editor/worldEditorState'
 
 const PLAYER_SPEED = 245
 const CAMERA_ZOOM_FLOOR = 0.1
@@ -25,6 +26,10 @@ export class TownTestScene extends Phaser.Scene {
   private readonly bridge: WorldBridge
   private readonly debugWorld: boolean
   private readonly playerSpawn: Readonly<{ x: number; y: number }>
+  private readonly editor?: WorldEditorController
+  private readonly editorVisuals = new Map<string, { main: Phaser.GameObjects.Rectangle; extras: { object: Phaser.GameObjects.Rectangle; x: number; y: number }[]; x: number; y: number }>()
+  private readonly ownedColliders = new Map<string, Phaser.GameObjects.Rectangle[]>()
+  private readonly colliderHandles = new Map<Phaser.GameObjects.Rectangle, Phaser.Physics.Arcade.Collider>()
   private player!: Phaser.GameObjects.Container
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: Record<'up' | 'down' | 'left' | 'right' | 'interact', Phaser.Input.Keyboard.Key>
@@ -43,11 +48,12 @@ export class TownTestScene extends Phaser.Scene {
   private pinchStartZoom = 1
   private cameraDebugText: Phaser.GameObjects.Text | null = null
 
-  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: TownWorldSpawnId }) {
+  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: TownWorldSpawnId; editor?: WorldEditorController }) {
     super('town-graybox')
     this.bridge = bridge
     this.debugWorld = debugWorld
-    this.playerSpawn = townWorldSpawns[options.spawnId]
+    this.playerSpawn = options.editor?.getSnapshot().objects.flatMap((object) => object.returnSpawn?.id === options.spawnId ? [object.returnSpawn] : [])[0] ?? townWorldSpawns[options.spawnId]
+    this.editor = options.editor
   }
 
   create() {
@@ -59,6 +65,7 @@ export class TownTestScene extends Phaser.Scene {
     this.createPlayer()
     this.createInput()
     this.configureCamera()
+    if (this.editor) this.setupEditor()
     if (this.debugWorld) this.drawDebugOverlay()
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
@@ -75,6 +82,7 @@ export class TownTestScene extends Phaser.Scene {
   update() {
     const body = this.player.body as Phaser.Physics.Arcade.Body
     this.updateCameraZoom()
+    if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.movementTarget = null; return }
     if (!this.canAcceptKeyboardInput()) {
       body.setVelocity(0)
       return
@@ -149,28 +157,32 @@ export class TownTestScene extends Phaser.Scene {
 
   private drawLocation(layout: TownLocationLayout) {
     if (layout.visualKind === 'farm-exit') {
-      this.add.rectangle(layout.x - 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      this.add.rectangle(layout.x + 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      this.add.rectangle(layout.x, layout.y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground)
-      this.addStaticCollider(layout.x - 135, layout.y, 24, 118)
-      this.addStaticCollider(layout.x + 135, layout.y, 24, 118)
+      const left = this.add.rectangle(layout.x - 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
+      const right = this.add.rectangle(layout.x + 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
+      const main = this.add.rectangle(layout.x, layout.y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground)
+      this.rememberVisual(layout.id, main, [left, right])
+      this.addStaticCollider(layout.x - 135, layout.y, 24, 118, layout.id)
+      this.addStaticCollider(layout.x + 135, layout.y, 24, 118, layout.id)
       return
     }
 
     const bodyColor = layout.visualKind === 'shop' ? 0x8c6545 : 0x656273
     const foundationColor = layout.visualKind === 'shop' ? 0x49352a : 0x3e3a49
     const doorColor = layout.visualKind === 'shop' ? 0x65422e : 0x454052
-    this.add.rectangle(layout.x, layout.y, layout.width, layout.height, bodyColor).setStrokeStyle(7, 0x302218).setDepth(WORLD_DEPTH.buildings)
-    this.add.rectangle(layout.x, layout.y + layout.height / 2 - 24, layout.width, 48, foundationColor).setStrokeStyle(3, 0x2b2019).setDepth(WORLD_DEPTH.buildings)
-    this.add.rectangle(layout.interactionX, layout.y + layout.height / 2 - 68, 88, 136, doorColor).setStrokeStyle(5, 0x2c211b).setDepth(WORLD_DEPTH.foreground)
+    const main = this.add.rectangle(layout.x, layout.y, layout.width, layout.height, bodyColor).setStrokeStyle(7, 0x302218).setDepth(WORLD_DEPTH.buildings)
+    const extras = [
+      this.add.rectangle(layout.x, layout.y + layout.height / 2 - 24, layout.width, 48, foundationColor).setStrokeStyle(3, 0x2b2019).setDepth(WORLD_DEPTH.buildings),
+      this.add.rectangle(layout.interactionX, layout.y + layout.height / 2 - 68, 88, 136, doorColor).setStrokeStyle(5, 0x2c211b).setDepth(WORLD_DEPTH.foreground),
+    ]
     if (layout.visualKind === 'shop') {
-      this.add.rectangle(layout.x - 105, layout.y - 34, 96, 72, 0xd6b879, 0.35).setStrokeStyle(4, 0x5a402d).setDepth(WORLD_DEPTH.foreground)
-      this.add.rectangle(layout.x + 105, layout.y - 34, 96, 72, 0xd6b879, 0.35).setStrokeStyle(4, 0x5a402d).setDepth(WORLD_DEPTH.foreground)
+      extras.push(this.add.rectangle(layout.x - 105, layout.y - 34, 96, 72, 0xd6b879, 0.35).setStrokeStyle(4, 0x5a402d).setDepth(WORLD_DEPTH.foreground))
+      extras.push(this.add.rectangle(layout.x + 105, layout.y - 34, 96, 72, 0xd6b879, 0.35).setStrokeStyle(4, 0x5a402d).setDepth(WORLD_DEPTH.foreground))
     } else {
-      for (let windowX = layout.x - 180; windowX <= layout.x + 180; windowX += 120) this.add.rectangle(windowX, layout.y - 36, 78, 74, 0x9da5ab, 0.34).setStrokeStyle(4, 0x454052).setDepth(WORLD_DEPTH.foreground)
+      for (let windowX = layout.x - 180; windowX <= layout.x + 180; windowX += 120) extras.push(this.add.rectangle(windowX, layout.y - 36, 78, 74, 0x9da5ab, 0.34).setStrokeStyle(4, 0x454052).setDepth(WORLD_DEPTH.foreground))
     }
+    this.rememberVisual(layout.id, main, extras)
     if (layout.colliderX !== undefined && layout.colliderY !== undefined && layout.colliderWidth !== undefined && layout.colliderHeight !== undefined) {
-      this.addStaticCollider(layout.colliderX, layout.colliderY, layout.colliderWidth, layout.colliderHeight)
+      this.addStaticCollider(layout.colliderX, layout.colliderY, layout.colliderWidth, layout.colliderHeight, layout.id)
     }
   }
 
@@ -183,22 +195,26 @@ export class TownTestScene extends Phaser.Scene {
     this.physics.add.existing(this.player)
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setCircle(27).setCollideWorldBounds(true)
-    this.staticColliders.forEach((collider) => this.physics.add.collider(this.player, collider))
+    this.staticColliders.forEach((collider) => this.attachCollider(collider))
   }
 
   private createInput() {
     if (!this.input.keyboard) throw new Error('Keyboard input is unavailable')
     this.cursors = this.input.keyboard.createCursorKeys()
     this.wasd = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D', interact: 'E' }) as typeof this.wasd
-    this.wasd.interact.on('down', () => { if (this.canAcceptKeyboardInput()) this.activateNearestInteraction() })
+    this.wasd.interact.on('down', () => { if (this.editor?.getSnapshot().mode !== 'edit' && this.canAcceptKeyboardInput()) this.activateNearestInteraction() })
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.editor?.getSnapshot().mode === 'edit') {
+        if (this.getActiveTouchPointers().length >= 2) this.beginPinch()
+        return
+      }
       this.game.canvas.focus()
       if (this.getActiveTouchPointers().length >= 2) return this.beginPinch()
       this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY }
     })
-    this.input.on('pointermove', () => this.updatePinch())
-    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.finishPointerGesture(pointer))
-    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => this.finishPointerGesture(pointer))
+    this.input.on('pointermove', () => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.updatePinch() })
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
+    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _over: Phaser.GameObjects.GameObject[], _dx: number, deltaY: number) => this.setUserZoom(this.targetCameraZoom * Math.exp(-deltaY * 0.0012)))
     this.game.canvas.tabIndex = 0
     this.game.canvas.setAttribute('aria-label', 'Interactive Town graybox. Use arrow keys or WASD to move and E to enter a nearby location.')
@@ -274,13 +290,19 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   private handleWorldTap(worldX: number, worldY: number) {
-    const target = this.interactionTargets.find((candidate) => Phaser.Math.Distance.Between(worldX, worldY, candidate.layout.interactionX, candidate.layout.interactionY) <= candidate.layout.tapRadius)
+    const target = this.interactionTargets.find((candidate) => {
+      const point = this.getInteraction(candidate.layout)
+      return Phaser.Math.Distance.Between(worldX, worldY, point.x, point.y) <= candidate.layout.tapRadius
+    })
     if (!target) {
       this.movementTarget = new Phaser.Math.Vector2(worldX, worldY)
       return
     }
     if (this.isInInteractionRange(target)) this.enterLocation(target)
-    else this.movementTarget = new Phaser.Math.Vector2(target.layout.approachX, target.layout.approachY)
+    else {
+      const point = this.editor?.getSnapshot().objects.find((object) => object.id === target.location.id)?.approaches[0]
+      this.movementTarget = new Phaser.Math.Vector2(point?.x ?? target.layout.approachX, point?.y ?? target.layout.approachY)
+    }
   }
 
   private setUserZoom(zoom: number) { this.targetCameraZoom = Phaser.Math.Clamp(zoom, this.fitCameraZoom, MAX_CAMERA_ZOOM) }
@@ -291,15 +313,81 @@ export class TownTestScene extends Phaser.Scene {
     if (this.cameraDebugText) this.cameraDebugText.setText(`Zoom ${camera.zoom.toFixed(2)}  Default ${this.baseCameraZoom.toFixed(2)}  Fit ${this.fitCameraZoom.toFixed(2)}  Max ${MAX_CAMERA_ZOOM.toFixed(2)}`)
   }
 
-  private addStaticCollider(x: number, y: number, width: number, height: number) {
+  private addStaticCollider(x: number, y: number, width: number, height: number, ownerId?: string) {
     const collider = this.add.rectangle(x, y, width, height, 0xffffff, 0)
     this.physics.add.existing(collider, true)
     this.staticColliders.push(collider)
+    if (ownerId) this.ownedColliders.set(ownerId, [...(this.ownedColliders.get(ownerId) ?? []), collider])
+    if (this.player?.body) this.attachCollider(collider)
+  }
+
+  private attachCollider(collider: Phaser.GameObjects.Rectangle) {
+    this.colliderHandles.set(collider, this.physics.add.collider(this.player, collider))
+  }
+
+  private rememberVisual(id: string, main: Phaser.GameObjects.Rectangle, extras: Phaser.GameObjects.Rectangle[]) {
+    this.editorVisuals.set(id, { main, extras: extras.map((object) => ({ object, x: object.x, y: object.y })), x: main.x, y: main.y })
+  }
+
+  private setupEditor() {
+    if (!this.editor) return
+    const returnIds: Record<string, TownWorldSpawnId> = { shop: 'shop-exterior', market: 'marketplace-exterior', farm: 'farm-arrival' }
+    const objects: EditorObject[] = townWorldLayout.flatMap((layout) => {
+      const visual = this.editorVisuals.get(layout.id)?.main
+      if (!visual) return []
+      const colliders = layout.visualKind === 'farm-exit'
+        ? [{ id: 'left-post', label: 'Left post', x: layout.x - 135, y: layout.y, width: 24, height: 118 }, { id: 'right-post', label: 'Right post', x: layout.x + 135, y: layout.y, width: 24, height: 118 }]
+        : layout.colliderX !== undefined && layout.colliderY !== undefined && layout.colliderWidth !== undefined && layout.colliderHeight !== undefined
+          ? [{ id: 'main', label: 'Main collider', x: layout.colliderX, y: layout.colliderY, width: layout.colliderWidth, height: layout.colliderHeight }]
+          : []
+      const returnSpawn = townWorldSpawns[returnIds[layout.id]]
+      return [{
+        id: layout.id, label: this.interactionTargets.find((target) => target.location.id === layout.id)?.location.displayName ?? layout.id,
+        sprite: { x: visual.x, y: visual.y, width: visual.displayWidth, height: visual.displayHeight, originX: visual.originX, originY: visual.originY },
+        colliders,
+        interaction: { x: layout.interactionX, y: layout.interactionY, radius: layout.interactionRadius },
+        approaches: [{ id: 'approach', label: 'Approach', x: layout.approachX, y: layout.approachY }],
+        returnSpawn: { id: returnIds[layout.id], label: 'Return/arrival spawn', x: returnSpawn.x, y: returnSpawn.y },
+        anchors: [],
+      }]
+    })
+    this.editor.initialize(objects)
+    let last = new Map<string, EditorObject>()
+    const apply = () => {
+      for (const object of this.editor!.getSnapshot().objects) if (last.get(object.id) !== object) this.applyEditorObject(object)
+      last = new Map(this.editor!.getSnapshot().objects.map((object) => [object.id, object]))
+    }
+    const unsubscribe = this.editor.subscribe(apply)
+    apply()
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe)
+    void import('./editor/WorldEditorOverlay').then(({ WorldEditorOverlay }) => {
+      if (this.scene.isActive()) new WorldEditorOverlay(this, this.editor!)
+    })
+  }
+
+  private applyEditorObject(object: EditorObject) {
+    const visual = this.editorVisuals.get(object.id)
+    if (!visual) return
+    const { sprite } = object
+    visual.main.setPosition(sprite.x, sprite.y).setOrigin(sprite.originX, sprite.originY).setSize(sprite.width, sprite.height)
+    visual.extras.forEach(({ object: extra, x, y }) => extra.setPosition(x + sprite.x - visual.x, y + sprite.y - visual.y))
+    const old = this.ownedColliders.get(object.id) ?? []
+    old.forEach((collider) => {
+      this.colliderHandles.get(collider)?.destroy()
+      this.colliderHandles.delete(collider)
+      this.staticColliders.splice(this.staticColliders.indexOf(collider), 1)
+      collider.destroy()
+    })
+    this.ownedColliders.set(object.id, [])
+    object.colliders.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, object.id))
+    const target = this.interactionTargets.find((candidate) => candidate.location.id === object.id)
+    if (target && object.approaches[0]) target.prompt.setPosition(object.approaches[0].x, object.approaches[0].y + 66)
   }
 
   private canAcceptKeyboardInput() { return this.game.canvas.contains(document.activeElement) || document.activeElement === document.body }
-  private isInInteractionRange(target: TownInteractionTarget) { return Phaser.Math.Distance.Between(this.player.x, this.player.y, target.layout.interactionX, target.layout.interactionY) <= target.layout.interactionRadius }
-  private getNearestInteraction() { return this.interactionTargets.filter((target) => this.isInInteractionRange(target)).sort((a, b) => Phaser.Math.Distance.Between(this.player.x, this.player.y, a.layout.interactionX, a.layout.interactionY) - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.layout.interactionX, b.layout.interactionY))[0] ?? null }
+  private getInteraction(layout: TownLocationLayout) { return this.editor?.getSnapshot().objects.find((object) => object.id === layout.id)?.interaction ?? { x: layout.interactionX, y: layout.interactionY, radius: layout.interactionRadius } }
+  private isInInteractionRange(target: TownInteractionTarget) { const point = this.getInteraction(target.layout); return Phaser.Math.Distance.Between(this.player.x, this.player.y, point.x, point.y) <= point.radius }
+  private getNearestInteraction() { return this.interactionTargets.filter((target) => this.isInInteractionRange(target)).sort((a, b) => { const first = this.getInteraction(a.layout); const second = this.getInteraction(b.layout); return Phaser.Math.Distance.Between(this.player.x, this.player.y, first.x, first.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, second.x, second.y) })[0] ?? null }
   private activateNearestInteraction() { const target = this.getNearestInteraction(); if (target) this.enterLocation(target) }
   private enterLocation(target: TownInteractionTarget) { this.bridge.emitIntent({ type: 'ENTER_LOCATION', locationId: target.location.id }) }
   private getPromptText(location: TownWorldLocationProjection) { return `${location.displayName}\n${location.interactionLabel}` }

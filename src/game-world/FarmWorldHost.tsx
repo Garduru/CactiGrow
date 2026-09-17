@@ -10,8 +10,8 @@ interface FarmWorldHostProps {
 }
 
 export function FarmWorldHost({ projection, onIntent, spawnId }: FarmWorldHostProps) {
-  const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createFarmWorldGame>[1]) => (
-    createFarmWorldGame(parent, bridge, { spawnId })
+  const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createFarmWorldGame>[1], editor?: Parameters<typeof createFarmWorldGame>[2]['editor']) => (
+    createFarmWorldGame(parent, bridge, { spawnId, editor })
   ), [spawnId])
-  return <PhaserWorldHost projection={projection} onIntent={onIntent} createGame={createGame} />
+  return <PhaserWorldHost projection={projection} onIntent={onIntent} createGame={createGame} world="farm" />
 }

@@ -1,9 +1,11 @@
 import Phaser from 'phaser'
-import { FARM_WORLD_HEIGHT, FARM_WORLD_WIDTH, NURSERY_PATH_ENDPOINT, farmWorldLayout, farmWorldSpawns, type FarmLocationLayout } from './farmWorldLayout'
+import { FARM_WORLD_HEIGHT, FARM_WORLD_WIDTH, MAILBOX_APPROACH_POINTS, MAILBOX_V1_COLLIDERS, NURSERY_PATH_ENDPOINT, farmWorldLayout, farmWorldSpawns, type FarmLocationLayout } from './farmWorldLayout'
 import type { WorldBridge } from './WorldBridge'
 import type { FarmWorldLocationProjection, FarmWorldSpawnId } from './worldTypes'
 import { WORLD_DEPTH } from './worldDepth'
-import { NURSERY_V2_MAIN_ART } from './farmArtAssets'
+import { GARDEN_V1_MAIN_ART, GENETICS_LAB_V1_MAIN_ART, HOME_V1_MAIN_ART, MAILBOX_V1_MAIN_ART, NURSERY_V2_MAIN_ART } from './farmArtAssets'
+import { GARDEN_DISPLAY_ANCHORS } from './gardenDisplayAnchors'
+import type { EditorObject, WorldEditorController } from './editor/worldEditorState'
 
 const PLAYER_SPEED = 245
 const INTERACTION_DISTANCE = 165
@@ -15,7 +17,20 @@ const NURSERY_ACTIVE_COLLIDER = {
   width: NURSERY_COLLIDER_BOUNDS.right - NURSERY_COLLIDER_BOUNDS.left,
   height: NURSERY_COLLIDER_BOUNDS.bottom - NURSERY_COLLIDER_BOUNDS.top,
 } as const
-const GARDEN_PRESENTATION_GRAYBOX_COLLIDER = { x: 2390, y: 410, width: 590, height: 300 } as const
+const HOME_COLLIDERS = [
+  { name: 'main body', x: 1500, y: 702.5, width: 508, height: 115 },
+  { name: 'left wing', x: 1328, y: 632.5, width: 164, height: 35 },
+  { name: 'right wing', x: 1672, y: 632.5, width: 164, height: 35 },
+  { name: 'upper gable', x: 1500, y: 612.5, width: 240, height: 75 },
+  { name: 'chimney', x: 1588, y: 565, width: 56, height: 50 },
+] as const
+const LAB_PROVISIONAL_COLLIDERS = [
+  { name: 'lower body', x: 2382, y: 1257.5, width: 460, height: 135 },
+  { name: 'central dome', x: 2412.5, y: 1145, width: 205, height: 110 },
+  { name: 'right technical', x: 2558.5, y: 1148, width: 107, height: 104 },
+  { name: 'left AC', x: 2224, y: 1174, width: 72, height: 52 },
+] as const
+const GARDEN_V1_EXTERIOR_COLLIDER = { x: 2390, y: 420, width: 600, height: 220 } as const
 // The dynamic overview minimum may approach this floor only on pathological viewport shapes.
 const CAMERA_ZOOM_FLOOR = 0.1
 const MAX_CAMERA_ZOOM = 1.5
@@ -42,6 +57,10 @@ export class FarmTestScene extends Phaser.Scene {
   private readonly bridge: WorldBridge
   private readonly debugWorld: boolean
   private readonly playerSpawn: { x: number; y: number }
+  private readonly editor?: WorldEditorController
+  private readonly editorVisuals = new Map<string, { main: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle; extras: { object: Phaser.GameObjects.Rectangle; x: number; y: number }[]; x: number; y: number }>()
+  private readonly ownedColliders = new Map<string, Phaser.GameObjects.Rectangle[]>()
+  private readonly colliderHandles = new Map<Phaser.GameObjects.Rectangle, Phaser.Physics.Arcade.Collider>()
   private player!: Phaser.GameObjects.Container
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: Record<'up' | 'down' | 'left' | 'right' | 'interact', Phaser.Input.Keyboard.Key>
@@ -60,15 +79,20 @@ export class FarmTestScene extends Phaser.Scene {
   private pinchStartZoom = 1
   private cameraDebugText: Phaser.GameObjects.Text | null = null
 
-  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: FarmWorldSpawnId }) {
+  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: FarmWorldSpawnId; editor?: WorldEditorController }) {
     super('farm-graybox')
     this.bridge = bridge
     this.debugWorld = debugWorld
-    this.playerSpawn = farmWorldSpawns[options.spawnId]
+    this.playerSpawn = options.editor?.getSnapshot().objects.flatMap((object) => object.returnSpawn?.id === options.spawnId ? [object.returnSpawn] : [])[0] ?? farmWorldSpawns[options.spawnId]
+    this.editor = options.editor
   }
 
   preload() {
     this.load.image(NURSERY_V2_MAIN_ART.key, NURSERY_V2_MAIN_ART.path)
+    this.load.image(HOME_V1_MAIN_ART.key, HOME_V1_MAIN_ART.path)
+    this.load.image(GENETICS_LAB_V1_MAIN_ART.key, GENETICS_LAB_V1_MAIN_ART.path)
+    this.load.image(GARDEN_V1_MAIN_ART.key, GARDEN_V1_MAIN_ART.path)
+    this.load.image(MAILBOX_V1_MAIN_ART.key, MAILBOX_V1_MAIN_ART.path)
   }
 
   create() {
@@ -81,6 +105,7 @@ export class FarmTestScene extends Phaser.Scene {
     this.createPlayer()
     this.createInput()
     this.configureCamera()
+    if (this.editor) this.setupEditor()
     if (this.debugWorld) this.drawDebugOverlay()
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
@@ -98,6 +123,7 @@ export class FarmTestScene extends Phaser.Scene {
   update() {
     const body = this.player.body as Phaser.Physics.Arcade.Body
     this.updateCameraZoom()
+    if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.movementTarget = null; return }
     if (!this.canAcceptKeyboardInput()) {
       body.setVelocity(0)
       return
@@ -123,7 +149,10 @@ export class FarmTestScene extends Phaser.Scene {
     }
 
     const nearby = this.getNearestInteraction()
-    this.interactionTargets.forEach((target) => target.prompt.setVisible(target === nearby))
+    this.interactionTargets.forEach((target) => {
+      target.prompt.setVisible(target === nearby)
+      if (target === nearby && target.location.id === 'mail') target.prompt.setPosition(this.player.x, this.player.y - 90)
+    })
   }
 
   private drawGroundAndPaths() {
@@ -180,9 +209,8 @@ export class FarmTestScene extends Phaser.Scene {
       props.fillStyle(0x6f8550).fillCircle(x + 20, y + 5, 18)
       props.fillStyle(0x394b31).fillCircle(x - 23, y + 13, 13)
     })
-    ;[[1080, 1110], [1880, 460], [970, 1570], [2490, 1660], [2750, 1280]].forEach(([x, y], index) => {
-      props.fillStyle(index === 0 ? 0x59636a : 0x766756).fillEllipse(x, y, index === 0 ? 115 : 68, index === 0 ? 115 : 42)
-      if (index === 0) this.addStaticCollider(x, y, 100, 100)
+    ;[[1880, 460], [970, 1570], [2490, 1660], [2750, 1280]].forEach(([x, y]) => {
+      props.fillStyle(0x766756).fillEllipse(x, y, 68, 42)
     })
     ;[[430, 760], [2550, 760], [420, 1100], [2580, 1070], [1180, 1450], [1840, 1450]].forEach(([x, y]) => {
       props.fillStyle(0x7a6747, 0.85).fillCircle(x, y, 19)
@@ -204,52 +232,62 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private drawLocationGraybox(layout: FarmLocationLayout) {
-    const { x, y, width, height } = layout
+    const { x, y } = layout
     if (layout.visualKind === 'garden') {
-      this.add.rectangle(x, y, width, height, 0x65563c, 0.72).setStrokeStyle(8, 0x7f6847).setDepth(WORLD_DEPTH.buildings)
-      for (let row = -1; row <= 1; row += 1) {
-        this.add.rectangle(x, y + row * 72, width - 90, 43, 0x34281e).setStrokeStyle(3, 0x8b6d45).setDepth(WORLD_DEPTH.buildings)
-        for (let plant = -4; plant <= 4; plant += 1) this.add.circle(x + plant * 50, y + row * 72, 10, 0x72864e).setDepth(WORLD_DEPTH.foreground)
-      }
+      const visual = this.add.image(GARDEN_V1_MAIN_ART.anchorX, GARDEN_V1_MAIN_ART.anchorY, GARDEN_V1_MAIN_ART.key)
+        .setOrigin(GARDEN_V1_MAIN_ART.originX, GARDEN_V1_MAIN_ART.originY)
+        .setDisplaySize(GARDEN_V1_MAIN_ART.width, GARDEN_V1_MAIN_ART.height)
+        .setDepth(GARDEN_V1_MAIN_ART.depth)
+      this.rememberVisual(layout.id, visual)
       this.addStaticCollider(
-        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.x,
-        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.y,
-        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.width,
-        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.height,
+        GARDEN_V1_EXTERIOR_COLLIDER.x,
+        GARDEN_V1_EXTERIOR_COLLIDER.y,
+        GARDEN_V1_EXTERIOR_COLLIDER.width,
+        GARDEN_V1_EXTERIOR_COLLIDER.height,
+        layout.id,
       )
     } else if (layout.visualKind === 'mailbox') {
-      this.add.rectangle(x, y + 28, 16, 100, 0x6a4a32).setDepth(WORLD_DEPTH.buildings)
-      this.add.rectangle(x, y - 20, width, 58, 0x9b5938).setStrokeStyle(4, 0x352219).setDepth(WORLD_DEPTH.foreground)
-      this.add.rectangle(x + 22, y - 7, 24, 6, 0xd9b56e).setDepth(WORLD_DEPTH.foreground)
-      this.addStaticCollider(x, y + 12, width, height)
+      const visual = this.add.image(MAILBOX_V1_MAIN_ART.anchorX, MAILBOX_V1_MAIN_ART.anchorY, MAILBOX_V1_MAIN_ART.key)
+        .setOrigin(MAILBOX_V1_MAIN_ART.originX, MAILBOX_V1_MAIN_ART.originY)
+        .setDisplaySize(MAILBOX_V1_MAIN_ART.width, MAILBOX_V1_MAIN_ART.height)
+        .setDepth(MAILBOX_V1_MAIN_ART.depth)
+      this.rememberVisual(layout.id, visual)
+      MAILBOX_V1_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
     } else if (layout.visualKind === 'town-exit') {
-      this.add.rectangle(x - 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      this.add.rectangle(x + 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      this.add.rectangle(x, y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground)
-      this.addStaticCollider(x - 135, y, 24, 118)
-      this.addStaticCollider(x + 135, y, 24, 118)
+      const left = this.add.rectangle(x - 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
+      const right = this.add.rectangle(x + 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
+      const visual = this.add.rectangle(x, y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground)
+      this.rememberVisual(layout.id, visual, [left, right])
+      this.addStaticCollider(x - 135, y, 24, 118, layout.id)
+      this.addStaticCollider(x + 135, y, 24, 118, layout.id)
     } else {
       if (layout.visualKind === 'greenhouse') {
-        this.add.image(NURSERY_V2_MAIN_ART.anchorX, NURSERY_V2_MAIN_ART.anchorY, NURSERY_V2_MAIN_ART.key)
+        const visual = this.add.image(NURSERY_V2_MAIN_ART.anchorX, NURSERY_V2_MAIN_ART.anchorY, NURSERY_V2_MAIN_ART.key)
           .setOrigin(NURSERY_V2_MAIN_ART.originX, NURSERY_V2_MAIN_ART.originY)
           .setDisplaySize(NURSERY_V2_MAIN_ART.width, NURSERY_V2_MAIN_ART.height)
           .setDepth(NURSERY_V2_MAIN_ART.depth)
+        this.rememberVisual(layout.id, visual)
         this.addStaticCollider(
           NURSERY_ACTIVE_COLLIDER.x,
           NURSERY_ACTIVE_COLLIDER.y,
           NURSERY_ACTIVE_COLLIDER.width,
           NURSERY_ACTIVE_COLLIDER.height,
+          layout.id,
         )
-      } else {
-        const colors = { home: 0x8c6545, lab: 0x596979 } as const
-        this.add.rectangle(x, y, width, height, colors[layout.visualKind]).setStrokeStyle(7, 0x302218).setDepth(WORLD_DEPTH.buildings)
-        this.add.rectangle(x, y + height / 2 - 24, width, 48, 0x443126).setStrokeStyle(3, 0x2b2019).setDepth(WORLD_DEPTH.buildings)
-        this.add.rectangle(layout.approachX, y + height / 2 - 67, 82, 134, layout.visualKind === 'lab' ? 0x394858 : 0x6f432e).setStrokeStyle(5, 0x2c211b).setDepth(WORLD_DEPTH.foreground)
-        if (layout.visualKind === 'lab') {
-          this.add.rectangle(x - 95, y - 40, 108, 76, 0x819097, 0.55).setStrokeStyle(4, 0x394858).setDepth(WORLD_DEPTH.foreground)
-          this.add.rectangle(x + 75, y - 40, 108, 76, 0x819097, 0.55).setStrokeStyle(4, 0x394858).setDepth(WORLD_DEPTH.foreground)
-        }
-        this.addStaticCollider(x, y, width, height)
+      } else if (layout.visualKind === 'home') {
+        const visual = this.add.image(HOME_V1_MAIN_ART.anchorX, HOME_V1_MAIN_ART.anchorY, HOME_V1_MAIN_ART.key)
+          .setOrigin(HOME_V1_MAIN_ART.originX, HOME_V1_MAIN_ART.originY)
+          .setDisplaySize(HOME_V1_MAIN_ART.width, HOME_V1_MAIN_ART.height)
+          .setDepth(HOME_V1_MAIN_ART.depth)
+        this.rememberVisual(layout.id, visual)
+        HOME_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
+      } else if (layout.visualKind === 'lab') {
+        const visual = this.add.image(GENETICS_LAB_V1_MAIN_ART.anchorX, GENETICS_LAB_V1_MAIN_ART.anchorY, GENETICS_LAB_V1_MAIN_ART.key)
+          .setOrigin(GENETICS_LAB_V1_MAIN_ART.originX, GENETICS_LAB_V1_MAIN_ART.originY)
+          .setDisplaySize(GENETICS_LAB_V1_MAIN_ART.width, GENETICS_LAB_V1_MAIN_ART.height)
+          .setDepth(GENETICS_LAB_V1_MAIN_ART.depth)
+        this.rememberVisual(layout.id, visual)
+        LAB_PROVISIONAL_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
       }
     }
 
@@ -266,7 +304,7 @@ export class FarmTestScene extends Phaser.Scene {
     this.physics.add.existing(this.player)
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setCircle(27).setCollideWorldBounds(true)
-    this.staticColliders.forEach((collider) => this.physics.add.collider(this.player, collider))
+    this.staticColliders.forEach((collider) => this.attachCollider(collider))
   }
 
   private createInput() {
@@ -274,9 +312,13 @@ export class FarmTestScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys()
     this.wasd = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D', interact: 'E' }) as typeof this.wasd
     this.wasd.interact.on('down', () => {
-      if (this.canAcceptKeyboardInput()) this.activateNearestInteraction()
+      if (this.editor?.getSnapshot().mode !== 'edit' && this.canAcceptKeyboardInput()) this.activateNearestInteraction()
     })
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.editor?.getSnapshot().mode === 'edit') {
+        if (this.getActiveTouchPointers().length >= 2) this.beginPinch()
+        return
+      }
       this.game.canvas.focus()
       if (this.getActiveTouchPointers().length >= 2) {
         this.beginPinch()
@@ -284,9 +326,9 @@ export class FarmTestScene extends Phaser.Scene {
       }
       this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY }
     })
-    this.input.on('pointermove', () => this.updatePinch())
-    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.finishPointerGesture(pointer))
-    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => this.finishPointerGesture(pointer))
+    this.input.on('pointermove', () => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.updatePinch() })
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
+    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _currentlyOver: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
       this.setUserZoom(this.targetCameraZoom * Math.exp(-deltaY * 0.0012))
     })
@@ -330,6 +372,10 @@ export class FarmTestScene extends Phaser.Scene {
       this.add.text(target.layout.x, target.layout.y - target.layout.height / 2 - 85, target.location.id, { color: '#8dffd2', backgroundColor: '#10251ddd', fontSize: '14px', padding: { x: 6, y: 4 } }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
       this.drawLocationColliderDebug(debug, target.layout)
       if (target.layout.visualKind === 'greenhouse') this.drawNurseryDebug(debug, target.layout)
+      if (target.layout.visualKind === 'home') this.drawHomeDebug(debug)
+      if (target.layout.visualKind === 'lab') this.drawLabDebug(debug)
+      if (target.layout.visualKind === 'garden') this.drawGardenDebug(debug)
+      if (target.layout.visualKind === 'mailbox') this.drawMailboxDebug(debug, target.layout)
     })
     Object.entries(farmWorldSpawns).forEach(([id, spawn]) => {
       debug.fillStyle(0xff7f50, 0.95).fillCircle(spawn.x, spawn.y, 10)
@@ -382,7 +428,15 @@ export class FarmTestScene extends Phaser.Scene {
     })
     if (target) {
       if (this.isInInteractionRange(target)) this.enterLocation(target)
-      else this.movementTarget = new Phaser.Math.Vector2(target.layout.approachX, target.layout.approachY)
+      else {
+        if (target.location.id === 'mail') {
+          const approach = this.getNearestMailboxApproach()
+          this.movementTarget = new Phaser.Math.Vector2(approach.x, approach.y)
+        } else {
+          const approach = this.editor?.getSnapshot().objects.find((object) => object.id === target.location.id)?.approaches[0]
+          this.movementTarget = new Phaser.Math.Vector2(approach?.x ?? target.layout.approachX, approach?.y ?? target.layout.approachY)
+        }
+      }
       return
     }
     this.movementTarget = new Phaser.Math.Vector2(worldX, worldY)
@@ -398,11 +452,80 @@ export class FarmTestScene extends Phaser.Scene {
     if (this.cameraDebugText) this.cameraDebugText.setText(`Zoom ${camera.zoom.toFixed(2)}  Default ${this.baseCameraZoom.toFixed(2)}  Fit ${this.fitCameraZoom.toFixed(2)}  Max ${MAX_CAMERA_ZOOM.toFixed(2)}`)
   }
 
-  private addStaticCollider(x: number, y: number, width: number, height: number) {
+  private addStaticCollider(x: number, y: number, width: number, height: number, ownerId?: string) {
     const collider = this.add.rectangle(x, y, width, height, 0xffffff, 0)
     this.physics.add.existing(collider, true)
     this.staticColliders.push(collider)
+    if (ownerId) this.ownedColliders.set(ownerId, [...(this.ownedColliders.get(ownerId) ?? []), collider])
+    if (this.player?.body) this.attachCollider(collider)
     return collider
+  }
+
+  private attachCollider(collider: Phaser.GameObjects.Rectangle) {
+    this.colliderHandles.set(collider, this.physics.add.collider(this.player, collider))
+  }
+
+  private rememberVisual(id: string, main: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle, extras: Phaser.GameObjects.Rectangle[] = []) {
+    this.editorVisuals.set(id, { main, extras: extras.map((object) => ({ object, x: object.x, y: object.y })), x: main.x, y: main.y })
+  }
+
+  private setupEditor() {
+    if (!this.editor) return
+    const returnIds: Record<string, FarmWorldSpawnId> = {
+      home: 'home-exterior', nursery: 'nursery-exterior', garden: 'garden-exterior',
+      lab: 'lab-exterior', mail: 'mailbox-exterior', town: 'road-from-town',
+    }
+    const objects: EditorObject[] = farmWorldLayout.flatMap((layout) => {
+      const visual = this.editorVisuals.get(layout.id)?.main
+      if (!visual) return []
+      const returnSpawn = farmWorldSpawns[returnIds[layout.id]]
+      const interaction = { x: layout.interactionX ?? layout.approachX, y: layout.interactionY ?? layout.approachY }
+      return [{
+        id: layout.id,
+        label: this.interactionTargets.find((target) => target.location.id === layout.id)?.location.displayName ?? layout.id,
+        sprite: { x: visual.x, y: visual.y, width: visual.displayWidth, height: visual.displayHeight, originX: visual.originX, originY: visual.originY },
+        colliders: this.getLocationDebugColliders(layout).map((collider, index) => ({ id: `${layout.id}-${index}`, label: collider.label, x: collider.x, y: collider.y, width: collider.width, height: collider.height })),
+        interaction: { x: interaction.x, y: interaction.y, radius: layout.interactionRadius ?? INTERACTION_DISTANCE },
+        approaches: layout.id === 'mail' ? MAILBOX_APPROACH_POINTS.map((point) => ({ id: point.name, label: `Approach ${point.name}`, x: point.x, y: point.y })) : [{ id: 'approach', label: 'Approach', x: layout.approachX, y: layout.approachY }],
+        returnSpawn: { id: returnIds[layout.id], label: 'Return spawn', x: returnSpawn.x, y: returnSpawn.y },
+        anchors: layout.id === 'garden' ? GARDEN_DISPLAY_ANCHORS.map((point) => ({ id: point.id, label: point.id, x: point.x, y: point.y })) : [],
+      }]
+    })
+    this.editor.initialize(objects)
+    let last = new Map<string, EditorObject>()
+    const apply = () => {
+      for (const object of this.editor!.getSnapshot().objects) {
+        if (last.get(object.id) !== object) this.applyEditorObject(object)
+      }
+      last = new Map(this.editor!.getSnapshot().objects.map((object) => [object.id, object]))
+    }
+    const unsubscribe = this.editor.subscribe(apply)
+    apply()
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe)
+    void import('./editor/WorldEditorOverlay').then(({ WorldEditorOverlay }) => {
+      if (this.scene.isActive()) new WorldEditorOverlay(this, this.editor!)
+    })
+  }
+
+  private applyEditorObject(object: EditorObject) {
+    const visual = this.editorVisuals.get(object.id)
+    if (!visual) return
+    const { sprite } = object
+    visual.main.setPosition(sprite.x, sprite.y).setOrigin(sprite.originX, sprite.originY)
+    if (visual.main instanceof Phaser.GameObjects.Image) visual.main.setDisplaySize(sprite.width, sprite.height)
+    else visual.main.setSize(sprite.width, sprite.height)
+    visual.extras.forEach(({ object: extra, x, y }) => extra.setPosition(x + sprite.x - visual.x, y + sprite.y - visual.y))
+    const old = this.ownedColliders.get(object.id) ?? []
+    old.forEach((collider) => {
+      this.colliderHandles.get(collider)?.destroy()
+      this.colliderHandles.delete(collider)
+      this.staticColliders.splice(this.staticColliders.indexOf(collider), 1)
+      collider.destroy()
+    })
+    this.ownedColliders.set(object.id, [])
+    object.colliders.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, object.id))
+    const target = this.interactionTargets.find((candidate) => candidate.location.id === object.id)
+    if (target && object.approaches[0]) target.prompt.setPosition(object.approaches[0].x, object.approaches[0].y + 74)
   }
 
   private canAcceptKeyboardInput() {
@@ -425,16 +548,29 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private getInteractionCenter(layout: FarmLocationLayout) {
+    const interaction = this.editor?.getSnapshot().objects.find((object) => object.id === layout.id)?.interaction
+    if (interaction) return interaction
     return { x: layout.interactionX ?? layout.approachX, y: layout.interactionY ?? layout.approachY }
   }
 
   private getTapCenter(layout: FarmLocationLayout) {
+    const interaction = this.editor?.getSnapshot().objects.find((object) => object.id === layout.id)?.interaction
+    if (interaction) return interaction
     return layout.interactionX === undefined || layout.interactionY === undefined
       ? { x: layout.x, y: layout.y }
       : { x: layout.interactionX, y: layout.interactionY }
   }
 
+  private getNearestMailboxApproach() {
+    const points = this.editor?.getSnapshot().objects.find((object) => object.id === 'mail')?.approaches ?? MAILBOX_APPROACH_POINTS
+    return [...points].sort((a, b) =>
+      Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y)
+      - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y))[0]
+  }
+
   private getInteractionRadius(layout: FarmLocationLayout) {
+    const radius = this.editor?.getSnapshot().objects.find((object) => object.id === layout.id)?.interaction?.radius
+    if (radius !== undefined) return radius
     return layout.interactionRadius ?? INTERACTION_DISTANCE
   }
 
@@ -483,10 +619,71 @@ export class FarmTestScene extends Phaser.Scene {
     this.add.text(layout.x, layout.y - layout.height / 2 - 58, 'NURSERY SPRITE BOUNDS (PURPLE)', { color: '#fff3b0', backgroundColor: '#241b12dd', fontSize: '13px', padding: { x: 6, y: 4 } }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
   }
 
+  private drawHomeDebug(debug: Phaser.GameObjects.Graphics) {
+    debug.lineStyle(2, 0xb37cff, 0.9).strokeRect(
+      HOME_V1_MAIN_ART.anchorX - HOME_V1_MAIN_ART.width * HOME_V1_MAIN_ART.originX,
+      HOME_V1_MAIN_ART.anchorY - HOME_V1_MAIN_ART.height * HOME_V1_MAIN_ART.originY,
+      HOME_V1_MAIN_ART.width,
+      HOME_V1_MAIN_ART.height,
+    )
+    debug.fillStyle(0xffef66, 1).fillCircle(HOME_V1_MAIN_ART.anchorX, HOME_V1_MAIN_ART.anchorY, 7)
+  }
+
+  private drawLabDebug(debug: Phaser.GameObjects.Graphics) {
+    debug.lineStyle(2, 0xb37cff, 0.9).strokeRect(
+      GENETICS_LAB_V1_MAIN_ART.anchorX - GENETICS_LAB_V1_MAIN_ART.width * GENETICS_LAB_V1_MAIN_ART.originX,
+      GENETICS_LAB_V1_MAIN_ART.anchorY - GENETICS_LAB_V1_MAIN_ART.height * GENETICS_LAB_V1_MAIN_ART.originY,
+      GENETICS_LAB_V1_MAIN_ART.width,
+      GENETICS_LAB_V1_MAIN_ART.height,
+    )
+    debug.fillStyle(0xffef66, 1).fillCircle(2420, 1355, 7)
+    this.add.text(2420, 1335, 'LAB DOOR (2420, 1355)', {
+      color: '#fff3b0', backgroundColor: '#241b12dd', fontSize: '11px', padding: { x: 5, y: 3 },
+    }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+  }
+
+  private drawGardenDebug(debug: Phaser.GameObjects.Graphics) {
+    debug.lineStyle(2, 0xb37cff, 0.9).strokeRect(
+      GARDEN_V1_MAIN_ART.anchorX - GARDEN_V1_MAIN_ART.width * GARDEN_V1_MAIN_ART.originX,
+      GARDEN_V1_MAIN_ART.anchorY - GARDEN_V1_MAIN_ART.height * GARDEN_V1_MAIN_ART.originY,
+      GARDEN_V1_MAIN_ART.width,
+      GARDEN_V1_MAIN_ART.height,
+    )
+    GARDEN_DISPLAY_ANCHORS.forEach((anchor) => {
+      debug.fillStyle(0x66d9ff, 0.95).fillCircle(anchor.x, anchor.y, 6)
+      this.add.text(anchor.x, anchor.y - 20, anchor.id, {
+        color: '#bdefff', backgroundColor: '#10272add', fontSize: '10px', padding: { x: 4, y: 2 },
+      }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    })
+  }
+
+  private drawMailboxDebug(debug: Phaser.GameObjects.Graphics, layout: FarmLocationLayout) {
+    debug.lineStyle(2, 0xb37cff, 0.9).strokeRect(
+      MAILBOX_V1_MAIN_ART.anchorX - MAILBOX_V1_MAIN_ART.width * MAILBOX_V1_MAIN_ART.originX,
+      MAILBOX_V1_MAIN_ART.anchorY - MAILBOX_V1_MAIN_ART.height * MAILBOX_V1_MAIN_ART.originY,
+      MAILBOX_V1_MAIN_ART.width,
+      MAILBOX_V1_MAIN_ART.height,
+    )
+    debug.fillStyle(0xffef66, 1).fillCircle(MAILBOX_V1_MAIN_ART.anchorX, MAILBOX_V1_MAIN_ART.anchorY, 6)
+    this.add.text(MAILBOX_V1_MAIN_ART.anchorX, MAILBOX_V1_MAIN_ART.anchorY - MAILBOX_V1_MAIN_ART.height - 16, 'MAILBOX SPRITE BOUNDS', {
+      color: '#fff3b0', backgroundColor: '#241b12dd', fontSize: '11px', padding: { x: 5, y: 3 },
+    }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    MAILBOX_APPROACH_POINTS.forEach((point) => {
+      debug.fillStyle(0x66d9ff, 0.95).fillCircle(point.x, point.y, 6)
+      this.add.text(point.x, point.y - 20, `MAILBOX APPROACH ${point.name}`, {
+        color: '#bdefff', backgroundColor: '#10272add', fontSize: '10px', padding: { x: 4, y: 2 },
+      }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    })
+    this.add.text(layout.approachX, layout.approachY + 26, 'MAIL RETURN', {
+      color: '#bdefff', backgroundColor: '#10272add', fontSize: '10px', padding: { x: 4, y: 2 },
+    }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+  }
+
   private drawLocationColliderDebug(debug: Phaser.GameObjects.Graphics, layout: FarmLocationLayout) {
     const colliders = this.getLocationDebugColliders(layout)
     debug.lineStyle(3, 0xff5c8a, 0.95)
-    colliders.forEach((collider) => {
+    colliders.forEach((collider, index) => {
+      if (layout.visualKind === 'lab') debug.lineStyle(3, [0xff5c8a, 0x66d9ff, 0xffd166, 0xadf080][index], 0.95)
       debug.strokeRect(collider.x - collider.width / 2, collider.y - collider.height / 2, collider.width, collider.height)
       this.add.text(collider.x, collider.y - collider.height / 2 - 18, collider.label, {
         color: '#ff9fba', backgroundColor: '#2b111bdd', fontSize: '11px', padding: { x: 5, y: 3 },
@@ -495,12 +692,26 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private getLocationDebugColliders(layout: FarmLocationLayout) {
+    if (layout.visualKind === 'lab') return LAB_PROVISIONAL_COLLIDERS.map(({ name, x, y, width, height }) => ({
+      x, y, width, height,
+      label: `LAB ${name.toUpperCase()} X ${x - width / 2}–${x + width / 2} Y ${y - height / 2}–${y + height / 2}`,
+    }))
+    if (layout.visualKind === 'home') return HOME_COLLIDERS.map(({ name, x, y, width, height }) => ({
+      x, y, width, height,
+      label: `HOME ${name.toUpperCase()} X ${x - width / 2}–${x + width / 2} Y ${y - height / 2}–${y + height / 2}`,
+    }))
     if (layout.visualKind === 'greenhouse') return [{
       ...NURSERY_ACTIVE_COLLIDER,
       label: `NURSERY COLLIDER X ${NURSERY_COLLIDER_BOUNDS.left}–${NURSERY_COLLIDER_BOUNDS.right} Y ${NURSERY_COLLIDER_BOUNDS.top}–${NURSERY_COLLIDER_BOUNDS.bottom}`,
     }]
-    if (layout.visualKind === 'garden') return [{ ...GARDEN_PRESENTATION_GRAYBOX_COLLIDER, label: 'GARDEN GRAYBOX COLLISION' }]
-    if (layout.visualKind === 'mailbox') return [{ x: layout.x, y: layout.y + 12, width: layout.width, height: layout.height, label: 'MAILBOX COLLISION' }]
+    if (layout.visualKind === 'garden') return [{
+      ...GARDEN_V1_EXTERIOR_COLLIDER,
+      label: `GARDEN EXTERIOR X ${GARDEN_V1_EXTERIOR_COLLIDER.x - GARDEN_V1_EXTERIOR_COLLIDER.width / 2}–${GARDEN_V1_EXTERIOR_COLLIDER.x + GARDEN_V1_EXTERIOR_COLLIDER.width / 2} Y ${GARDEN_V1_EXTERIOR_COLLIDER.y - GARDEN_V1_EXTERIOR_COLLIDER.height / 2}–${GARDEN_V1_EXTERIOR_COLLIDER.y + GARDEN_V1_EXTERIOR_COLLIDER.height / 2}`,
+    }]
+    if (layout.visualKind === 'mailbox') return MAILBOX_V1_COLLIDERS.map(({ name, x, y, width, height }) => ({
+      x, y, width, height,
+      label: `MAILBOX ${name} COLLIDER X ${x - width / 2}-${x + width / 2} Y ${y - height / 2}-${y + height / 2}`,
+    }))
     if (layout.visualKind === 'town-exit') return [
       { x: layout.x - 135, y: layout.y, width: 24, height: 118, label: 'ROAD POST COLLISION' },
       { x: layout.x + 135, y: layout.y, width: 24, height: 118, label: 'ROAD POST COLLISION' },

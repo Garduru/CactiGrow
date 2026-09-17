@@ -245,6 +245,8 @@ The Farm is one player's owned cactus property and may later host authorized vis
 
 The owner and permitted visitors walk between public world targets, but the renderer never grants permissions. Owner-authoritative commands determine planting, collecting, breeding, research, inventory, commerce, organization, and upgrades. The Phaser Farm at `/` is the sole Farm implementation; `/world-preview` is only a legacy redirect.
 
+The small physical Farm Mailbox uses a single production V1 sprite and is **HUMAN APPROVED / LOCKED** under [`MAILBOX_V1_ASSET_CONTRACT.md`](MAILBOX_V1_ASSET_CONTRACT.md). Its human-selected master is accepted as-is, including its existing alpha/background presentation. The Mailbox is a non-explorable utility destination for `/mail`, distinct in scale from the four locked major Farm exteriors. Its lower footprint and upper wooden structure use two approved collision rectangles, an intentional exception to the simple-building guideline. Do not revise its artwork or geometry without an explicit future task.
+
 Farm and Town buildings follow world spatial logic designed for movement first: simple rectangular or square ground footprints, primary facades facing south/toward the player, doors on the front facade, and restrained side-wall perspective. Artwork conforms to approved gameplay geometry. Avoid dramatic diagonal compositions that force collision and pathing to approximate an arbitrary painted silhouette.
 
 ### Future Farm placement grid
@@ -284,7 +286,7 @@ Approaching or tapping a pot highlights it and shows a concise name/state prompt
 
 ### Garden
 
-The Garden combines physical display with scalable collection management. The main scene displays a curated subset through beds, featured-specimen anchors, and progression-themed zones. The full owned collection remains available through React management UI and is not limited by visible scene capacity.
+Nursery owns planting and growth: its future explorable interior will map six Level 1 or eight Level 2 growing slots to greenhouse bench anchors. Garden owns collected-specimen display and inspection. The physical Farm Garden is an exterior destination, not an internally explorable growing area. Its six empty beds are collection-display anchors only; they do not determine Nursery capacity, Garden ownership capacity, or seed planting. A future narrow renderer projection may display a curated subset of real owned specimens, while the full collection remains available through React `/garden`.
 
 - Level 1: core cactus garden and basic display beds.
 - Level 2: visibly organized beds supporting the current organization tools.
@@ -308,7 +310,7 @@ Players approach physical stations. React handles research records, sample selec
 
 Home is a compact physical residence centered on a property desk, records, windows onto the Farm, personal shelves, and reserved trophy/display areas. Property Management opens at the desk. Building overview and upgrades remain React UI. Avoid six separate menu props around the room. Future visual progression may enrich materials and displays without inventing mechanics.
 
-Home is the next production Farm exterior. Its proposed geometry, isolated single-main-asset package, registration, and art brief are in [`HOME_V1_ASSET_CONTRACT.md`](HOME_V1_ASSET_CONTRACT.md). The current Home graybox remains active until artwork and collision receive separate integration and human walk-around approval.
+The original long Home V1 is a locked, human-approved production Farm exterior; its asset, scale, registration, and Home-specific five-rectangle collision are recorded in [`HOME_V1_ASSET_CONTRACT.md`](HOME_V1_ASSET_CONTRACT.md). Compact Home V02 was rejected; its design history remains documented and obsolete files removed. Nursery V2 is locked. Genetics Lab V1 is also locked after human runtime review; its production asset and four-rectangle collision are recorded in [`GENETICS_LAB_V1_ASSET_CONTRACT.md`](GENETICS_LAB_V1_ASSET_CONTRACT.md). These compound collisions are silhouette-specific exceptions, not a new default. Garden V1 is HUMAN APPROVED / LOCKED under [`GARDEN_V1_ASSET_CONTRACT.md`](GARDEN_V1_ASSET_CONTRACT.md); its asset, scale, registration, collider, entrance/navigation coordinates, and six empty display anchors require an explicit future Garden revision to change. Actual owned-specimen rendering remains future work.
 
 ### Shop
 

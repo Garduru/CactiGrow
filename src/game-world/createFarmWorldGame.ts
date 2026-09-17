@@ -2,9 +2,11 @@ import Phaser from 'phaser'
 import { FarmTestScene } from './FarmTestScene'
 import type { WorldBridge } from './WorldBridge'
 import type { FarmWorldSpawnId } from './worldTypes'
+import type { WorldEditorController } from './editor/worldEditorState'
 
 export interface FarmWorldGameOptions {
   spawnId: FarmWorldSpawnId
+  editor?: WorldEditorController
 }
 
 export function createFarmWorldGame(parent: HTMLElement, bridge: WorldBridge, options: FarmWorldGameOptions) {
@@ -15,7 +17,7 @@ export function createFarmWorldGame(parent: HTMLElement, bridge: WorldBridge, op
     backgroundColor: '#17120f',
     transparent: false,
     scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
-    physics: { default: 'arcade', arcade: { debug: debugWorld } },
+    physics: { default: 'arcade', arcade: { debug: debugWorld || !!options.editor } },
     input: { keyboard: true, mouse: { preventDefaultWheel: true }, touch: { capture: true }, activePointers: 2 },
     scene: [new FarmTestScene(bridge, debugWorld, options)],
     render: { antialias: true, pixelArt: false, roundPixels: false },

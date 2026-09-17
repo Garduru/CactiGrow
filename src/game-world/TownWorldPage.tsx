@@ -16,7 +16,7 @@ export function TownWorldPage() {
     if (destination.id === 'farm') navigate('/', { state: createFarmTownRoadEntryState() })
     else navigate(destination.route, { state: createTownReturnState(destination.id) })
   }, [navigate])
-  const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1]) => createTownWorldGame(parent, bridge, { spawnId }), [spawnId])
+  const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1], editor?: Parameters<typeof createTownWorldGame>[2]['editor']) => createTownWorldGame(parent, bridge, { spawnId, editor }), [spawnId])
 
   return (
     <section className="world-page" aria-labelledby="town-world-title">
@@ -25,7 +25,7 @@ export function TownWorldPage() {
         <div className="world-page__actions"><Link className="cg-button cg-button--ghost" to="/" state={createFarmTownRoadEntryState()}>Return to Farm</Link></div>
       </header>
       <p className="world-page__instructions">Move with WASD or arrow keys, or click/tap the ground. Press E or click/tap a nearby destination to enter.</p>
-      <PhaserWorldHost projection={townWorldProjection} onIntent={handleIntent} createGame={createGame} />
+      <PhaserWorldHost projection={townWorldProjection} onIntent={handleIntent} createGame={createGame} world="town" />
       <nav className="world-page__fallback" aria-label="Town destinations">
         <Link to="/shop" state={createTownReturnState('shop')}>Shop</Link>
         <Link to="/market" state={createTownReturnState('market')}>Marketplace / Exchange</Link>
