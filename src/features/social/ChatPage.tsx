@@ -5,16 +5,17 @@ import { ChatShell } from './ChatShell'
 
 type ChatMode = 'world' | 'direct'
 
-export function ChatPage() {
+export function ChatPage({ selectedMode }: { selectedMode?: ChatMode }) {
   const [mode, setMode] = useState<ChatMode>('world')
+  const activeMode = selectedMode ?? mode
 
   return <section className="social-page chat-page" aria-labelledby="chat-title">
     <LocationHeader eyebrow="Social" title="Chat" titleId="chat-title" subtitle="Live conversations will appear here when multiplayer services are connected." />
-    <nav className="social-switcher social-switcher--chat" aria-label="Chat modes">
+    {!selectedMode && <nav className="social-switcher social-switcher--chat" aria-label="Chat modes">
       <button type="button" aria-current={mode === 'world' ? 'page' : undefined} className={mode === 'world' ? 'social-switcher__item social-switcher__item--active' : 'social-switcher__item'} onClick={() => setMode('world')}>World</button>
       <button type="button" aria-current={mode === 'direct' ? 'page' : undefined} className={mode === 'direct' ? 'social-switcher__item social-switcher__item--active' : 'social-switcher__item'} onClick={() => setMode('direct')}>Direct Messages</button>
-    </nav>
-    {mode === 'world' ? <>
+    </nav>}
+    {activeMode === 'world' ? <>
       <ChatShell label="World Chat" composerHint="World Chat is unavailable" emptyState={<EmptyState compact title="World Chat is not connected">World Chat becomes available in connected multiplayer areas such as Town.</EmptyState>} />
       <p className="social-future-note">World Chat will be location and instance aware. Local messages may briefly appear above avatars while React retains conversation context and history.</p>
     </> : <>

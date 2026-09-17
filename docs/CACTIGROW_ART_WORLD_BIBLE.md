@@ -4,6 +4,10 @@ Status: authoritative direction for production visual and explorable-world devel
 
 This document defines the target presentation and technical boundary for CactiGrow. The current React and CSS locations remain functional prototypes until replacement scenes meet their gameplay, accessibility, and responsive requirements. Gameplay state stays renderer-independent.
 
+Future building production also follows [`BUILDING_ART_STANDARD.md`](BUILDING_ART_STANDARD.md). That geometry-first standard governs building footprints, orientation, collision, interaction, occlusion, registration, and asset packaging when a prior benchmark conflicts with it.
+
+World depth preserves local-player visibility: terrain and paths sit below environment props, building bodies and details, future remote avatars, interaction prompts, the local avatar, and debug geometry, in that order. During graybox presentation the local avatar stays above every temporary building detail in Farm and Town. Future remote avatars may sort among themselves but never render above the local avatar. Production foreground occlusion is permitted only where narrowly authored by an art contract; a whole building or door must not accidentally hide the local avatar.
+
 ## Experience pillars
 
 - **Small, dense places.** Build several authored scenes rather than one seamless open world.
@@ -15,7 +19,9 @@ This document defines the target presentation and technical boundary for CactiGr
 
 ## Locked art direction
 
-The target is stylized, hand-painted 3D-looking art. It should use recognizable cactus anatomy, slightly exaggerated but grounded proportions, warm natural lighting, rich painted texture, readable spines, visible soil, and detailed containers. It should feel like a premium indie game rooted in a desert growing property.
+The human-approved production style is **stylized hand-painted 3D with clean semi-cartoon forms**. Use medium environmental detail, clean readable silhouettes, hand-painted material treatment, warm natural desert lighting, believable simplified construction, slightly exaggerated game-readable proportions, restrained texture noise, and clear shapes at mobile and overview scale. Functional grower equipment should feel integrated into the environment. Assets should feel rich without becoming realistic or visually busy.
+
+This definition supersedes broader interpretations of hand-painted 3D that would push CactiGrow toward highly detailed realism. Use recognizable cactus anatomy, grounded proportions, readable spines, visible soil, and detailed but controlled containers and equipment. The result should feel like a premium indie game rooted in a desert growing property.
 
 Avoid photorealism, generic low-poly geometry, voxel or pixel art, plastic mobile-game surfaces, anime styling, neon science fiction, sterile laboratories, generic farming-game motifs, and detail that obscures interaction.
 
@@ -41,9 +47,9 @@ Every world object must be reviewed against the approved camera reference before
 - same approximate 35-degree elevation;
 - mild perspective, without wide-angle distortion;
 - key light from upper left/front-left;
-- cast shadows travel toward lower right/back-right;
-- object base plane and contact shadow must agree;
-- transparent objects include adequate padding for shadow and selection outline;
+- environmental and non-building cast shadows travel toward lower right/back-right;
+- object base planes and immediate grounding must agree;
+- transparent objects include adequate padding for their silhouette and selection outline;
 - interior and exterior objects share the same apparent scale.
 
 Do not approve assets that only match the palette. Perspective mismatch is a blocking defect.
@@ -237,7 +243,21 @@ Do not pursue a seamless open world. Separate scenes reduce memory pressure, sup
 
 The Farm is one player's owned cactus property and may later host authorized visitors. It contains Home, Nursery, Garden, Genetics Lab, a physical Mailbox, personal landscaping and display space, a visitor-arrival area, and the Road to Town. Shop and Marketplace are Town facilities. The Farm includes connected paths, property fencing, cactus landscaping, rocks, dry vegetation, tools, irrigation details, signs, staging space, and distant desert scenery. Buildings form distinct silhouettes and progression may swap visual variants using authoritative building level or Lab tier.
 
-The owner and permitted visitors walk between public world targets, but the renderer never grants permissions. Owner-authoritative commands determine planting, collecting, breeding, research, inventory, commerce, organization, and upgrades. The current React Farm remains available until the scene supports every destination, keyboard/touch access, and state-derived building presentation.
+The owner and permitted visitors walk between public world targets, but the renderer never grants permissions. Owner-authoritative commands determine planting, collecting, breeding, research, inventory, commerce, organization, and upgrades. The Phaser Farm at `/` is the sole Farm implementation; `/world-preview` is only a legacy redirect.
+
+Farm and Town buildings follow world spatial logic designed for movement first: simple rectangular or square ground footprints, primary facades facing south/toward the player, doors on the front facade, and restrained side-wall perspective. Artwork conforms to approved gameplay geometry. Avoid dramatic diagonal compositions that force collision and pathing to approximate an arbitrary painted silhouette.
+
+### Future Farm placement grid
+
+Farm customization will use a logical placement grid beneath the authored world. Normal play never shows the grid: terrain, paths, planting, shadows, and organic composition visually soften its structure so objects do not appear to sit on obvious square tiles. Edit/build mode may reveal valid cells, snapping, object footprints such as 1×1 through larger rectangles, fixed-step rotation where supported, and clear valid/invalid feedback for mouse and touch.
+
+Authoritative placement data uses an object definition ID, logical grid coordinates, footprint width and height, rotation/orientation, and optional visual variant. Screen or texture pixels are never the persistence model. A defined grid-to-world transform projects validated placement into Phaser coordinates. The server eventually validates ownership, unlocks, property bounds, occupied cells, collision, protected paths and entrances, and major-building exclusion zones; Phaser renders the accepted layout and emits placement intents.
+
+Every Farm building and placeable object keeps four independently authored concepts: its logical placement footprint, physical player-collision bodies, interaction zone, and visual sprite bounds. A placement footprint reserves grid/property cells only and must never create an Arcade Physics collider by itself. Physical collision follows the visible solid ground contact while preserving entrances and walkable approaches. Interaction geometry is authored for usable keyboard, pointer, and touch activation. Visual bounds may extend beyond every gameplay shape for roofs, foliage, and transparent padding. Shared coordinates may align these concepts, but equality between them is never assumed.
+
+Home, Nursery, Garden, and Genetics Lab remain authored, controlled major structures unless later design explicitly changes them. Their plots and exclusion zones may align with the same coordinate system without making the buildings freely placeable. Initial customizable candidates include pots, displays, benches, tables, planters, fences, gates, paths, rocks, landscaping, signs, lights, outdoor furniture, and decorative or trophy objects. This direction does not authorize a build-mode implementation yet.
+
+Placeable art declares a logical footprint separately from its painted bounds. Use bottom-center ground anchors, consistent base-plane scale, and enough alpha space for silhouette and shadow; foliage, canopies, and soft shadows may extend beyond occupied cells without claiming those cells. Collision uses separately authored physical bodies after placement is validated; selection and interaction use their own authored zones rather than transparent sprite bounds.
 
 ### Nursery
 
@@ -249,6 +269,14 @@ The Nursery is an explorable greenhouse with:
 - a potting/work surface;
 - storage for soil, pots, and tools;
 - reserved visual space for later specialized cultivation areas.
+
+Nursery V1 was a retired production-art experiment. Its runtime composition, switch, depth/collision workarounds, and assets have been removed. Its approved visual lessons remain valid, but its diagonal geometry, irregular ground contact, and duplicate full-building layers are not a future building standard. Do not restore or reproduce that implementation.
+
+Nursery V2 will be the first implementation of the Building Art Standard V2. Its geometry contract is approved: building center `(650, 390)`, `560 × 260` non-colliding placement footprint, `500 × 150` physical collider centered at `(650, 420)`, door `(680, 520)`, interaction center `(680, 525)`, approach `(680, 550)`, path endpoint `(680, 555)`, `620 × approximately 430` display, origin `(0.5, 1)`, and anchor/baseline `(650, 520)`. Preserve the warm timber, dark metal, substantial low stone foundation, clear slightly cool glazing, roof vents, practical exhaust fan, warm work lights, organized benches, terracotta containers, young San Pedro, young Peyote, and practical early-game grower character. Recompose these elements as a rectangular greenhouse whose primary facade and entrance face south/toward the player. Production art must follow [`NURSERY_V2_ASSET_CONTRACT.md`](NURSERY_V2_ASSET_CONTRACT.md).
+
+The approved Nursery V2 main asset is integrated in the canonical Farm as a single complete production sprite, replacing only its temporary teal visuals. Its 1860 × 1290 transparent canvas renders at 620 × 430, bottom-center origin `(0.5, 1)`, anchor `(650, 520)`, baseline Y `520`, beneath the local player. Its scale, position, and appearance are visually approved in-game. No separate shadow, glass, or foreground layer is used. Collision remains independently authored as one active 540 × 145 rectangle centered at `(665, 382.5)`, with bounds X `395–935` and Y `310–455`; the right bound stays fixed. No Nursery V1 runtime path remains.
+
+Nursery V2 is the first **locked, human-approved production exterior benchmark**. Its art, scale, registration, current collider, door/player relationship, interaction, return spawn, path, local-player-over-building depth, and absence of building and player grounding shadows have passed review. Revisit them only for a demonstrated gameplay defect or explicit redesign direction; do not continue cosmetic geometry tuning. Carry its readability, registration, and art-pipeline lessons into other buildings without copying its dimensions.
 
 Authoritative Nursery slots map through a layout manifest to physical pot anchors. Level 1 exposes six anchors; Level 2 exposes eight. Empty slots show empty pots or prepared positions. Occupied slots instantiate the specimen's plant composition at the same anchor. No visual position creates capacity independently.
 
@@ -280,6 +308,8 @@ Players approach physical stations. React handles research records, sample selec
 
 Home is a compact physical residence centered on a property desk, records, windows onto the Farm, personal shelves, and reserved trophy/display areas. Property Management opens at the desk. Building overview and upgrades remain React UI. Avoid six separate menu props around the room. Future visual progression may enrich materials and displays without inventing mechanics.
 
+Home is the next production Farm exterior. Its proposed geometry, isolated single-main-asset package, registration, and art brief are in [`HOME_V1_ASSET_CONTRACT.md`](HOME_V1_ASSET_CONTRACT.md). The current Home graybox remains active until artwork and collision receive separate integration and human walk-around approval.
+
 ### Shop
 
 The Shop is a public facility in Town with a seed display, pot and soil shelves, shaded exterior stock, counter, labels, and room for a future vendor. Its shared exterior remains coherent for every player. Until purchasing exists, it can remain closed, lightly staged, or provide an intentional unavailable message. Do not simulate stock or NPC behavior.
@@ -289,6 +319,8 @@ The Shop is a public facility in Town with a seed display, pot and soil shelves,
 The Marketplace or Exchange is an asynchronous listing facility in Town with canvas stalls, display tables, specimen stands, listing boards, and clear walking lanes. Current listings can project to a limited set of display anchors while React presents full listing details and seller actions. It remains distinct from synchronous Direct Trade. Empty stands communicate no listings. Do not create fake buyers or transactions.
 
 ### Shared public Town
+
+The first Town presentation graybox is a separate compact `2200 × 1500` Phaser world. It provides a southern Farm arrival/return point, a central public square, and simple south-facing Shop and Marketplace / Exchange buildings in the north. These destinations route to the existing React gameplay pages and return to Town through transient navigation context. The scene shares the Farm bridge and host lifecycle and remains a single-player renderer prototype; multiplayer presence, NPCs, public chat delivery, and server authority are not simulated.
 
 Town is a separate future Phaser scene and CactiGrow's main public multiplayer hub. It can show many online players and support meeting, local world chat, direct-trade initiation, and public facilities. Its initial facilities are Shop and Marketplace/Exchange, with room for a small number of later services. Do not turn Town into an enormous building catalog.
 
@@ -314,6 +346,8 @@ Keep these systems separate:
 - **Direct Trade:** synchronous player-to-player exchange after request, acceptance, both offers, review, and both confirmations. The server atomically validates and executes eligible item/specimen and Token ownership changes.
 - **Marketplace:** asynchronous listings and offline exchange in Town, independent from Direct Trade.
 - **Friends:** relationship and access layer supporting request, accept, decline, removal, appropriate online status, Visit Farm, and live DM entry.
+
+Physical destinations use routes with destination-aware exterior return spawns, even when entered from another interior page. Friends, Direct Messages, and World Chat open in a persistent React overlay or chat dock above the current world or interior and do not change its route. Legacy `/friends` and `/chat` links redirect safely to Farm; Mail remains a separate physical Mailbox workflow.
 - **Farm Visiting:** authorized presence in another player's owned Farm instance.
 
 Selecting another player may later offer View Profile, friendship action, Direct Message, Trade, Visit Farm, Report, and Cancel, adjusted for Town versus Farm context and current permissions. CactiSwap profiles may expose Add Friend and Visit Farm through an isolated identity/profile adapter; Base44 never becomes CactiGrow's gameplay or multiplayer authority.
@@ -472,7 +506,7 @@ Initial targets should be established during the renderer spike: 60 fps on deskt
 - Export opaque backgrounds as quality-controlled WebP, with fallback only if required by supported browsers.
 - Use texture atlases for repeated props, plant modules, and animation frames.
 - Add 4–8 pixels of atlas extrusion/padding at runtime resolution to prevent sampling seams.
-- Include contact shadows separately when they need dynamic composition; bake stable environmental shadows into scene layers.
+- Do not create separate cast-shadow assets for buildings. Use restrained immediate foundation grounding in the main building art; keep broader environmental lighting in terrain or scene layers. Separate shadow effects remain available for non-building objects only when specifically justified.
 - Provide mobile resolution variants for large backgrounds and atlases.
 
 ### Naming
@@ -583,7 +617,7 @@ Review references for silhouette, camera agreement, lighting, material cohesion,
 ### Phase B — Farm scene
 
 - Implement camera, movement, collision, six destination zones, building projection, and route transitions.
-- Keep the current React Farm available behind a development fallback until accessibility and routing parity pass.
+- Keep `/` as the single canonical Phaser Farm and preserve route, keyboard, touch, and state-derived building behavior.
 
 ### Phase C — Nursery scene
 

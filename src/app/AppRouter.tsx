@@ -1,6 +1,5 @@
-import { lazy, Suspense } from 'react'
+﻿import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { FarmPage } from '../features/farm/FarmPage'
 import { NurseryPage } from '../features/nursery/NurseryPage'
 import { BreedingPage } from '../features/breeding/BreedingPage'
 import { GardenPage } from '../features/garden/GardenPage'
@@ -18,21 +17,23 @@ import { ResearchLogPage } from '../features/research/ResearchLogPage'
 import { GeneticsLabPage } from '../features/lab/GeneticsLabPage'
 import { HomePage } from '../features/home/HomePage'
 import { MailPage } from '../features/mail/MailPage'
-import { TownPage } from '../features/town/TownPage'
-import { FriendsPage } from '../features/social/FriendsPage'
-import { ChatPage } from '../features/social/ChatPage'
+import { SocialPanelProvider } from '../features/social/SocialPanelContext'
+import { SocialOverlay } from '../features/social/SocialOverlay'
 
-const FarmWorldPreviewPage = lazy(() => import('../game-world/FarmWorldPreviewPage').then((module) => ({ default: module.FarmWorldPreviewPage })))
+const FarmWorldPage = lazy(() => import('../game-world/FarmWorldPage').then((module) => ({ default: module.FarmWorldPage })))
+const TownWorldPage = lazy(() => import('../game-world/TownWorldPage').then((module) => ({ default: module.TownWorldPage })))
 
 export function AppRouter() {
   return (
     <BrowserRouter>
+      <SocialPanelProvider>
       <GameHeader />
       <main id="main-content" className="game-main">
         <Routes>
-          <Route path="/" element={<FarmPage />} />
+          <Route path="/" element={<Suspense fallback={<p className="world-page__loading">Loading Farm…</p>}><FarmWorldPage /></Suspense>} />
           <Route path="/farm" element={<Navigate to="/" replace />} />
-          <Route path="/world-preview" element={<Suspense fallback={<p className="world-preview__loading">Loading world renderer…</p>}><FarmWorldPreviewPage /></Suspense>} />
+          <Route path="/world-preview" element={<Navigate to="/" replace />} />
+          <Route path="/town" element={<Suspense fallback={<p className="world-page__loading">Loading Town renderer…</p>}><TownWorldPage /></Suspense>} />
           <Route path="/collection" element={<Navigate to="/garden" replace />} />
           <Route path="/marketplace" element={<Navigate to="/market" replace />} />
           <Route element={<PageLayout />}>
@@ -49,16 +50,17 @@ export function AppRouter() {
             <Route path="/research" element={<ResearchLogPage />} />
             <Route path="/lab" element={<GeneticsLabPage />} />
             <Route path="/mail" element={<MailPage />} />
-            <Route path="/town" element={<TownPage />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/chat" element={<ChatPage />} />
+            <Route path="/friends" element={<Navigate to="/" replace />} />
+            <Route path="/chat" element={<Navigate to="/" replace />} />
             <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
           </Route>
         </Routes>
       </main>
 
       <UtilityMenu />
+      <SocialOverlay />
       <LevelUpNotice />
+      </SocialPanelProvider>
     </BrowserRouter>
   )
 }

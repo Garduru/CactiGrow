@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { createBuildingDestinationState } from '../../app/farmReturnNavigation'
+import { useSocialPanel } from '../social/useSocialPanel'
 import { useGameState } from '../../game/useGameState'
 import { farmLocations, resolveWorldBuilding } from '../farm/locations'
 import { geneticsLabTiers } from '../lab/labConfig'
@@ -17,7 +19,7 @@ const homeSections: readonly { id: HomeSection; label: string }[] = [
 ]
 
 export function HomePage() {
-  const location = useLocation()
+  const { openPanel } = useSocialPanel()
   const { state, upgradeProperty, setFarmAccessPreference } = useGameState()
   const [section, setSection] = useState<HomeSection>('property')
   const buildings = farmLocations.map((building) => resolveWorldBuilding(building, state.property, state.geneticsLab))
@@ -57,7 +59,8 @@ export function HomePage() {
             {isLab && nextLab && <dl><div><dt>Cost</dt><dd>{nextLab.cost.toLocaleString()} Tokens</dd></div><div><dt>Next capability</dt><dd>{nextLab.capabilities[0]}</dd></div></dl>}
             {upgrade && upgradeStatus && <><dl><div><dt>Cost</dt><dd>{upgrade.tokenCost?.toLocaleString()} Tokens</dd></div><div><dt>Requirement</dt><dd>Cultivation Level 10</dd></div><div><dt>Unlocks</dt><dd>{isGarden ? 'Favorites, tags, filters, and collection organization' : upgrade.capabilities[0]}</dd></div></dl><button type="button" className="property-building__upgrade" disabled={!upgradeStatus.eligible} onClick={() => upgradeProperty(isGarden ? GARDEN_ORGANIZED_BEDS_UPGRADE_ID : NURSERY_EXPANDED_BENCHES_UPGRADE_ID)}>{isGarden ? 'Upgrade to Organized Beds' : 'Install Expanded Benches'}</button>{!upgradeStatus.eligible && <span className="property-building__status">{upgradeStatus.reasons.join(' ')}</span>}</>}
             {isGarden && !gardenUpgrade && building.level === 2 && <><strong className="property-building__unlocks-title">Unlocked</strong><ul className="property-building__unlocks">{gardenDefinition?.capabilities.map((capability) => <li key={capability}>{capability}</li>)}</ul></>}
-            {isLab ? <Link to="/lab">Manage Lab</Link> : !isNursery && !isGarden && <span className="property-building__status">No additional upgrades configured yet</span>}
+            {building.id !== 'home' && <Link to={building.route} state={createBuildingDestinationState(building.id)}>Visit {building.displayName}</Link>}
+            {building.id === 'home' && <span className="property-building__status">No additional upgrades configured yet</span>}
           </article>
         })}
       </div>
@@ -75,8 +78,8 @@ export function HomePage() {
     </section>}
 
     {section === 'social' && <section className="home-section-grid" aria-labelledby="social-title">
-      <section className="home-room"><header><span>Connections</span><h2 id="social-title">Friends</h2></header><p>Open Friends for relationship categories and future Farm visit actions.</p><Link className="cg-button cg-button--secondary" to="/friends" state={location.state}>Open Friends</Link></section>
-      <section className="home-room"><header><span>Conversations</span><h2>Chat</h2></header><p>Open Chat for the World and Direct Messages UI shells.</p><Link className="cg-button cg-button--secondary" to="/chat" state={location.state}>Open Chat</Link><p className="home-compact-note">Persistent Mail remains separate at the physical Farm Mailbox.</p></section>
+      <section className="home-room"><header><span>Connections</span><h2 id="social-title">Friends</h2></header><p>Open Friends for relationship categories and future Farm visit actions.</p><button className="cg-button cg-button--secondary" type="button" onClick={() => openPanel('friends')}>Open Friends</button></section>
+      <section className="home-room"><header><span>Conversations</span><h2>Chat</h2></header><p>Open Chat for the World and Direct Messages UI shells.</p><button className="cg-button cg-button--secondary" type="button" onClick={() => openPanel('messages')}>Open Chat</button><p className="home-compact-note">Persistent Mail remains separate at the physical Farm Mailbox.</p></section>
     </section>}
 
     {section === 'records' && <section className="home-room home-room--records" aria-labelledby="records-title"><header><span>Records</span><h2 id="records-title">Property Summary</h2></header><p>Home is Level {state.property.buildings.home.level}. You have {state.property.completedUpgradeIds.length} completed property {state.property.completedUpgradeIds.length === 1 ? 'upgrade' : 'upgrades'}.</p><p className="home-compact-note">More personal and property records will appear here when those systems exist.</p></section>}

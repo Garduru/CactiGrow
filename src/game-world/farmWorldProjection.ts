@@ -20,7 +20,7 @@ export function createFarmWorldProjection(property: PropertyState, lab: Genetics
         }
       }),
       { id: 'mail', displayName: 'Mailbox', route: '/mail', interactionLabel: 'Check Mail' },
-      { id: 'town', displayName: 'Town', route: '/town', interactionLabel: 'Enter' },
+      { id: 'town', displayName: 'Road to Town', route: '/town', interactionLabel: 'Travel' },
     ],
   }
 }

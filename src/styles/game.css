@@ -99,7 +99,8 @@ button, input, select { font-family: var(--cg-font-ui); }
 .utility-menu { position: fixed; right: max(var(--cg-page-gutter), env(safe-area-inset-right)); bottom: max(var(--cg-page-gutter), env(safe-area-inset-bottom)); z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .utility-menu__panel { width: min(160px, calc(100vw - 2 * var(--cg-page-gutter))); max-height: calc(100dvh - var(--cg-touch-target) - 3 * var(--cg-page-gutter)); overflow-y: auto; padding: 4px; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: 12px; box-shadow: 0 12px 36px #0007; }
 .utility-menu__panel button, .utility-menu__panel a { display: flex; align-items: center; width: 100%; min-height: 36px; padding: 6px 10px; text-align: left; background: transparent; border: 0; border-radius: 7px; color: var(--cg-text-muted); font-size: 12px; }
-.utility-menu__panel button { cursor: default; }
+.utility-menu__panel button { cursor: pointer; }
+.utility-menu__panel button[aria-disabled='true'] { cursor: default; }
 .utility-menu__panel .utility-menu__group-start { margin-top: 3px; border-top: 1px solid var(--cg-border); border-radius: 0 0 7px 7px; }
 .utility-menu__panel button:hover, .utility-menu__panel button:focus-visible, .utility-menu__panel a:hover, .utility-menu__panel a:focus-visible { background: var(--cg-surface-hover); color: var(--cg-text); }
 .utility-menu__panel button:focus-visible, .utility-menu__panel a:focus-visible { outline-offset: -2px; }
@@ -200,6 +201,24 @@ button, input, select { font-family: var(--cg-font-ui); }
 .friends-list { margin-top: var(--cg-section-space); }
 .friends-list > h2 { margin: 0; font-size: var(--cg-font-panel-title); }
 .social-future-note { margin: var(--cg-space-md) 0 0; font-size: 11px; }
+.social-overlay { position: fixed; inset: 0; z-index: 300; display: flex; justify-content: flex-end; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)); background: #100b08aa; }
+.social-overlay__panel { display: flex; flex-direction: column; width: min(540px, 100%); min-width: 0; max-height: 100%; overflow: hidden; color: var(--cg-text); background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-md); box-shadow: 0 14px 48px #000a; }
+.social-overlay__header, .chat-dock__panel header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--cg-border); }
+.social-overlay__header button, .social-overlay__tabs button, .chat-dock button { min-height: var(--cg-touch-target); padding: 8px 12px; color: var(--cg-text); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); cursor: pointer; }
+.social-overlay__tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 8px; }
+.social-overlay__tabs button { min-width: 0; padding-inline: 4px; font-size: 12px; }
+.social-overlay__tabs button[aria-current='page'], .chat-dock button[aria-current='page'] { border-color: var(--cg-accent); background: #543522; }
+.social-overlay__content { min-height: 0; overflow: auto; padding: 12px; }
+.social-overlay__content .cg-location-header { margin-bottom: 12px; }
+.social-overlay__content .cg-location-header h1 { font-size: var(--cg-font-panel-title); }
+.social-overlay__content .chat-shell__sidebar { min-height: 120px; }
+.social-overlay__content .chat-shell__conversation { min-height: 260px; grid-template-rows: minmax(180px, 1fr) auto; }
+.chat-dock { position: fixed; left: max(var(--cg-page-gutter), env(safe-area-inset-left)); bottom: max(var(--cg-page-gutter), env(safe-area-inset-bottom)); z-index: 210; max-width: calc(100vw - 2 * var(--cg-page-gutter)); }
+.chat-dock__panel { width: min(320px, calc(100vw - 2 * var(--cg-page-gutter))); max-height: min(320px, calc(100dvh - 2 * var(--cg-page-gutter))); overflow-y: auto; color: var(--cg-text); background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-md); box-shadow: 0 8px 28px #0009; }
+.chat-dock__panel nav { display: flex; gap: 6px; padding: 8px; }
+.chat-dock__panel p { margin: 0; padding: 4px 12px 12px; color: var(--cg-text-muted); font-size: 12px; }
+.chat-dock__panel > button { margin: 0 8px 8px; }
+.chat-dock__toggle { min-width: 72px; }
 .chat-shell { margin-top: var(--cg-section-space); overflow: hidden; background: #17130f; border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-md); }
 .chat-shell--with-sidebar { display: grid; grid-template-columns: minmax(210px, 30%) minmax(0, 1fr); }
 .chat-shell__sidebar { min-width: 0; min-height: 360px; padding: var(--cg-space-md); border-right: 1px solid var(--cg-border); }
@@ -997,29 +1016,30 @@ button, input, select { font-family: var(--cg-font-ui); }
   .research-identity, .research-knowledge__section, .research-workflow__actions { margin-top: 10px; }
 }
 
-/* Isolated Phaser renderer milestone. The production React Farm remains unchanged. */
-.world-preview { width: min(100%, var(--cg-world-width)); margin-inline: auto; }
-.world-preview__header { display: flex; align-items: end; justify-content: space-between; gap: var(--cg-space-md); margin-bottom: var(--cg-space-sm); }
-.world-preview__header h1 { margin: 2px 0 0; font: 700 var(--cg-font-section-title) var(--cg-font-display); }
-.world-preview__instructions { margin: 0 0 var(--cg-space-sm); color: var(--cg-text-secondary); font-size: 13px; }
+/* Shared Phaser Farm and Town world surfaces. */
+.world-page { width: min(100%, var(--cg-world-width)); margin-inline: auto; }
+.world-page__header { display: flex; align-items: end; justify-content: space-between; gap: var(--cg-space-md); margin-bottom: var(--cg-space-sm); }
+.world-page__header h1 { margin: 2px 0 0; font: 700 var(--cg-font-section-title) var(--cg-font-display); }
+.world-page__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--cg-space-xs); }
+.world-page__instructions { margin: 0 0 var(--cg-space-sm); color: var(--cg-text-secondary); font-size: 13px; }
 .phaser-world-host { width: 100%; height: clamp(420px, calc(100dvh - 190px), 720px); overflow: hidden; border: 1px solid var(--cg-border-interactive); border-radius: var(--cg-radius-lg); background: #17120f; box-shadow: var(--cg-shadow-panel); }
 .phaser-world-host canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
 .phaser-world-host canvas:focus-visible { outline: 3px solid var(--cg-accent); outline-offset: -4px; }
-.world-preview__fallback { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--cg-space-sm); margin-top: var(--cg-space-sm); }
-.world-preview__fallback a { min-height: var(--cg-touch-target); display: inline-flex; align-items: center; padding-inline: var(--cg-space-md); color: var(--cg-text-secondary); }
-.world-preview__loading { width: min(100%, var(--cg-world-width)); margin: var(--cg-space-lg) auto; }
+.world-page__fallback { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--cg-space-sm); margin-top: var(--cg-space-sm); }
+.world-page__fallback a { min-height: var(--cg-touch-target); display: inline-flex; align-items: center; padding-inline: var(--cg-space-md); color: var(--cg-text-secondary); }
+.world-page__loading { width: min(100%, var(--cg-world-width)); margin: var(--cg-space-lg) auto; }
 
 @media (max-width: 620px) {
-  .world-preview__header { align-items: flex-start; }
-  .world-preview__instructions { font-size: 12px; }
+  .world-page__header { align-items: flex-start; }
+  .world-page__instructions { font-size: 12px; }
   .phaser-world-host { height: max(440px, calc(100dvh - 210px)); border-radius: var(--cg-radius-md); }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  .world-preview__header .eyebrow, .world-preview__instructions { display: none; }
-  .world-preview__header { margin-bottom: var(--cg-space-xs); }
+  .world-page__header .eyebrow, .world-page__instructions { display: none; }
+  .world-page__header { margin-bottom: var(--cg-space-xs); }
   .phaser-world-host { height: max(300px, calc(100dvh - 98px)); }
-  .world-preview__fallback { display: none; }
+  .world-page__fallback { display: none; }
 }
 
 /* Nursery greenhouse */
@@ -1150,63 +1170,4 @@ button, input, select { font-family: var(--cg-font-ui); }
 
 @media (prefers-reduced-motion: reduce) {
   .cg-button, .utility-menu__toggle, :where(.plant-details__close, .seed-picker__close, .treatment-workflow > header > button) { transition: none; }
-}
-
-/* Farm world hub */
-.farm { min-height: 0; }
-.game-main:has(> .farm) { padding-bottom: var(--cg-space-md); }
-.farm-world { position: relative; isolation: isolate; width: min(100%, 1180px); height: clamp(540px, calc(100dvh - 96px), 720px); min-height: 0; aspect-ratio: auto; overflow: hidden; border: 1px solid #674a35; border-radius: clamp(14px, 2vw, 24px); background: #33271f; box-shadow: inset 0 1px #f3c48a22, 0 18px 48px #0005; }
-.farm-world::before { z-index: 1; opacity: .16; background-size: 27px 29px; }
-.farm-world::after { content: ''; position: absolute; inset: 0; z-index: 8; border-radius: inherit; box-shadow: inset 0 -70px 90px #120e0b88, inset 0 36px 64px #f0a1580b; pointer-events: none; }
-.farm-world__terrain { inset: 0; z-index: 0; object-fit: cover; }
-.farm-world__sun { position: absolute; top: 8%; right: 10%; z-index: 1; width: clamp(70px, 10vw, 120px); aspect-ratio: 1; border-radius: 50%; background: #e7a75b; box-shadow: 0 0 70px #df8c4166; opacity: .72; pointer-events: none; }
-.farm-world__locations { position: absolute; inset: 0; z-index: 5; display: block; max-width: none; padding: 0; }
-.farm-location { position: absolute; width: clamp(150px, 21%, 250px); height: clamp(128px, 24%, 185px); padding: 0 4px 18px; overflow: visible; border-radius: 32px; transform-origin: center bottom; }
-.farm-location--nursery { left: 7%; top: 8%; transform: scale(.88); }
-.farm-location--garden { right: 7%; top: 9%; transform: scale(.86); }
-.farm-location--home { left: 27%; top: 37%; z-index: 2; transform: scale(1.04); }
-.farm-location--lab { right: 27%; top: 36%; z-index: 2; transform: scale(1.04); }
-.farm-location--shop { left: 10%; bottom: 5%; z-index: 3; }
-.farm-location--market { right: 10%; bottom: 5%; z-index: 3; }
-.location-art { position: relative; z-index: 2; width: min(100%, 235px); max-height: none; filter: drop-shadow(0 12px 8px #130d0966); }
-.farm-location__ground { position: absolute; left: 9%; right: 9%; bottom: 17px; z-index: 1; height: 18%; border-radius: 50%; background: radial-gradient(ellipse, #17100b99, transparent 70%); pointer-events: none; }
-.farm-location__name { bottom: 5px; z-index: 4; padding: 6px 10px; color: #f5dfbd; background: #241912ef; border-color: #a2744e; font: 600 clamp(12px, 1.25vw, 15px) var(--cg-font-display); }
-.farm-location:hover, .farm-location:focus-visible { z-index: 7; }
-.farm-location:hover .location-art, .farm-location:focus-visible .location-art { transform: translateY(-3px) scale(1.018); filter: brightness(1.09) saturate(1.06) drop-shadow(0 15px 9px #130d0988); }
-.farm-location:active .location-art { transform: translateY(1px) scale(.99); }
-.farm-location:focus-visible { outline-offset: -3px; }
-.farm-world__yard { position: absolute; left: 50%; top: 59%; z-index: 2; width: 16%; min-width: 116px; aspect-ratio: 2 / 1; transform: translate(-50%, -50%); border: 2px solid #b68c5e55; border-radius: 50%; background: radial-gradient(ellipse, #86633f 0 40%, #5c4631 42% 62%, transparent 64%); box-shadow: 0 10px 20px #160f0b44; pointer-events: none; }
-.farm-world__yard span { position: absolute; bottom: 32%; width: 8px; height: 38px; border-radius: 50% 50% 30% 30%; background: #657e4b; box-shadow: inset 2px 0 #91a863; }
-.farm-world__yard span:nth-child(1) { left: 34%; transform: rotate(-8deg); }.farm-world__yard span:nth-child(2) { left: 49%; height: 50px; }.farm-world__yard span:nth-child(3) { right: 30%; height: 31px; transform: rotate(9deg); }
-.farm-world__decor { position: absolute; z-index: 3; bottom: -14px; display: flex; align-items: flex-end; gap: 8px; pointer-events: none; filter: drop-shadow(0 9px 7px #0006); }
-.farm-world__decor--left { left: 1.5%; }.farm-world__decor--right { right: 2%; }
-.farm-world__decor i { display: block; width: clamp(18px, 2.8vw, 34px); height: clamp(70px, 13vw, 145px); border: 2px solid #37472e; border-radius: 48% 48% 28% 28%; background: linear-gradient(90deg, #3f5b32, #78904b 52%, #3d562e); }
-.farm-world__decor i:nth-child(2) { height: clamp(52px, 9vw, 105px); transform: rotate(6deg); }.farm-world__decor i:nth-child(3) { height: clamp(38px, 7vw, 78px); transform: rotate(-8deg); }
-.farm-world__caption { z-index: 9; bottom: 12px; color: #d4b58d; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
-
-@media (max-width: 900px) {
-  .farm-world { height: clamp(590px, calc(100dvh - 104px), 760px); }
-  .farm-location { width: clamp(145px, 26%, 210px); }
-  .farm-location--nursery { left: 4%; }.farm-location--garden { right: 4%; }
-  .farm-location--home { left: 21%; }.farm-location--lab { right: 21%; }
-  .farm-location--shop { left: 5%; }.farm-location--market { right: 5%; }
-}
-
-@media (max-width: 620px) {
-  .farm-world { height: clamp(540px, calc(100dvh - 150px), 650px); min-height: 540px; }
-  .farm-world__sun { top: 6%; right: 8%; }
-  .farm-world__locations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); grid-template-areas: 'nursery garden' 'home lab' 'shop market'; gap: 0 4px; padding: 16px 5px 38px; }
-  .farm-location { position: relative; inset: auto; width: 100%; height: 100%; min-height: var(--cg-touch-target); transform: none; }
-  .farm-location--nursery { grid-area: nursery; }.farm-location--garden { grid-area: garden; }.farm-location--home { grid-area: home; }.farm-location--lab { grid-area: lab; }.farm-location--shop { grid-area: shop; }.farm-location--market { grid-area: market; }
-  .location-art { width: min(100%, 190px); max-height: 142px; }
-  .farm-world__yard { display: none; }
-  .farm-world__decor i { width: 17px; }
-}
-
-@media (orientation: landscape) and (max-height: 500px) and (max-width: 950px) {
-  .farm-world { height: max(370px, calc(100dvh - 66px)); min-height: 370px; }
-  .farm-world__locations { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: 1fr; grid-template-areas: 'nursery garden home lab shop market'; gap: 2px; padding: 76px 5px 34px; }
-  .farm-location { position: relative; inset: auto; width: 100%; height: 100%; transform: none; }
-  .location-art { width: min(100%, 140px); max-height: 110px; }
-  .farm-world__yard { display: none; }
 }

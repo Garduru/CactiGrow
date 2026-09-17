@@ -1,20 +1,33 @@
 export type FarmWorldLocationId = 'home' | 'nursery' | 'garden' | 'lab' | 'mail' | 'town'
+export type FarmInteriorLocationId = Exclude<FarmWorldLocationId, 'town'>
+export type FarmWorldSpawnId = 'default' | 'road-from-town' | 'home-exterior' | 'nursery-exterior' | 'garden-exterior' | 'lab-exterior' | 'mailbox-exterior'
 export type FarmWorldRoute = '/home' | '/nursery' | '/garden' | '/lab' | '/mail' | '/town'
+export type TownWorldLocationId = 'shop' | 'market' | 'farm'
+export type TownInteriorLocationId = Exclude<TownWorldLocationId, 'farm'>
+export type TownWorldSpawnId = 'farm-arrival' | 'shop-exterior' | 'marketplace-exterior'
+export type TownWorldRoute = '/shop' | '/market' | '/'
+export type WorldLocationId = FarmWorldLocationId | TownWorldLocationId
+export type WorldRoute = FarmWorldRoute | TownWorldRoute
 
-export interface FarmWorldLocationProjection {
-  id: FarmWorldLocationId
+export interface WorldLocationProjection {
+  id: WorldLocationId
   displayName: string
-  route: FarmWorldRoute
+  route: WorldRoute
   progressionKind?: 'level' | 'tier'
   progressionValue?: number
-  interactionLabel: 'Enter' | 'Check Mail'
+  interactionLabel: 'Enter' | 'Check Mail' | 'Travel'
 }
 
-export interface FarmWorldProjection {
-  locations: readonly FarmWorldLocationProjection[]
+export interface WorldProjection {
+  locations: readonly WorldLocationProjection[]
 }
+
+export type FarmWorldLocationProjection = WorldLocationProjection & { id: FarmWorldLocationId; route: FarmWorldRoute }
+export type TownWorldLocationProjection = WorldLocationProjection & { id: TownWorldLocationId; route: TownWorldRoute }
+export interface FarmWorldProjection extends WorldProjection { locations: readonly FarmWorldLocationProjection[] }
+export interface TownWorldProjection extends WorldProjection { locations: readonly TownWorldLocationProjection[] }
 
 export type WorldIntent = {
   type: 'ENTER_LOCATION'
-  locationId: FarmWorldLocationId
+  locationId: WorldLocationId
 }

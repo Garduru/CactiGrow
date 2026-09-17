@@ -1,25 +1,25 @@
 import Phaser from 'phaser'
-import { FARM_PLAYER_SPAWN, FARM_WORLD_HEIGHT, FARM_WORLD_WIDTH, farmWorldLayout, type FarmLocationLayout } from './farmWorldLayout'
+import { FARM_WORLD_HEIGHT, FARM_WORLD_WIDTH, NURSERY_PATH_ENDPOINT, farmWorldLayout, farmWorldSpawns, type FarmLocationLayout } from './farmWorldLayout'
 import type { WorldBridge } from './WorldBridge'
-import type { FarmWorldLocationProjection } from './worldTypes'
+import type { FarmWorldLocationProjection, FarmWorldSpawnId } from './worldTypes'
+import { WORLD_DEPTH } from './worldDepth'
+import { NURSERY_V2_MAIN_ART } from './farmArtAssets'
 
 const PLAYER_SPEED = 245
 const INTERACTION_DISTANCE = 165
+const NURSERY_V2_PRODUCTION_COLLIDER = { x: 650, y: 420, width: 500, height: 150 } as const
+const NURSERY_COLLIDER_BOUNDS = { left: 395, right: 935, top: 310, bottom: 455 } as const
+const NURSERY_ACTIVE_COLLIDER = {
+  x: (NURSERY_COLLIDER_BOUNDS.left + NURSERY_COLLIDER_BOUNDS.right) / 2,
+  y: (NURSERY_COLLIDER_BOUNDS.top + NURSERY_COLLIDER_BOUNDS.bottom) / 2,
+  width: NURSERY_COLLIDER_BOUNDS.right - NURSERY_COLLIDER_BOUNDS.left,
+  height: NURSERY_COLLIDER_BOUNDS.bottom - NURSERY_COLLIDER_BOUNDS.top,
+} as const
+const GARDEN_PRESENTATION_GRAYBOX_COLLIDER = { x: 2390, y: 410, width: 590, height: 300 } as const
 // The dynamic overview minimum may approach this floor only on pathological viewport shapes.
 const CAMERA_ZOOM_FLOOR = 0.1
 const MAX_CAMERA_ZOOM = 1.5
 const WORLD_OVERVIEW_MARGIN_SCALE = 0.94
-
-const DEPTH = {
-  ground: 0,
-  paths: 10,
-  landscaping: 20,
-  buildings: 40,
-  player: 50,
-  foreground: 60,
-  prompts: 100,
-  debug: 200,
-} as const
 
 interface InteractionTarget {
   location: FarmWorldLocationProjection
@@ -34,10 +34,15 @@ interface PendingWorldTap {
   worldY: number
 }
 
+function isFarmWorldLocation(location: { id: string }): location is FarmWorldLocationProjection {
+  return location.id === 'home' || location.id === 'nursery' || location.id === 'garden' || location.id === 'lab' || location.id === 'mail' || location.id === 'town'
+}
+
 export class FarmTestScene extends Phaser.Scene {
   private readonly bridge: WorldBridge
   private readonly debugWorld: boolean
-  private player!: Phaser.GameObjects.Arc
+  private readonly playerSpawn: { x: number; y: number }
+  private player!: Phaser.GameObjects.Container
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: Record<'up' | 'down' | 'left' | 'right' | 'interact', Phaser.Input.Keyboard.Key>
   private movementTarget: Phaser.Math.Vector2 | null = null
@@ -55,10 +60,15 @@ export class FarmTestScene extends Phaser.Scene {
   private pinchStartZoom = 1
   private cameraDebugText: Phaser.GameObjects.Text | null = null
 
-  constructor(bridge: WorldBridge, debugWorld = false) {
+  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: FarmWorldSpawnId }) {
     super('farm-graybox')
     this.bridge = bridge
     this.debugWorld = debugWorld
+    this.playerSpawn = farmWorldSpawns[options.spawnId]
+  }
+
+  preload() {
+    this.load.image(NURSERY_V2_MAIN_ART.key, NURSERY_V2_MAIN_ART.path)
   }
 
   create() {
@@ -67,14 +77,14 @@ export class FarmTestScene extends Phaser.Scene {
     this.drawGroundAndPaths()
     this.drawPropertyBoundary()
     this.drawLandscaping()
-    this.createLocations(this.bridge.getProjection().locations)
+    this.createLocations(this.bridge.getProjection().locations.filter(isFarmWorldLocation))
     this.createPlayer()
     this.createInput()
     this.configureCamera()
     if (this.debugWorld) this.drawDebugOverlay()
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
-      projection.locations.forEach((location) => {
+      projection.locations.filter(isFarmWorldLocation).forEach((location) => {
         const target = this.interactionTargets.find((candidate) => candidate.location.id === location.id)
         if (!target) return
         target.location = location
@@ -117,18 +127,15 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private drawGroundAndPaths() {
-    this.add.rectangle(FARM_WORLD_WIDTH / 2, FARM_WORLD_HEIGHT / 2, FARM_WORLD_WIDTH, FARM_WORLD_HEIGHT, 0x30271f).setDepth(DEPTH.ground)
-    const ground = this.add.graphics().setDepth(DEPTH.ground)
+    this.add.rectangle(FARM_WORLD_WIDTH / 2, FARM_WORLD_HEIGHT / 2, FARM_WORLD_WIDTH, FARM_WORLD_HEIGHT, 0x30271f).setDepth(WORLD_DEPTH.ground)
+    const ground = this.add.graphics().setDepth(WORLD_DEPTH.ground)
     ground.fillStyle(0x5c4b37).fillRoundedRect(70, 60, FARM_WORLD_WIDTH - 140, FARM_WORLD_HEIGHT - 120, 80)
-    ground.fillStyle(0x69734a, 0.24).fillEllipse(560, 430, 980, 650)
-    ground.fillStyle(0x8a633e, 0.18).fillEllipse(2400, 430, 940, 650)
-    ground.fillStyle(0x4e5c3b, 0.18).fillEllipse(2330, 1250, 900, 650)
 
-    const paths = this.add.graphics().setDepth(DEPTH.paths)
+    const paths = this.add.graphics().setDepth(WORLD_DEPTH.paths)
     paths.lineStyle(118, 0xb58b5d, 0.48)
     const branches: readonly (readonly [number, number])[][] = [
       [[1500, 1900], [1500, 1100], [1500, 870]],
-      [[1500, 1050], [940, 860], [650, 580]],
+      [[1500, 1050], [940, 860], [650, 580], [NURSERY_PATH_ENDPOINT.x, NURSERY_PATH_ENDPOINT.y]],
       [[1500, 1050], [2060, 850], [2390, 630]],
       [[1500, 1080], [1940, 1200], [2180, 1210]],
     ]
@@ -143,13 +150,10 @@ export class FarmTestScene extends Phaser.Scene {
       points.slice(1).forEach(([x, y]) => paths.lineTo(x, y))
       paths.strokePath()
     })
-    this.add.ellipse(1500, 1500, 520, 240, 0x9c815e, 0.18).setStrokeStyle(3, 0xc4a478, 0.26).setDepth(DEPTH.paths)
-    this.add.text(1500, 1510, 'VISITOR ARRIVAL', { color: '#d6b98e', fontFamily: 'system-ui', fontSize: '14px', letterSpacing: 2 }).setOrigin(0.5).setAlpha(0.55).setDepth(DEPTH.landscaping)
-    this.add.ellipse(1500, 1050, 590, 390, 0x98724b, 0.52).setStrokeStyle(5, 0xc69a63, 0.35).setDepth(DEPTH.paths)
   }
 
   private drawPropertyBoundary() {
-    const fence = this.add.graphics().setDepth(DEPTH.foreground)
+    const fence = this.add.graphics().setDepth(WORLD_DEPTH.foreground)
     fence.lineStyle(18, 0x694b32, 1)
     fence.beginPath().moveTo(90, 90).lineTo(2910, 90).lineTo(2910, 1810).strokePath()
     fence.beginPath().moveTo(90, 1810).lineTo(90, 90).strokePath()
@@ -169,7 +173,7 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private drawLandscaping() {
-    const props = this.add.graphics().setDepth(DEPTH.landscaping)
+    const props = this.add.graphics().setDepth(WORLD_DEPTH.landscaping)
     const cactusClusters = [[250, 330], [280, 900], [2700, 280], [2730, 930], [340, 1590], [2640, 1610], [1050, 300], [1980, 330]]
     cactusClusters.forEach(([x, y]) => {
       props.fillStyle(0x52683e).fillRoundedRect(x - 13, y - 48, 26, 74, 12)
@@ -190,68 +194,75 @@ export class FarmTestScene extends Phaser.Scene {
     farmWorldLayout.forEach((layout) => {
       const location = locations.find((candidate) => candidate.id === layout.id)
       if (!location) return
-      const progressLabel = this.drawLocationGraybox(layout, location)
+      const progressLabel = this.drawLocationGraybox(layout)
       const prompt = this.add.text(layout.approachX, layout.approachY + 74, this.getPromptText(location), {
         color: '#fff3dc', backgroundColor: '#211710ee', fontFamily: 'system-ui', fontSize: '18px',
         padding: { x: 14, y: 9 }, align: 'center',
-      }).setOrigin(0.5).setDepth(DEPTH.prompts).setVisible(false)
+      }).setOrigin(0.5).setDepth(WORLD_DEPTH.prompts).setVisible(false)
       this.interactionTargets.push({ location, layout, progressLabel, prompt })
     })
   }
 
-  private drawLocationGraybox(layout: FarmLocationLayout, location: FarmWorldLocationProjection) {
+  private drawLocationGraybox(layout: FarmLocationLayout) {
     const { x, y, width, height } = layout
-    this.add.ellipse(x, y + height * 0.38, width * 1.05, height * 0.34, 0x150f0b, 0.48).setDepth(DEPTH.landscaping)
-
     if (layout.visualKind === 'garden') {
-      this.add.rectangle(x, y, width, height, 0x65563c, 0.72).setStrokeStyle(8, 0x7f6847).setDepth(DEPTH.buildings)
+      this.add.rectangle(x, y, width, height, 0x65563c, 0.72).setStrokeStyle(8, 0x7f6847).setDepth(WORLD_DEPTH.buildings)
       for (let row = -1; row <= 1; row += 1) {
-        this.add.rectangle(x, y + row * 72, width - 90, 43, 0x34281e).setStrokeStyle(3, 0x8b6d45).setDepth(DEPTH.buildings)
-        for (let plant = -4; plant <= 4; plant += 1) this.add.circle(x + plant * 50, y + row * 72, 10, 0x72864e).setDepth(DEPTH.foreground)
+        this.add.rectangle(x, y + row * 72, width - 90, 43, 0x34281e).setStrokeStyle(3, 0x8b6d45).setDepth(WORLD_DEPTH.buildings)
+        for (let plant = -4; plant <= 4; plant += 1) this.add.circle(x + plant * 50, y + row * 72, 10, 0x72864e).setDepth(WORLD_DEPTH.foreground)
       }
-      this.addStaticCollider(x, y - 72, width - 90, 43)
-      this.addStaticCollider(x, y, width - 90, 43)
-      this.addStaticCollider(x, y + 72, width - 90, 43)
+      this.addStaticCollider(
+        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.x,
+        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.y,
+        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.width,
+        GARDEN_PRESENTATION_GRAYBOX_COLLIDER.height,
+      )
     } else if (layout.visualKind === 'mailbox') {
-      this.add.rectangle(x, y + 28, 16, 100, 0x6a4a32).setDepth(DEPTH.buildings)
-      this.add.rectangle(x, y - 20, width, 58, 0x9b5938).setStrokeStyle(4, 0x352219).setDepth(DEPTH.foreground)
-      this.add.rectangle(x + 22, y - 7, 24, 6, 0xd9b56e).setDepth(DEPTH.foreground)
+      this.add.rectangle(x, y + 28, 16, 100, 0x6a4a32).setDepth(WORLD_DEPTH.buildings)
+      this.add.rectangle(x, y - 20, width, 58, 0x9b5938).setStrokeStyle(4, 0x352219).setDepth(WORLD_DEPTH.foreground)
+      this.add.rectangle(x + 22, y - 7, 24, 6, 0xd9b56e).setDepth(WORLD_DEPTH.foreground)
       this.addStaticCollider(x, y + 12, width, height)
     } else if (layout.visualKind === 'town-exit') {
-      this.add.rectangle(x - 135, y, 24, 118, 0x745237).setDepth(DEPTH.foreground)
-      this.add.rectangle(x + 135, y, 24, 118, 0x745237).setDepth(DEPTH.foreground)
-      this.add.rectangle(x, y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(DEPTH.foreground)
-      this.add.text(x, y - 45, 'ROAD TO TOWN', { color: '#f0d7b3', fontFamily: 'Georgia, serif', fontSize: '22px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(DEPTH.foreground)
+      this.add.rectangle(x - 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
+      this.add.rectangle(x + 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
+      this.add.rectangle(x, y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground)
       this.addStaticCollider(x - 135, y, 24, 118)
       this.addStaticCollider(x + 135, y, 24, 118)
     } else {
-      const colors = { home: 0x8c6545, greenhouse: 0x65876f, lab: 0x596979 } as const
-      const body = this.add.rectangle(x, y, width, height, colors[layout.visualKind]).setStrokeStyle(6, 0x302218).setDepth(DEPTH.buildings)
       if (layout.visualKind === 'greenhouse') {
-        body.setAlpha(0.76)
-        for (let offset = -width / 2 + 70; offset < width / 2; offset += 85) this.add.line(x + offset, y, 0, -height / 2, 0, height / 2, 0xb9d0bb, 0.45).setLineWidth(3).setDepth(DEPTH.foreground)
-        this.add.ellipse(x, y - height / 2, width, 105, 0x8aa692, 0.7).setStrokeStyle(5, 0x30483b).setDepth(DEPTH.foreground)
+        this.add.image(NURSERY_V2_MAIN_ART.anchorX, NURSERY_V2_MAIN_ART.anchorY, NURSERY_V2_MAIN_ART.key)
+          .setOrigin(NURSERY_V2_MAIN_ART.originX, NURSERY_V2_MAIN_ART.originY)
+          .setDisplaySize(NURSERY_V2_MAIN_ART.width, NURSERY_V2_MAIN_ART.height)
+          .setDepth(NURSERY_V2_MAIN_ART.depth)
+        this.addStaticCollider(
+          NURSERY_ACTIVE_COLLIDER.x,
+          NURSERY_ACTIVE_COLLIDER.y,
+          NURSERY_ACTIVE_COLLIDER.width,
+          NURSERY_ACTIVE_COLLIDER.height,
+        )
       } else {
-        const roofColor = layout.visualKind === 'lab' ? 0x394858 : 0xa95f38
-        this.add.triangle(x, y - height * 0.68, -width * 0.58, height * 0.32, 0, -height * 0.18, width * 0.58, height * 0.32, roofColor).setStrokeStyle(6, 0x302218).setDepth(DEPTH.foreground)
+        const colors = { home: 0x8c6545, lab: 0x596979 } as const
+        this.add.rectangle(x, y, width, height, colors[layout.visualKind]).setStrokeStyle(7, 0x302218).setDepth(WORLD_DEPTH.buildings)
+        this.add.rectangle(x, y + height / 2 - 24, width, 48, 0x443126).setStrokeStyle(3, 0x2b2019).setDepth(WORLD_DEPTH.buildings)
+        this.add.rectangle(layout.approachX, y + height / 2 - 67, 82, 134, layout.visualKind === 'lab' ? 0x394858 : 0x6f432e).setStrokeStyle(5, 0x2c211b).setDepth(WORLD_DEPTH.foreground)
         if (layout.visualKind === 'lab') {
-          this.add.circle(x + width * 0.29, y - height * 0.63, 30, 0xb7c7c9).setStrokeStyle(5, 0x36434d).setDepth(DEPTH.foreground)
-          this.add.line(x + width * 0.29, y - height * 0.63, 0, 25, 44, 62, 0x36434d).setLineWidth(5).setDepth(DEPTH.foreground)
+          this.add.rectangle(x - 95, y - 40, 108, 76, 0x819097, 0.55).setStrokeStyle(4, 0x394858).setDepth(WORLD_DEPTH.foreground)
+          this.add.rectangle(x + 75, y - 40, 108, 76, 0x819097, 0.55).setStrokeStyle(4, 0x394858).setDepth(WORLD_DEPTH.foreground)
         }
+        this.addStaticCollider(x, y, width, height)
       }
-      this.addStaticCollider(x, y, width, height)
     }
 
-    if (layout.visualKind === 'town-exit') return null
-    const nameY = layout.visualKind === 'mailbox' ? y - 82 : y - 8
-    this.add.text(x, nameY, location.displayName, { color: '#fff0d7', fontFamily: 'Georgia, serif', fontSize: layout.visualKind === 'mailbox' ? '22px' : '30px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(DEPTH.foreground)
-    const progress = this.getProgressText(location)
-    return progress ? this.add.text(x, y + 31, progress, { color: '#ead4b1', fontFamily: 'system-ui', fontSize: '16px' }).setOrigin(0.5).setDepth(DEPTH.foreground) : null
+    return null
   }
 
   private createPlayer() {
-    // Position and click destination are renderer state only; gameplay truth remains outside Phaser.
-    this.player = this.add.circle(FARM_PLAYER_SPAWN.x, FARM_PLAYER_SPAWN.y, 27, 0xe47a45).setStrokeStyle(5, 0x2b1a13).setDepth(DEPTH.player)
+    // This development silhouette communicates art scale; its 27px gameplay body is unchanged.
+    const visuals: Phaser.GameObjects.GameObject[] = [
+      this.add.rectangle(0, -18, 34, 62, 0xb85e3d).setStrokeStyle(4, 0x2b1a13),
+      this.add.circle(0, -61, 20, 0xd39a6b).setStrokeStyle(4, 0x2b1a13),
+    ]
+    this.player = this.add.container(this.playerSpawn.x, this.playerSpawn.y, visuals).setSize(54, 54).setDepth(WORLD_DEPTH.localPlayer)
     this.physics.add.existing(this.player)
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setCircle(27).setCollideWorldBounds(true)
@@ -303,15 +314,28 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private drawDebugOverlay() {
-    const debug = this.add.graphics().setDepth(DEPTH.debug)
+    const debug = this.add.graphics().setDepth(WORLD_DEPTH.debug)
     debug.lineStyle(5, 0xffcc66, 0.9).strokeRect(0, 0, FARM_WORLD_WIDTH, FARM_WORLD_HEIGHT)
     debug.lineStyle(3, 0x45c88a, 0.8)
     this.interactionTargets.forEach((target) => {
-      debug.strokeCircle(target.layout.approachX, target.layout.approachY, INTERACTION_DISTANCE)
-      this.add.text(target.layout.x, target.layout.y - target.layout.height / 2 - 85, target.location.id, { color: '#8dffd2', backgroundColor: '#10251ddd', fontSize: '14px', padding: { x: 6, y: 4 } }).setOrigin(0.5).setDepth(DEPTH.debug)
+      const interaction = this.getInteractionCenter(target.layout)
+      const interactionRadius = this.getInteractionRadius(target.layout)
+      debug.lineStyle(3, 0x45c88a, 0.8).strokeCircle(interaction.x, interaction.y, interactionRadius)
+      debug.lineStyle(2, 0xffa84a, 0.85).strokeCircle(interaction.x, interaction.y, target.layout.tapRadius)
+      debug.fillStyle(0x45c88a, 0.95).fillCircle(interaction.x, interaction.y, 8)
+      debug.fillStyle(0x5ac8ff, 0.95).fillCircle(target.layout.approachX, target.layout.approachY, 8)
+      debug.lineBetween(target.layout.x - 14, target.layout.y, target.layout.x + 14, target.layout.y)
+      debug.lineBetween(target.layout.x, target.layout.y - 14, target.layout.x, target.layout.y + 14)
+      debug.lineBetween(target.layout.x, target.layout.y, target.layout.approachX, target.layout.approachY)
+      this.add.text(target.layout.x, target.layout.y - target.layout.height / 2 - 85, target.location.id, { color: '#8dffd2', backgroundColor: '#10251ddd', fontSize: '14px', padding: { x: 6, y: 4 } }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+      this.drawLocationColliderDebug(debug, target.layout)
+      if (target.layout.visualKind === 'greenhouse') this.drawNurseryDebug(debug, target.layout)
     })
-    debug.fillStyle(0xff7f50, 0.9).fillCircle(FARM_PLAYER_SPAWN.x, FARM_PLAYER_SPAWN.y, 12)
-    this.cameraDebugText = this.add.text(14, 14, '', { color: '#fff2c7', backgroundColor: '#1a120ddd', fontSize: '13px', padding: { x: 8, y: 6 } }).setScrollFactor(0).setDepth(DEPTH.debug)
+    Object.entries(farmWorldSpawns).forEach(([id, spawn]) => {
+      debug.fillStyle(0xff7f50, 0.95).fillCircle(spawn.x, spawn.y, 10)
+      this.add.text(spawn.x, spawn.y + 25, `SPAWN: ${id}`, { color: '#ffd5c5', backgroundColor: '#2a1711dd', fontSize: '11px', padding: { x: 5, y: 3 } }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    })
+    this.cameraDebugText = this.add.text(14, 14, '', { color: '#fff2c7', backgroundColor: '#1a120ddd', fontSize: '13px', padding: { x: 8, y: 6 } }).setScrollFactor(0).setDepth(WORLD_DEPTH.debug)
   }
 
   private getActiveTouchPointers() {
@@ -352,7 +376,10 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private handleWorldTap(worldX: number, worldY: number) {
-    const target = this.interactionTargets.find((candidate) => Phaser.Math.Distance.Between(worldX, worldY, candidate.layout.x, candidate.layout.y) <= candidate.layout.tapRadius)
+    const target = this.interactionTargets.find((candidate) => {
+      const interaction = this.getTapCenter(candidate.layout)
+      return Phaser.Math.Distance.Between(worldX, worldY, interaction.x, interaction.y) <= candidate.layout.tapRadius
+    })
     if (target) {
       if (this.isInInteractionRange(target)) this.enterLocation(target)
       else this.movementTarget = new Phaser.Math.Vector2(target.layout.approachX, target.layout.approachY)
@@ -383,13 +410,102 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private isInInteractionRange(target: InteractionTarget) {
-    return Phaser.Math.Distance.Between(this.player.x, this.player.y, target.layout.approachX, target.layout.approachY) <= INTERACTION_DISTANCE
+    const interaction = this.getInteractionCenter(target.layout)
+    return Phaser.Math.Distance.Between(this.player.x, this.player.y, interaction.x, interaction.y) <= this.getInteractionRadius(target.layout)
   }
 
   private getNearestInteraction() {
     return this.interactionTargets
       .filter((target) => this.isInInteractionRange(target))
-      .sort((a, b) => Phaser.Math.Distance.Between(this.player.x, this.player.y, a.layout.approachX, a.layout.approachY) - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.layout.approachX, b.layout.approachY))[0] ?? null
+      .sort((a, b) => {
+        const aCenter = this.getInteractionCenter(a.layout)
+        const bCenter = this.getInteractionCenter(b.layout)
+        return Phaser.Math.Distance.Between(this.player.x, this.player.y, aCenter.x, aCenter.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, bCenter.x, bCenter.y)
+      })[0] ?? null
+  }
+
+  private getInteractionCenter(layout: FarmLocationLayout) {
+    return { x: layout.interactionX ?? layout.approachX, y: layout.interactionY ?? layout.approachY }
+  }
+
+  private getTapCenter(layout: FarmLocationLayout) {
+    return layout.interactionX === undefined || layout.interactionY === undefined
+      ? { x: layout.x, y: layout.y }
+      : { x: layout.interactionX, y: layout.interactionY }
+  }
+
+  private getInteractionRadius(layout: FarmLocationLayout) {
+    return layout.interactionRadius ?? INTERACTION_DISTANCE
+  }
+
+  private drawNurseryDebug(debug: Phaser.GameObjects.Graphics, layout: FarmLocationLayout) {
+    debug.lineStyle(3, 0x33e0e8, 0.95)
+    debug.strokeRect(layout.x - layout.width / 2, layout.y - layout.height / 2, layout.width, layout.height)
+    this.add.text(
+      layout.x,
+      layout.y - layout.height / 2 - 30,
+      'PLACEMENT — NON-COLLIDING',
+      { color: '#9cf9ff', backgroundColor: '#10272add', fontSize: '12px', padding: { x: 6, y: 3 } },
+    ).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    debug.lineStyle(2, 0x66d9ff, 0.75).strokeRect(
+      NURSERY_V2_PRODUCTION_COLLIDER.x - NURSERY_V2_PRODUCTION_COLLIDER.width / 2,
+      NURSERY_V2_PRODUCTION_COLLIDER.y - NURSERY_V2_PRODUCTION_COLLIDER.height / 2,
+      NURSERY_V2_PRODUCTION_COLLIDER.width,
+      NURSERY_V2_PRODUCTION_COLLIDER.height,
+    )
+    this.add.text(
+      NURSERY_V2_PRODUCTION_COLLIDER.x,
+      NURSERY_V2_PRODUCTION_COLLIDER.y,
+      'V2 PRODUCTION COLLIDER CONTRACT — NOT ACTIVE',
+      { color: '#9cf9ff', backgroundColor: '#10272add', fontSize: '10px', padding: { x: 5, y: 3 } },
+    ).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    const interaction = this.getInteractionCenter(layout)
+    this.add.text(
+      interaction.x,
+      interaction.y - this.getInteractionRadius(layout) - 18,
+      'INTERACTION ZONE',
+      { color: '#8dffd2', backgroundColor: '#10251ddd', fontSize: '12px', padding: { x: 6, y: 3 } },
+    ).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    const buildingX = NURSERY_V2_MAIN_ART.anchorX
+    const buildingY = NURSERY_V2_MAIN_ART.anchorY
+    const baselineY = NURSERY_V2_MAIN_ART.anchorY
+    debug.lineStyle(2, 0xb37cff, 0.9).strokeRect(
+      buildingX - NURSERY_V2_MAIN_ART.width * NURSERY_V2_MAIN_ART.originX,
+      buildingY - NURSERY_V2_MAIN_ART.height * NURSERY_V2_MAIN_ART.originY,
+      NURSERY_V2_MAIN_ART.width,
+      NURSERY_V2_MAIN_ART.height,
+    )
+    debug.lineStyle(3, 0x66d9ff, 1)
+    debug.lineBetween(buildingX - 12, buildingY, buildingX + 12, buildingY)
+    debug.lineBetween(buildingX, buildingY - 12, buildingX, buildingY + 12)
+    debug.lineStyle(3, 0xffef66, 0.95).lineBetween(buildingX - NURSERY_V2_MAIN_ART.width / 2, baselineY, buildingX + NURSERY_V2_MAIN_ART.width / 2, baselineY)
+    debug.fillStyle(0xffef66, 1).fillCircle(NURSERY_PATH_ENDPOINT.x, NURSERY_PATH_ENDPOINT.y, 7)
+    this.add.text(layout.x, layout.y - layout.height / 2 - 58, 'NURSERY SPRITE BOUNDS (PURPLE)', { color: '#fff3b0', backgroundColor: '#241b12dd', fontSize: '13px', padding: { x: 6, y: 4 } }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+  }
+
+  private drawLocationColliderDebug(debug: Phaser.GameObjects.Graphics, layout: FarmLocationLayout) {
+    const colliders = this.getLocationDebugColliders(layout)
+    debug.lineStyle(3, 0xff5c8a, 0.95)
+    colliders.forEach((collider) => {
+      debug.strokeRect(collider.x - collider.width / 2, collider.y - collider.height / 2, collider.width, collider.height)
+      this.add.text(collider.x, collider.y - collider.height / 2 - 18, collider.label, {
+        color: '#ff9fba', backgroundColor: '#2b111bdd', fontSize: '11px', padding: { x: 5, y: 3 },
+      }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
+    })
+  }
+
+  private getLocationDebugColliders(layout: FarmLocationLayout) {
+    if (layout.visualKind === 'greenhouse') return [{
+      ...NURSERY_ACTIVE_COLLIDER,
+      label: `NURSERY COLLIDER X ${NURSERY_COLLIDER_BOUNDS.left}–${NURSERY_COLLIDER_BOUNDS.right} Y ${NURSERY_COLLIDER_BOUNDS.top}–${NURSERY_COLLIDER_BOUNDS.bottom}`,
+    }]
+    if (layout.visualKind === 'garden') return [{ ...GARDEN_PRESENTATION_GRAYBOX_COLLIDER, label: 'GARDEN GRAYBOX COLLISION' }]
+    if (layout.visualKind === 'mailbox') return [{ x: layout.x, y: layout.y + 12, width: layout.width, height: layout.height, label: 'MAILBOX COLLISION' }]
+    if (layout.visualKind === 'town-exit') return [
+      { x: layout.x - 135, y: layout.y, width: 24, height: 118, label: 'ROAD POST COLLISION' },
+      { x: layout.x + 135, y: layout.y, width: 24, height: 118, label: 'ROAD POST COLLISION' },
+    ]
+    return [{ x: layout.x, y: layout.y, width: layout.width, height: layout.height, label: `${layout.id.toUpperCase()} COLLISION` }]
   }
 
   private activateNearestInteraction() {

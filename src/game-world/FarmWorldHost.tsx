@@ -1,41 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
-import type Phaser from 'phaser'
-import type { FarmWorldProjection, WorldIntent } from './worldTypes'
-import { WorldBridge } from './WorldBridge'
+import { useCallback } from 'react'
+import type { FarmWorldProjection, FarmWorldSpawnId, WorldIntent } from './worldTypes'
+import { createFarmWorldGame } from './createFarmWorldGame'
+import { PhaserWorldHost } from './PhaserWorldHost'
 
 interface FarmWorldHostProps {
   projection: FarmWorldProjection
   onIntent: (intent: WorldIntent) => void
+  spawnId: FarmWorldSpawnId
 }
 
-export function FarmWorldHost({ projection, onIntent }: FarmWorldHostProps) {
-  const hostRef = useRef<HTMLDivElement>(null)
-  const [bridge] = useState(() => new WorldBridge(projection, onIntent))
-  const gameRef = useRef<Phaser.Game | null>(null)
-
-  useEffect(() => {
-    bridge.setIntentHandler(onIntent)
-  }, [bridge, onIntent])
-
-  useEffect(() => {
-    bridge.updateProjection(projection)
-  }, [bridge, projection])
-
-  useEffect(() => {
-    const parent = hostRef.current
-    if (!parent) return
-    let cancelled = false
-    void import('./createFarmWorldGame').then(({ createFarmWorldGame }) => {
-      if (cancelled) return
-      gameRef.current = createFarmWorldGame(parent, bridge)
-    })
-    return () => {
-      cancelled = true
-      gameRef.current?.destroy(true)
-      gameRef.current = null
-      parent.replaceChildren()
-    }
-  }, [bridge])
-
-  return <div ref={hostRef} className="phaser-world-host" />
+export function FarmWorldHost({ projection, onIntent, spawnId }: FarmWorldHostProps) {
+  const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createFarmWorldGame>[1]) => (
+    createFarmWorldGame(parent, bridge, { spawnId })
+  ), [spawnId])
+  return <PhaserWorldHost projection={projection} onIntent={onIntent} createGame={createGame} />
 }

@@ -1,14 +1,14 @@
-import type { FarmWorldProjection, WorldIntent } from './worldTypes'
+import type { WorldIntent, WorldProjection } from './worldTypes'
 
-type ProjectionListener = (projection: FarmWorldProjection) => void
+type ProjectionListener = (projection: WorldProjection) => void
 type IntentHandler = (intent: WorldIntent) => void
 
 export class WorldBridge {
-  private projection: FarmWorldProjection
+  private projection: WorldProjection
   private intentHandler: IntentHandler
   private readonly projectionListeners = new Set<ProjectionListener>()
 
-  constructor(projection: FarmWorldProjection, intentHandler: IntentHandler) {
+  constructor(projection: WorldProjection, intentHandler: IntentHandler) {
     this.projection = projection
     this.intentHandler = intentHandler
   }
@@ -17,7 +17,7 @@ export class WorldBridge {
     return this.projection
   }
 
-  updateProjection(projection: FarmWorldProjection) {
+  updateProjection(projection: WorldProjection) {
     this.projection = projection
     this.projectionListeners.forEach((listener) => listener(projection))
   }
