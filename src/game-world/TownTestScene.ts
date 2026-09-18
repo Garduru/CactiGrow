@@ -3,6 +3,7 @@ import type { WorldBridge } from './WorldBridge'
 import { TOWN_WORLD_HEIGHT, TOWN_WORLD_WIDTH, townWorldLayout, townWorldSpawns, type TownLocationLayout } from './townWorldLayout'
 import type { TownWorldLocationProjection, TownWorldSpawnId } from './worldTypes'
 import { WORLD_DEPTH } from './worldDepth'
+import { MARKETPLACE_V1_MAIN_ART, SHOP_V1_MAIN_ART } from './townArtAssets'
 import type { EditorObject, WorldEditorController } from './editor/worldEditorState'
 
 const PLAYER_SPEED = 245
@@ -27,7 +28,7 @@ export class TownTestScene extends Phaser.Scene {
   private readonly debugWorld: boolean
   private readonly playerSpawn: Readonly<{ x: number; y: number }>
   private readonly editor?: WorldEditorController
-  private readonly editorVisuals = new Map<string, { main: Phaser.GameObjects.Rectangle; extras: { object: Phaser.GameObjects.Rectangle; x: number; y: number }[]; x: number; y: number }>()
+  private readonly editorVisuals = new Map<string, { main: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle; extras: { object: Phaser.GameObjects.Rectangle; x: number; y: number }[]; x: number; y: number }>()
   private readonly ownedColliders = new Map<string, Phaser.GameObjects.Rectangle[]>()
   private readonly colliderHandles = new Map<Phaser.GameObjects.Rectangle, Phaser.Physics.Arcade.Collider>()
   private player!: Phaser.GameObjects.Container
@@ -54,6 +55,11 @@ export class TownTestScene extends Phaser.Scene {
     this.debugWorld = debugWorld
     this.playerSpawn = options.editor?.getSnapshot().objects.flatMap((object) => object.returnSpawn?.id === options.spawnId ? [object.returnSpawn] : [])[0] ?? townWorldSpawns[options.spawnId]
     this.editor = options.editor
+  }
+
+  preload() {
+    this.load.image(SHOP_V1_MAIN_ART.key, SHOP_V1_MAIN_ART.path)
+    this.load.image(MARKETPLACE_V1_MAIN_ART.key, MARKETPLACE_V1_MAIN_ART.path)
   }
 
   create() {
@@ -118,7 +124,7 @@ export class TownTestScene extends Phaser.Scene {
     const branches: readonly (readonly [number, number])[][] = [
       [[1100, 1500], [1100, 1140], [1100, 850]],
       [[1100, 850], [850, 690], [650, 560]],
-      [[1100, 850], [1320, 700], [1545, 590]],
+      [[1100, 850], [1320, 700], [1510, 590]],
     ]
     branches.forEach((points) => {
       paths.beginPath().moveTo(points[0][0], points[0][1])
@@ -156,6 +162,26 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   private drawLocation(layout: TownLocationLayout) {
+    if (layout.visualKind === 'market' && this.textures.exists(MARKETPLACE_V1_MAIN_ART.key)) {
+      const main = this.add.image(MARKETPLACE_V1_MAIN_ART.anchorX, MARKETPLACE_V1_MAIN_ART.anchorY, MARKETPLACE_V1_MAIN_ART.key)
+        .setOrigin(MARKETPLACE_V1_MAIN_ART.originX, MARKETPLACE_V1_MAIN_ART.originY)
+        .setDisplaySize(MARKETPLACE_V1_MAIN_ART.width, MARKETPLACE_V1_MAIN_ART.height)
+        .setDepth(MARKETPLACE_V1_MAIN_ART.depth)
+      this.rememberVisual(layout.id, main, [])
+      layout.colliders?.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
+      return
+    }
+    if (layout.visualKind === 'shop' && this.textures.exists(SHOP_V1_MAIN_ART.key)) {
+      const main = this.add.image(SHOP_V1_MAIN_ART.anchorX, SHOP_V1_MAIN_ART.anchorY, SHOP_V1_MAIN_ART.key)
+        .setOrigin(SHOP_V1_MAIN_ART.originX, SHOP_V1_MAIN_ART.originY)
+        .setDisplaySize(SHOP_V1_MAIN_ART.width, SHOP_V1_MAIN_ART.height)
+        .setDepth(SHOP_V1_MAIN_ART.depth)
+      this.rememberVisual(layout.id, main, [])
+      if (layout.colliderX !== undefined && layout.colliderY !== undefined && layout.colliderWidth !== undefined && layout.colliderHeight !== undefined) {
+        this.addStaticCollider(layout.colliderX, layout.colliderY, layout.colliderWidth, layout.colliderHeight, layout.id)
+      }
+      return
+    }
     if (layout.visualKind === 'farm-exit') {
       const left = this.add.rectangle(layout.x - 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
       const right = this.add.rectangle(layout.x + 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
@@ -181,6 +207,7 @@ export class TownTestScene extends Phaser.Scene {
       for (let windowX = layout.x - 180; windowX <= layout.x + 180; windowX += 120) extras.push(this.add.rectangle(windowX, layout.y - 36, 78, 74, 0x9da5ab, 0.34).setStrokeStyle(4, 0x454052).setDepth(WORLD_DEPTH.foreground))
     }
     this.rememberVisual(layout.id, main, extras)
+    if (layout.visualKind === 'market') layout.colliders?.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
     if (layout.colliderX !== undefined && layout.colliderY !== undefined && layout.colliderWidth !== undefined && layout.colliderHeight !== undefined) {
       this.addStaticCollider(layout.colliderX, layout.colliderY, layout.colliderWidth, layout.colliderHeight, layout.id)
     }
@@ -242,9 +269,30 @@ export class TownTestScene extends Phaser.Scene {
       debug.lineStyle(3, 0x45c88a, 0.9).strokeCircle(layout.interactionX, layout.interactionY, layout.interactionRadius)
       debug.lineStyle(2, 0xffa84a, 0.85).strokeCircle(layout.interactionX, layout.interactionY, layout.tapRadius)
       debug.fillStyle(0x5ac8ff, 1).fillCircle(layout.approachX, layout.approachY, 8)
+      if (layout.visualKind === 'shop' && this.textures.exists(SHOP_V1_MAIN_ART.key)) {
+        debug.lineStyle(2, 0xb37cff, 0.9).strokeRect(
+          SHOP_V1_MAIN_ART.anchorX - SHOP_V1_MAIN_ART.width * SHOP_V1_MAIN_ART.originX,
+          SHOP_V1_MAIN_ART.anchorY - SHOP_V1_MAIN_ART.height * SHOP_V1_MAIN_ART.originY,
+          SHOP_V1_MAIN_ART.width,
+          SHOP_V1_MAIN_ART.height,
+        )
+        debug.fillStyle(0xffef66, 1).fillCircle(SHOP_V1_MAIN_ART.anchorX, SHOP_V1_MAIN_ART.anchorY, 6)
+      }
+      if (layout.visualKind === 'market' && this.textures.exists(MARKETPLACE_V1_MAIN_ART.key)) {
+        debug.lineStyle(2, 0xb37cff, 0.9).strokeRect(
+          MARKETPLACE_V1_MAIN_ART.anchorX - MARKETPLACE_V1_MAIN_ART.width * MARKETPLACE_V1_MAIN_ART.originX,
+          MARKETPLACE_V1_MAIN_ART.anchorY - MARKETPLACE_V1_MAIN_ART.height * MARKETPLACE_V1_MAIN_ART.originY,
+          MARKETPLACE_V1_MAIN_ART.width,
+          MARKETPLACE_V1_MAIN_ART.height,
+        )
+        debug.fillStyle(0xffef66, 1).fillCircle(MARKETPLACE_V1_MAIN_ART.anchorX, MARKETPLACE_V1_MAIN_ART.anchorY, 6)
+      }
       if (layout.colliderX !== undefined && layout.colliderY !== undefined && layout.colliderWidth !== undefined && layout.colliderHeight !== undefined) {
         debug.lineStyle(3, 0xff5c8a, 0.95).strokeRect(layout.colliderX - layout.colliderWidth / 2, layout.colliderY - layout.colliderHeight / 2, layout.colliderWidth, layout.colliderHeight)
       }
+      layout.colliders?.forEach(({ x, y, width, height }) => {
+        debug.lineStyle(3, 0xff5c8a, 0.95).strokeRect(x - width / 2, y - height / 2, width, height)
+      })
       this.add.text(layout.x, layout.y - layout.height / 2 - 45, layout.id, { color: '#8dffd2', backgroundColor: '#10251ddd', fontSize: '14px', padding: { x: 6, y: 4 } }).setOrigin(0.5).setDepth(WORLD_DEPTH.debug)
     })
     Object.entries(townWorldSpawns).forEach(([id, spawn]) => {
@@ -325,7 +373,7 @@ export class TownTestScene extends Phaser.Scene {
     this.colliderHandles.set(collider, this.physics.add.collider(this.player, collider))
   }
 
-  private rememberVisual(id: string, main: Phaser.GameObjects.Rectangle, extras: Phaser.GameObjects.Rectangle[]) {
+  private rememberVisual(id: string, main: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle, extras: Phaser.GameObjects.Rectangle[]) {
     this.editorVisuals.set(id, { main, extras: extras.map((object) => ({ object, x: object.x, y: object.y })), x: main.x, y: main.y })
   }
 
@@ -337,7 +385,8 @@ export class TownTestScene extends Phaser.Scene {
       if (!visual) return []
       const colliders = layout.visualKind === 'farm-exit'
         ? [{ id: 'left-post', label: 'Left post', x: layout.x - 135, y: layout.y, width: 24, height: 118 }, { id: 'right-post', label: 'Right post', x: layout.x + 135, y: layout.y, width: 24, height: 118 }]
-        : layout.colliderX !== undefined && layout.colliderY !== undefined && layout.colliderWidth !== undefined && layout.colliderHeight !== undefined
+        : layout.colliders ? layout.colliders.map((collider) => ({ ...collider }))
+          : layout.colliderX !== undefined && layout.colliderY !== undefined && layout.colliderWidth !== undefined && layout.colliderHeight !== undefined
           ? [{ id: 'main', label: 'Main collider', x: layout.colliderX, y: layout.colliderY, width: layout.colliderWidth, height: layout.colliderHeight }]
           : []
       const returnSpawn = townWorldSpawns[returnIds[layout.id]]
@@ -369,7 +418,9 @@ export class TownTestScene extends Phaser.Scene {
     const visual = this.editorVisuals.get(object.id)
     if (!visual) return
     const { sprite } = object
-    visual.main.setPosition(sprite.x, sprite.y).setOrigin(sprite.originX, sprite.originY).setSize(sprite.width, sprite.height)
+    visual.main.setPosition(sprite.x, sprite.y).setOrigin(sprite.originX, sprite.originY)
+    if (visual.main instanceof Phaser.GameObjects.Image) visual.main.setDisplaySize(sprite.width, sprite.height)
+    else visual.main.setSize(sprite.width, sprite.height)
     visual.extras.forEach(({ object: extra, x, y }) => extra.setPosition(x + sprite.x - visual.x, y + sprite.y - visual.y))
     const old = this.ownedColliders.get(object.id) ?? []
     old.forEach((collider) => {
