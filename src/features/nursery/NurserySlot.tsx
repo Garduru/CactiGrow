@@ -4,8 +4,10 @@ import { calculateNurseryGrowth, type NurserySlotState } from './nurseryModel'
 import { TreatmentHistory } from '../lab/TreatmentHistory'
 import { Badge } from '../../components/ui/Badge'
 import { extractTargetLabels } from '../lab/extractionModel'
-import { formatGrowthTimeRemaining, getNurseryPlantSilhouette, getNurseryVisualPhase } from './nurseryPresentation'
+import { formatGrowthTimeRemaining, getNurseryPresentationStage } from './nurseryPresentation'
 import { MOCK_GROWTH_DURATION_MS } from './nurseryModel'
+import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
+import { PlantVisual } from '../../components/ui/PlantVisual'
 
 interface NurserySlotProps {
   slot: NurserySlotState
@@ -39,8 +41,8 @@ export function NurserySlot({
   const species = getSpeciesById(slot.plant.speciesId)
   const growth = calculateNurseryGrowth(slot.plant.plantedAt, now)
   const percent = Math.round(growth.progress * 100)
-  const silhouette = getNurseryPlantSilhouette(species)
-  const visualPhase = getNurseryVisualPhase(growth.progress)
+  const presentationStage = getNurseryPresentationStage(growth)
+  const visual = presentationStage === 'germinating' ? null : createPlantVisualDescriptor(slot.plant, presentationStage)
   const shiny = slot.plant.specialVariants.some(({ variantId }) => variantId === 'shiny')
   const treatment = slot.plant.quantitativeTreatments?.find(({ status }) => status === 'resolved')
   const remainingLabel = formatGrowthTimeRemaining(slot.plant.plantedAt, now, MOCK_GROWTH_DURATION_MS)
@@ -49,12 +51,11 @@ export function NurserySlot({
     <article className="nursery-slot">
       <div className="nursery-slot__topline">
         <span className="nursery-slot__number">Position {slotNumber}</span>
-        <Badge tone={growth.isMature ? 'success' : 'neutral'}>{growth.isMature ? 'Ready to collect' : growth.stage}</Badge>
+        <Badge tone={growth.isMature ? 'success' : 'neutral'}>{growth.isMature ? 'Ready to collect' : presentationStage}</Badge>
       </div>
-      <div className={`nursery-plant nursery-plant--${silhouette} nursery-plant--phase-${visualPhase}${shiny ? ' nursery-plant--shiny' : ''}`} aria-hidden="true">
-        <span className="nursery-plant__shadow" />
+      <div className="nursery-plant" aria-hidden="true">
         <span className="nursery-plant__pot" />
-        <span className="nursery-plant__body" />
+        {visual && <span className="nursery-plant__visual"><PlantVisual visual={visual} size={visual.baseAsset ? 72 : visual.visualStage === 'seedling' ? 34 : visual.visualStage === 'juvenile' ? 49 : visual.visualStage === 'developing' ? 61 : 72} /></span>}
       </div>
       <div className="nursery-slot__badges">
         {shiny && <Badge tone="warning">Shiny</Badge>}

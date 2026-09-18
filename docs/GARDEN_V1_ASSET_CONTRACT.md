@@ -54,7 +54,7 @@ These are renderer metadata only. They do not select plants, mutate `ownedPlants
 | `garden-display-front-center` | `(2390, 455)` |
 | `garden-display-front-right` | `(2530, 455)` |
 
-Future flow: owned Garden collection → display-selection policy → narrow viewer-appropriate Garden renderer projection → six physical anchors → Phaser specimen visuals. The policy is **not chosen**; possible sources include manually featured specimens, favorites, or recently collected specimens. Displayed specimens must remain real owned specimens with their species, growth/genetic identity, mutation appearance, Shiny state, clone-line identity, and visual variation. The full collection remains in React `/garden` even if more than six specimens are owned. Private genetics and provenance must not leak to future visitors. No actual owned-plant rendering is implemented in this pass.
+Current V1 flow: owned Garden collection -> explicit player assignment of specimen ID to one of six named display slots in application state -> narrow viewer-appropriate Garden renderer projection -> six locked physical anchors -> Phaser plant-only visuals. Approved Normal San Pedro stages use production art; other species, missing assets, and unsupported visual features retain fallbacks. Empty slots are valid; collection never automatically assigns a specimen. One specimen cannot occupy multiple slots. Clearing a display assignment preserves ownership. Assignments are in-memory and do not survive a full page reload. The full collection remains in React `/garden` even if more than six specimens are owned. Garden plants root directly in soil with no intrinsic pot. Private genetics and provenance must not leak to future visitors.
 
 ## Human runtime approval
 
@@ -64,4 +64,4 @@ Future flow: owned Garden collection → display-selection policy → narrow vie
 - Use `?worldDebug` to inspect sprite bounds, exterior collider, interaction/approach/return markers, and six labeled **DISPLAY** anchors. None should appear in normal play.
 - Confirm all six primary beds stay empty and the Garden collection, Nursery growing slots, breeding, player depth, and movement still behave as before.
 
-Garden V1 is **human approved and locked**. Preserve its asset, display size, origin, anchor, depth, collider, entrance/navigation coordinates, and all six display anchors exactly as recorded. Actual owned-specimen rendering into those anchors remains future work and does not loosen this exterior contract.
+Garden V1 is **human approved and locked**. Preserve its asset, display size, origin, anchor, depth, collider, entrance/navigation coordinates, and all six display anchors exactly as recorded. Explicitly assigned owned specimens now render at those anchors; this does not loosen the exterior contract.

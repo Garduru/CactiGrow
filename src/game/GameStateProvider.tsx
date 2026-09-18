@@ -18,6 +18,7 @@ import { canCancelListing, canListPlant, createMarketplaceListing } from '../fea
 import { canSellPlantToNpc, getNpcSaleValue } from '../features/marketplace/sellModel'
 import { getPropertyUpgradeStatus } from '../features/property/propertyModel'
 import { addGardenTag as addGardenTagForState, removeGardenTag as removeGardenTagForState, setGardenFavorite as setGardenFavoriteForState } from '../features/garden/gardenOrganizationModel'
+import { assignGardenDisplay as assignGardenDisplayForState } from '../features/garden/gardenDisplayModel'
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(gameStateReducer, undefined, () => createInitialGameState())
@@ -105,6 +106,15 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       if (setGardenFavoriteForState(state.gardenOrganization, plantId, favorite) === state.gardenOrganization) return false
       dispatch({ type: 'garden/favorite-set', plantId, favorite })
       return true
+    },
+    assignGardenDisplay(slotId, plantId) {
+      if (!state.ownedPlants.some((plant) => plant.id === plantId)) return false
+      if (assignGardenDisplayForState(state.gardenDisplayAssignments, slotId, plantId) === state.gardenDisplayAssignments) return false
+      dispatch({ type: 'garden/display-assigned', slotId, plantId })
+      return true
+    },
+    clearGardenDisplay(slotId) {
+      dispatch({ type: 'garden/display-cleared', slotId })
     },
     addGardenTag(plantId, tag) {
       if (state.property.buildings.garden.level < 2 || !state.ownedPlants.some((plant) => plant.id === plantId)) return false

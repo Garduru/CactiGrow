@@ -7,6 +7,10 @@ import { getExpressedGeneticFeatures } from '../genetics/geneticFeatureModel'
 import type { GardenSpecimenOrganization } from '../../types/garden'
 import { GardenOrganizationControls } from './GardenOrganizationControls'
 import { TreatmentHistory } from '../lab/TreatmentHistory'
+import { GardenDisplayControls } from './GardenDisplayControls'
+import { PlantVisual } from '../../components/ui/PlantVisual'
+import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
+import type { GardenDisplayAssignments, GardenDisplaySlotId } from '../../types/garden'
 
 interface PlantDetailsProps {
   plant: CollectedPlant
@@ -21,6 +25,9 @@ interface PlantDetailsProps {
   onFavoriteChange: (favorite: boolean) => void
   onAddTag: (tag: string) => boolean
   onRemoveTag: (tag: string) => void
+  displayAssignments: GardenDisplayAssignments
+  onAssignDisplay: (slotId: GardenDisplaySlotId) => void
+  onClearDisplay: (slotId: GardenDisplaySlotId) => void
 }
 
 const detailFields = [
@@ -31,7 +38,7 @@ const detailFields = [
   ['Mutation tendency', 'mutationChance'],
 ] as const
 
-export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed, organization, organizationUnlocked, onFavoriteChange, onAddTag, onRemoveTag }: PlantDetailsProps) {
+export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed, organization, organizationUnlocked, onFavoriteChange, onAddTag, onRemoveTag, displayAssignments, onAssignDisplay, onClearDisplay }: PlantDetailsProps) {
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const expressedFeatures = getExpressedGeneticFeatures(plant.geneticFeatures)
@@ -106,6 +113,7 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
           </button>
         </header>
 
+        <div className="plant-details__preview"><PlantVisual visual={createPlantVisualDescriptor(plant)} size={100} /></div>
         <dl className="plant-details__identity">
           <div><dt>Specimen ID</dt><dd>{plant.id}</dd></div>
           <div><dt>Stage</dt><dd>{plant.stage}</dd></div>
@@ -167,6 +175,7 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
           )}
         </section>
 
+        <GardenDisplayControls plantId={plant.id} assignments={displayAssignments} onAssign={onAssignDisplay} onClear={onClearDisplay} />
         {organizationUnlocked && <GardenOrganizationControls metadata={organization} onFavoriteChange={onFavoriteChange} onAddTag={onAddTag} onRemoveTag={onRemoveTag} />}
         <TreatmentHistory treatments={plant.quantitativeTreatments} />
 

@@ -5,6 +5,9 @@ import type { FarmWorldLocationProjection, FarmWorldSpawnId } from './worldTypes
 import { WORLD_DEPTH } from './worldDepth'
 import { GARDEN_V1_MAIN_ART, GENETICS_LAB_V1_MAIN_ART, HOME_V1_MAIN_ART, MAILBOX_V1_MAIN_ART, NURSERY_V2_MAIN_ART } from './farmArtAssets'
 import { GARDEN_DISPLAY_ANCHORS } from './gardenDisplayAnchors'
+import { createPlantWorldVisual } from './PlantWorldVisual'
+import { registeredPlantStageAssets } from '../data/plantVisualAssets'
+import type { GardenDisplayProjection } from './worldTypes'
 import type { EditorObject, WorldEditorController } from './editor/worldEditorState'
 
 const PLAYER_SPEED = 245
@@ -60,6 +63,7 @@ export class FarmTestScene extends Phaser.Scene {
   private readonly editor?: WorldEditorController
   private readonly editorVisuals = new Map<string, { main: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle; extras: { object: Phaser.GameObjects.Rectangle; x: number; y: number }[]; x: number; y: number }>()
   private readonly ownedColliders = new Map<string, Phaser.GameObjects.Rectangle[]>()
+  private readonly gardenPlantVisuals = new Map<string, { revision: string; visual: Phaser.GameObjects.Container }>()
   private readonly colliderHandles = new Map<Phaser.GameObjects.Rectangle, Phaser.Physics.Arcade.Collider>()
   private player!: Phaser.GameObjects.Container
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
@@ -88,6 +92,7 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   preload() {
+    registeredPlantStageAssets.forEach(({ key, path }) => this.load.image(key, path))
     this.load.image(NURSERY_V2_MAIN_ART.key, NURSERY_V2_MAIN_ART.path)
     this.load.image(HOME_V1_MAIN_ART.key, HOME_V1_MAIN_ART.path)
     this.load.image(GENETICS_LAB_V1_MAIN_ART.key, GENETICS_LAB_V1_MAIN_ART.path)
@@ -102,6 +107,7 @@ export class FarmTestScene extends Phaser.Scene {
     this.drawPropertyBoundary()
     this.drawLandscaping()
     this.createLocations(this.bridge.getProjection().locations.filter(isFarmWorldLocation))
+    this.updateGardenDisplays(this.bridge.getProjection().gardenDisplays ?? [])
     this.createPlayer()
     this.createInput()
     this.configureCamera()
@@ -109,6 +115,7 @@ export class FarmTestScene extends Phaser.Scene {
     if (this.debugWorld) this.drawDebugOverlay()
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
+      this.updateGardenDisplays(projection.gardenDisplays ?? [])
       projection.locations.filter(isFarmWorldLocation).forEach((location) => {
         const target = this.interactionTargets.find((candidate) => candidate.location.id === location.id)
         if (!target) return
@@ -118,6 +125,22 @@ export class FarmTestScene extends Phaser.Scene {
       })
     })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unsubscribeProjection?.())
+  }
+
+  private updateGardenDisplays(displays: readonly GardenDisplayProjection[]) {
+    const active = new Set<string>(displays.map((display) => display.slotId))
+    for (const [slotId, entry] of this.gardenPlantVisuals) {
+      if (active.has(slotId)) continue
+      entry.visual.destroy()
+      this.gardenPlantVisuals.delete(slotId)
+    }
+    displays.forEach((display) => {
+      const revision = `${display.specimenId}:${display.visual.visualRevision}`
+      const current = this.gardenPlantVisuals.get(display.slotId)
+      if (current?.revision === revision) return
+      current?.visual.destroy()
+      this.gardenPlantVisuals.set(display.slotId, { revision, visual: createPlantWorldVisual(this, display) })
+    })
   }
 
   update() {

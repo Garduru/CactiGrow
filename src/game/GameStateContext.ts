@@ -6,6 +6,7 @@ import type { MarketplaceListing } from '../types/marketplace'
 import type { ExtractionAttempt, GeneticsLabTierId, QuantitativeExtractTarget, TissueSample } from '../types/lab'
 import type { QuantitativeSeedTreatment } from '../types/treatment'
 import type { FarmAccessPreference } from '../types/property'
+import type { GardenDisplaySlotId } from '../types/garden'
 
 export interface GameStateContextValue {
   state: GameState
@@ -26,6 +27,8 @@ export interface GameStateContextValue {
   upgradeProperty: (upgradeId: string) => boolean
   setFarmAccessPreference: (preference: FarmAccessPreference) => void
   setGardenFavorite: (plantId: string, favorite: boolean) => boolean
+  assignGardenDisplay: (slotId: GardenDisplaySlotId, plantId: string) => boolean
+  clearGardenDisplay: (slotId: GardenDisplaySlotId) => void
   addGardenTag: (plantId: string, tag: string) => boolean
   removeGardenTag: (plantId: string, tag: string) => boolean
   collectTissueSample: (plantId: string) => TissueSample | null

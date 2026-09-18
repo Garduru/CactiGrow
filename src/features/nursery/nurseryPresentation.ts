@@ -1,22 +1,12 @@
-import type { Species } from '../../types/species'
+import type { NurseryGrowth } from './nurseryModel'
+import { visualStageFromProgress } from '../plants/plantVisualModel'
+import type { VisualGrowthStage } from '../../types/plantVisual'
 
-export type NurseryPlantSilhouette = 'columnar' | 'button' | 'generic'
-export type NurseryVisualPhase = 'early' | 'mid' | 'late' | 'mature'
+export type NurseryPresentationStage = 'germinating' | VisualGrowthStage
 
-const silhouetteByImageKey: Readonly<Record<string, NurseryPlantSilhouette>> = {
-  'echinopsis-pachanoi': 'columnar',
-  'lophophora-williamsii': 'button',
-}
-
-export function getNurseryPlantSilhouette(species?: Species): NurseryPlantSilhouette {
-  return species ? silhouetteByImageKey[species.imageKey] ?? 'generic' : 'generic'
-}
-
-export function getNurseryVisualPhase(progress: number): NurseryVisualPhase {
-  if (progress >= 1) return 'mature'
-  if (progress >= .67) return 'late'
-  if (progress >= .34) return 'mid'
-  return 'early'
+export function getNurseryPresentationStage(growth: NurseryGrowth): NurseryPresentationStage {
+  if (!growth.isMature && growth.progress < .15) return 'germinating'
+  return visualStageFromProgress(growth.progress, growth.isMature)
 }
 
 export function formatGrowthTimeRemaining(plantedAt: string, now: number, durationMs: number): string {

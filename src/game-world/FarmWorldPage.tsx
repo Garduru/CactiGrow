@@ -11,7 +11,7 @@ export function FarmWorldPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const spawnId = resolveFarmSpawnId(location.state)
-  const projection = useMemo(() => createFarmWorldProjection(state.property, state.geneticsLab), [state.geneticsLab, state.property])
+  const projection = useMemo(() => createFarmWorldProjection(state.property, state.geneticsLab, state.ownedPlants, state.gardenDisplayAssignments), [state.geneticsLab, state.property, state.ownedPlants, state.gardenDisplayAssignments])
   const handleIntent = useCallback((intent: WorldIntent) => {
     const destination = projection.locations.find((location) => location.id === intent.locationId)
     if (!destination) return

@@ -26,7 +26,8 @@ import { getLabTierDefinition } from '../features/lab/labConfig'
 import { canExtractQuantitative, createExtractionAttempt, quantitativeExtractTargets } from '../features/lab/extractionModel'
 import type { FarmAccessPreference, PropertyState } from '../types/property'
 import { createPropertyState, getNurseryCapacity, getPropertyUpgradeStatus } from '../features/property/propertyModel'
-import type { GardenOrganizationState } from '../types/garden'
+import type { GardenDisplayAssignments, GardenDisplaySlotId, GardenOrganizationState } from '../types/garden'
+import { assignGardenDisplay, clearGardenDisplay, clearSpecimenDisplay, createGardenDisplayAssignments, isGardenDisplaySlotId } from '../features/garden/gardenDisplayModel'
 import { addGardenTag, removeGardenOrganization, removeGardenTag, setGardenFavorite } from '../features/garden/gardenOrganizationModel'
 import { createQuantitativeSeedTreatment, MEANINGFUL_TREATMENT_GAIN, resolveQuantitativeTreatment } from '../features/lab/treatmentModel'
 import type { QuantitativeSeedTreatment } from '../types/treatment'
@@ -52,6 +53,7 @@ export interface GameState {
   geneticsLab: GeneticsLabState
   property: PropertyState
   gardenOrganization: GardenOrganizationState
+  gardenDisplayAssignments: GardenDisplayAssignments
 }
 
 export type GameAction =
@@ -71,6 +73,8 @@ export type GameAction =
   | { type: 'property/upgraded'; upgradeId: string; now: number }
   | { type: 'property/farm-access-set'; preference: FarmAccessPreference }
   | { type: 'garden/favorite-set'; plantId: string; favorite: boolean }
+  | { type: 'garden/display-assigned'; slotId: GardenDisplaySlotId; plantId: string }
+  | { type: 'garden/display-cleared'; slotId: GardenDisplaySlotId }
   | { type: 'garden/tag-added'; plantId: string; tag: string }
   | { type: 'garden/tag-removed'; plantId: string; tag: string }
   | { type: 'sample/collected'; sample: TissueSample }
@@ -137,6 +141,7 @@ export function createInitialGameState(now = Date.now()): GameState {
     geneticsLab: createGeneticsLabState(),
     property: createPropertyState(now),
     gardenOrganization: {},
+    gardenDisplayAssignments: createGardenDisplayAssignments(),
   }
 }
 
@@ -451,6 +456,7 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
         player: { ...state.player, tokens: nextTokens },
         ownedPlants: state.ownedPlants.filter((specimen) => specimen.id !== action.plantId),
         gardenOrganization: removeGardenOrganization(state.gardenOrganization, action.plantId),
+        gardenDisplayAssignments: clearSpecimenDisplay(state.gardenDisplayAssignments, action.plantId),
         cloneLines,
       }, 'npcSale', action.now)
     }
@@ -566,6 +572,18 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
       if (state.property.buildings.garden.level < 2 || !state.ownedPlants.some((plant) => plant.id === action.plantId)) return state
       const gardenOrganization = setGardenFavorite(state.gardenOrganization, action.plantId, action.favorite)
       return gardenOrganization === state.gardenOrganization ? state : { ...state, gardenOrganization }
+    }
+
+    case 'garden/display-assigned': {
+      if (!isGardenDisplaySlotId(action.slotId) || !state.ownedPlants.some((plant) => plant.id === action.plantId)) return state
+      const gardenDisplayAssignments = assignGardenDisplay(state.gardenDisplayAssignments, action.slotId, action.plantId)
+      return gardenDisplayAssignments === state.gardenDisplayAssignments ? state : { ...state, gardenDisplayAssignments }
+    }
+
+    case 'garden/display-cleared': {
+      if (!isGardenDisplaySlotId(action.slotId)) return state
+      const gardenDisplayAssignments = clearGardenDisplay(state.gardenDisplayAssignments, action.slotId)
+      return gardenDisplayAssignments === state.gardenDisplayAssignments ? state : { ...state, gardenDisplayAssignments }
     }
 
     case 'garden/tag-added': {

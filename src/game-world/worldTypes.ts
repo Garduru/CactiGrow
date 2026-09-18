@@ -18,13 +18,25 @@ export interface WorldLocationProjection {
   interactionLabel: 'Enter' | 'Check Mail' | 'Travel'
 }
 
+import type { GardenDisplaySlotId } from '../types/garden'
+import type { PlantVisualDescriptor } from '../types/plantVisual'
+
+export interface GardenDisplayProjection {
+  slotId: GardenDisplaySlotId
+  specimenId: string
+  x: number
+  y: number
+  visual: PlantVisualDescriptor
+}
+
 export interface WorldProjection {
   locations: readonly WorldLocationProjection[]
+  gardenDisplays?: readonly GardenDisplayProjection[]
 }
 
 export type FarmWorldLocationProjection = WorldLocationProjection & { id: FarmWorldLocationId; route: FarmWorldRoute }
 export type TownWorldLocationProjection = WorldLocationProjection & { id: TownWorldLocationId; route: TownWorldRoute }
-export interface FarmWorldProjection extends WorldProjection { locations: readonly FarmWorldLocationProjection[] }
+export interface FarmWorldProjection extends WorldProjection { locations: readonly FarmWorldLocationProjection[]; gardenDisplays: readonly GardenDisplayProjection[] }
 export interface TownWorldProjection extends WorldProjection { locations: readonly TownWorldLocationProjection[] }
 
 export type WorldIntent = {

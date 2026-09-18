@@ -1,4 +1,3 @@
-import type { GrowthStage } from '../../types/species'
 import type { Plant } from '../../types/plant'
 import type { BredSeed } from '../../types/bredSeed'
 
@@ -10,7 +9,6 @@ export interface NurserySlotState {
 }
 
 export interface NurseryGrowth {
-  stage: GrowthStage
   progress: number
   isMature: boolean
 }
@@ -18,26 +16,13 @@ export interface NurseryGrowth {
 // Development timing only. The server will eventually provide authoritative time.
 export const MOCK_GROWTH_DURATION_MS = 2 * 60 * 1000
 
-const growthStages: readonly GrowthStage[] = [
-  'seed',
-  'seedling',
-  'juvenile',
-  'mature',
-]
-
 export function calculateNurseryGrowth(
   plantedAt: string,
   now: number,
 ): NurseryGrowth {
   const elapsed = Math.max(0, now - Date.parse(plantedAt))
   const progress = Math.min(elapsed / MOCK_GROWTH_DURATION_MS, 1)
-  const stageIndex = Math.min(
-    Math.floor(progress * growthStages.length),
-    growthStages.length - 1,
-  )
-
   return {
-    stage: growthStages[stageIndex],
     progress,
     isMature: progress >= 1,
   }

@@ -10,11 +10,15 @@ import { ResearchWorkflow } from '../research/ResearchWorkflow'
 import { filterAndSortGardenPlants, getGardenTags } from './gardenOrganizationModel'
 import { PlantDetails } from './PlantDetails'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { GARDEN_DISPLAY_SLOT_IDS } from '../../types/garden'
+import { gardenDisplayLabels } from './gardenDisplayModel'
+import { PlantVisual } from '../../components/ui/PlantVisual'
+import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
 
 const defaultFilters: GardenFilters = { favoriteOnly: false, speciesId: '', tag: '', listing: 'all', special: 'all' }
 
 export function GardenPage() {
-  const { state, setGardenFavorite, addGardenTag, removeGardenTag } = useGameState()
+  const { state, setGardenFavorite, addGardenTag, removeGardenTag, assignGardenDisplay, clearGardenDisplay } = useGameState()
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null)
   const [breedingParentId, setBreedingParentId] = useState<string | null>(null)
   const [sellingPlantId, setSellingPlantId] = useState<string | null>(null)
@@ -38,6 +42,10 @@ export function GardenPage() {
 
   return <section aria-labelledby="garden-title">
     <header className="garden-heading"><div><h1 id="garden-title">Garden <span>Lv. {gardenLevel}</span></h1><p>{gardenDefinition.name}</p></div>{organizationUnlocked && <span className="garden-heading__status">Organized Beds active</span>}</header>
+    <section className="garden-display-summary" aria-labelledby="garden-display-title"><h2 id="garden-display-title">Display beds</h2><p>Choose specimens from your collection to display on the Farm.</p><div className="garden-display-summary__grid">{GARDEN_DISPLAY_SLOT_IDS.map((id) => {
+      const specimen = state.ownedPlants.find((plant) => plant.id === state.gardenDisplayAssignments[id])
+      return <div key={id} className="garden-display-summary__slot"><strong>{gardenDisplayLabels[id]}</strong><span>{specimen ? `${getSpeciesById(specimen.speciesId)?.commonName ?? 'Unknown cactus'} - ${specimen.id}` : 'Empty'}</span>{specimen && <button type="button" onClick={() => clearGardenDisplay(id)} aria-label={`Remove ${specimen.id} from ${gardenDisplayLabels[id]} display`}>Remove</button>}</div>
+    })}</div></section>
     {organizationUnlocked && state.ownedPlants.length > 0 && <details className="garden-tools">
       <summary>Filter and sort <span>{visiblePlants.length} of {state.ownedPlants.length}</span></summary>
       <div className="garden-tools__panel">
@@ -53,9 +61,9 @@ export function GardenPage() {
     {state.ownedPlants.length === 0 ? <EmptyState title="No collected plants yet">Collect a mature plant from the Nursery to add it here.</EmptyState> : visiblePlants.length === 0 ? <EmptyState title="No matching specimens">Adjust or reset the Garden filters.</EmptyState> : <div className="garden-specimens">{visiblePlants.map((plant) => {
       const species = getSpeciesById(plant.speciesId)
       const metadata = state.gardenOrganization[plant.id]
-      return <article className="garden-specimen" key={plant.id}><button className="garden-specimen__select" type="button" ref={(node) => { if (node) specimenRefs.current.set(plant.id, node); else specimenRefs.current.delete(plant.id) }} onClick={() => setSelectedPlantId(plant.id)} aria-haspopup="dialog" aria-label={`View details for ${species?.commonName ?? 'unknown cactus'} specimen ${plant.id}`}><span className="nursery-stage nursery-stage--mature">{plant.stage}</span>{metadata?.favorite && <span className="garden-specimen__favorite" aria-label="Favorite">★</span>}{plant.isListedForSale && <span className="garden-specimen__listed">Listed on Marketplace</span>}<strong>{species?.commonName ?? 'Unknown cactus'}</strong><em>{species?.scientificName}</em><span className="garden-specimen__id">Specimen {plant.id}</span>{metadata?.tags.length ? <span className="garden-specimen__tags">{metadata.tags.join(' · ')}</span> : null}<span className="garden-specimen__prompt">View details →</span></button></article>
+      return <article className="garden-specimen" key={plant.id}><button className="garden-specimen__select" type="button" ref={(node) => { if (node) specimenRefs.current.set(plant.id, node); else specimenRefs.current.delete(plant.id) }} onClick={() => setSelectedPlantId(plant.id)} aria-haspopup="dialog" aria-label={`View details for ${species?.commonName ?? 'unknown cactus'} specimen ${plant.id}`}><span className="nursery-stage nursery-stage--mature">{plant.stage}</span><PlantVisual visual={createPlantVisualDescriptor(plant)} />{metadata?.favorite && <span className="garden-specimen__favorite" aria-label="Favorite">★</span>}{plant.isListedForSale && <span className="garden-specimen__listed">Listed on Marketplace</span>}<strong>{species?.commonName ?? 'Unknown cactus'}</strong><em>{species?.scientificName}</em><span className="garden-specimen__id">Specimen {plant.id}</span>{metadata?.tags.length ? <span className="garden-specimen__tags">{metadata.tags.join(' · ')}</span> : null}<span className="garden-specimen__prompt">View details →</span></button></article>
     })}</div>}
-    {selectedPlant && <PlantDetails plant={selectedPlant} species={getSpeciesById(selectedPlant.speciesId)} onClose={closeDetails} onBreed={() => { setBreedingParentId(selectedPlant.id); setSelectedPlantId(null) }} onSell={() => { setSellingPlantId(selectedPlant.id); setSelectedPlantId(null) }} onResearch={() => { setResearchPlantId(selectedPlant.id); setSelectedPlantId(null) }} isListed={Boolean(getListingForPlant(state.marketplaceListings, selectedPlant.id))} organization={state.gardenOrganization[selectedPlant.id]} organizationUnlocked={organizationUnlocked} onFavoriteChange={(favorite) => setGardenFavorite(selectedPlant.id, favorite)} onAddTag={(tag) => addGardenTag(selectedPlant.id, tag)} onRemoveTag={(tag) => removeGardenTag(selectedPlant.id, tag)} />}
+    {selectedPlant && <PlantDetails plant={selectedPlant} species={getSpeciesById(selectedPlant.speciesId)} onClose={closeDetails} onBreed={() => { setBreedingParentId(selectedPlant.id); setSelectedPlantId(null) }} onSell={() => { setSellingPlantId(selectedPlant.id); setSelectedPlantId(null) }} onResearch={() => { setResearchPlantId(selectedPlant.id); setSelectedPlantId(null) }} isListed={Boolean(getListingForPlant(state.marketplaceListings, selectedPlant.id))} organization={state.gardenOrganization[selectedPlant.id]} organizationUnlocked={organizationUnlocked} onFavoriteChange={(favorite) => setGardenFavorite(selectedPlant.id, favorite)} onAddTag={(tag) => addGardenTag(selectedPlant.id, tag)} onRemoveTag={(tag) => removeGardenTag(selectedPlant.id, tag)} displayAssignments={state.gardenDisplayAssignments} onAssignDisplay={(slotId) => assignGardenDisplay(slotId, selectedPlant.id)} onClearDisplay={clearGardenDisplay} />}
     {breedingParentId && <BreedingWorkflow parent1Id={breedingParentId} onClose={closeBreeding} />}
     {sellingPlantId && <SellWorkflow plantId={sellingPlantId} onClose={closeSelling} />}
     {researchPlant && <ResearchWorkflow plant={researchPlant} onClose={closeResearch} />}
