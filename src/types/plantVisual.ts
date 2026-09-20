@@ -7,6 +7,21 @@ export interface PlantStageAsset {
   path: string
 }
 
+export type VariegationPattern = 'pattern-a' | 'pattern-b' | 'pattern-c'
+export interface PlantPigmentationMaskAsset extends PlantStageAsset {
+  featureId: 'variegation'
+  pattern: VariegationPattern
+  bodyFamily: 'normal'
+  version: 'v01'
+}
+
+export interface ResolvedPlantPigmentation {
+  featureId: 'variegation'
+  pattern: VariegationPattern
+  maskAsset: PlantPigmentationMaskAsset | null
+  treatmentVersion: 'yellow-green-v02'
+}
+
 // Plant appearance only. Soil, pots, benches, shadows, and scene decoration are context-owned.
 export interface PlantVisualDescriptor {
   specimenId: string
@@ -15,6 +30,8 @@ export interface PlantVisualDescriptor {
   baseRecipeKey: string
   baseAsset: PlantStageAsset | null
   supportState: PlantVisualSupport
+  missingVisualLayers: string[]
+  pigmentation: ResolvedPlantPigmentation | null
   silhouette: PlantSilhouette
   variation: { paletteIndex: number; formIndex: number; orientationIndex: number; scaleBucket: number }
   morphologyRecipeKeys: string[]

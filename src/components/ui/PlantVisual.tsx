@@ -1,12 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { PlantVisualDescriptor } from '../../types/plantVisual'
+import { getPlantCompositionKey, getReactPlantComposition } from '../../features/plants/plantPigmentationCompositor'
 
 export function PlantVisual({ visual, size = 72 }: { visual: PlantVisualDescriptor; size?: number }) {
   const [failedAssetPath, setFailedAssetPath] = useState<string | null>(null)
+  const [composition, setComposition] = useState<{ key: string; source: string } | null>(null)
+  const compositionKey = getPlantCompositionKey(visual)
+  useEffect(() => {
+    let active = true
+    const pending = getReactPlantComposition(visual)
+    pending?.then((source) => { if (active && compositionKey) setComposition({ key: compositionKey, source }) }).catch(() => {})
+    return () => { active = false }
+  }, [visual, compositionKey])
   if (visual.baseAsset && failedAssetPath !== visual.baseAsset.path) {
     return <span className="plant-visual__frame" style={{ width: size, height: size }} role="img" aria-label={`${visual.visualStage} ${visual.speciesVisualKey} plant preview`}>
       <img
-        src={visual.baseAsset.path}
+        src={composition?.key === compositionKey ? composition.source : visual.baseAsset.path}
         alt=""
         onError={() => setFailedAssetPath(visual.baseAsset?.path ?? null)}
         style={{ transform: `rotate(${(visual.variation.orientationIndex - 1) * 2}deg) scale(${1 + visual.variation.scaleBucket * .025})` }}

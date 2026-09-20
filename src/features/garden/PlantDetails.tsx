@@ -11,6 +11,7 @@ import { GardenDisplayControls } from './GardenDisplayControls'
 import { PlantVisual } from '../../components/ui/PlantVisual'
 import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
 import type { GardenDisplayAssignments, GardenDisplaySlotId } from '../../types/garden'
+import type { VariegationPattern, VisualGrowthStage } from '../../types/plantVisual'
 
 interface PlantDetailsProps {
   plant: CollectedPlant
@@ -28,6 +29,9 @@ interface PlantDetailsProps {
   displayAssignments: GardenDisplayAssignments
   onAssignDisplay: (slotId: GardenDisplaySlotId) => void
   onClearDisplay: (slotId: GardenDisplaySlotId) => void
+  readOnly?: boolean
+  previewVisualStage?: VisualGrowthStage
+  previewVariegationPattern?: VariegationPattern
 }
 
 const detailFields = [
@@ -38,7 +42,7 @@ const detailFields = [
   ['Mutation tendency', 'mutationChance'],
 ] as const
 
-export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed, organization, organizationUnlocked, onFavoriteChange, onAddTag, onRemoveTag, displayAssignments, onAssignDisplay, onClearDisplay }: PlantDetailsProps) {
+export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed, organization, organizationUnlocked, onFavoriteChange, onAddTag, onRemoveTag, displayAssignments, onAssignDisplay, onClearDisplay, readOnly = false, previewVisualStage, previewVariegationPattern }: PlantDetailsProps) {
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const expressedFeatures = getExpressedGeneticFeatures(plant.geneticFeatures)
@@ -113,10 +117,10 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
           </button>
         </header>
 
-        <div className="plant-details__preview"><PlantVisual visual={createPlantVisualDescriptor(plant)} size={100} /></div>
+        <div className="plant-details__preview"><PlantVisual visual={createPlantVisualDescriptor(plant, previewVisualStage, { variegationPattern: previewVariegationPattern })} size={100} /></div>
         <dl className="plant-details__identity">
           <div><dt>Specimen ID</dt><dd>{plant.id}</dd></div>
-          <div><dt>Stage</dt><dd>{plant.stage}</dd></div>
+          <div><dt>Stage</dt><dd>{previewVisualStage ?? plant.stage}</dd></div>
           {species && <div><dt>Rarity</dt><dd>{species.rarity}</dd></div>}
           {plant.isHybrid && <div><dt>Type</dt><dd>Same-genus hybrid</dd></div>}
           <div><dt>Planted</dt><dd>{new Date(plant.plantedAt).toLocaleString()}</dd></div>
@@ -175,18 +179,18 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
           )}
         </section>
 
-        <GardenDisplayControls plantId={plant.id} assignments={displayAssignments} onAssign={onAssignDisplay} onClear={onClearDisplay} />
-        {organizationUnlocked && <GardenOrganizationControls metadata={organization} onFavoriteChange={onFavoriteChange} onAddTag={onAddTag} onRemoveTag={onRemoveTag} />}
+        {!readOnly && <GardenDisplayControls plantId={plant.id} assignments={displayAssignments} onAssign={onAssignDisplay} onClear={onClearDisplay} />}
+        {!readOnly && organizationUnlocked && <GardenOrganizationControls metadata={organization} onFavoriteChange={onFavoriteChange} onAddTag={onAddTag} onRemoveTag={onRemoveTag} />}
         <TreatmentHistory treatments={plant.quantitativeTreatments} />
 
-        <footer className="plant-details__actions">
+        {!readOnly && <footer className="plant-details__actions">
           <span>{isListed ? 'Listed on Marketplace' : 'Specimen actions'}</span>
           <div>
             <button className="plant-details__primary-action" type="button" onClick={onResearch}>Study Genetics</button>
             <button className="plant-details__primary-action" type="button" onClick={onBreed} disabled={isListed}>Breed</button>
             <button className="plant-details__primary-action" type="button" onClick={onSell} disabled={isListed}>Sell</button>
           </div>
-        </footer>
+        </footer>}
       </section>
     </div>
   )

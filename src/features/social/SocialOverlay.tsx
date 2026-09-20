@@ -11,7 +11,7 @@ const tabs: readonly { id: SocialPanelTab; label: string }[] = [
 ]
 
 export function SocialOverlay() {
-  const { open, activeTab, closePanel, setActiveTab, chatDockExpanded, setChatDockExpanded, openPanel } = useSocialPanel()
+  const { open, activeTab, closePanel, setActiveTab } = useSocialPanel()
   const closeRef = useRef<HTMLButtonElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
 
@@ -37,8 +37,7 @@ export function SocialOverlay() {
     }
   }, [open, closePanel])
 
-  return <>
-    {open && <div className="social-overlay" onPointerDown={(event) => { if (event.target === event.currentTarget) closePanel() }}>
+  return open && <div className="social-overlay" onPointerDown={(event) => { if (event.target === event.currentTarget) closePanel() }}>
       <section className="social-overlay__panel" role="dialog" aria-modal="true" aria-label="Social">
         <header className="social-overlay__header"><strong>Social</strong><button ref={closeRef} type="button" onClick={closePanel} aria-label="Close Social panel">Close</button></header>
         <nav className="social-overlay__tabs" aria-label="Social sections">
@@ -48,14 +47,5 @@ export function SocialOverlay() {
           {activeTab === 'friends' ? <FriendsPage /> : <ChatPage selectedMode={activeTab === 'messages' ? 'direct' : 'world'} />}
         </div>
       </section>
-    </div>}
-    <aside className="chat-dock" aria-label="Chat dock">
-      {chatDockExpanded ? <div className="chat-dock__panel">
-        <header><strong>Chat</strong><button type="button" onClick={() => setChatDockExpanded(false)}>Minimize</button></header>
-        <nav aria-label="Chat context"><button type="button" aria-current={activeTab === 'messages' ? 'page' : undefined} onClick={() => setActiveTab('messages')}>Messages</button><button type="button" aria-current={activeTab === 'world-chat' ? 'page' : undefined} onClick={() => setActiveTab('world-chat')}>World Chat</button></nav>
-        <p>{activeTab === 'world-chat' ? 'World Chat will become available with multiplayer.' : 'No conversations yet. Direct Messages require online friends.'}</p>
-        <button type="button" onClick={() => openPanel(activeTab === 'friends' ? 'messages' : activeTab)}>Open Social</button>
-      </div> : <button className="chat-dock__toggle" type="button" onClick={() => { if (activeTab === 'friends') setActiveTab('messages'); setChatDockExpanded(true) }}>Chat</button>}
-    </aside>
-  </>
+    </div>
 }

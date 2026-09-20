@@ -12,6 +12,7 @@ export type WorldRoute = FarmWorldRoute | TownWorldRoute
 export interface WorldLocationProjection {
   id: WorldLocationId
   displayName: string
+  travelLabel?: string
   route: WorldRoute
   progressionKind?: 'level' | 'tier'
   progressionValue?: number

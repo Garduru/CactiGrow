@@ -8,6 +8,7 @@ import { formatGrowthTimeRemaining, getNurseryPresentationStage } from './nurser
 import { MOCK_GROWTH_DURATION_MS } from './nurseryModel'
 import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
 import { PlantVisual } from '../../components/ui/PlantVisual'
+import type { VariegationPattern } from '../../types/plantVisual'
 
 interface NurserySlotProps {
   slot: NurserySlotState
@@ -15,6 +16,8 @@ interface NurserySlotProps {
   now: number
   onPlant: (slotId: string) => void
   onCollect: (slotId: string) => void
+  readOnly?: boolean
+  variegationPattern?: VariegationPattern
 }
 
 export function NurserySlot({
@@ -23,6 +26,8 @@ export function NurserySlot({
   now,
   onPlant,
   onCollect,
+  readOnly = false,
+  variegationPattern,
 }: NurserySlotProps) {
   if (!slot.plant) {
     return (
@@ -42,7 +47,7 @@ export function NurserySlot({
   const growth = calculateNurseryGrowth(slot.plant.plantedAt, now)
   const percent = Math.round(growth.progress * 100)
   const presentationStage = getNurseryPresentationStage(growth)
-  const visual = presentationStage === 'germinating' ? null : createPlantVisualDescriptor(slot.plant, presentationStage)
+  const visual = presentationStage === 'germinating' ? null : createPlantVisualDescriptor(slot.plant, presentationStage, { variegationPattern })
   const shiny = slot.plant.specialVariants.some(({ variantId }) => variantId === 'shiny')
   const treatment = slot.plant.quantitativeTreatments?.find(({ status }) => status === 'resolved')
   const remainingLabel = formatGrowthTimeRemaining(slot.plant.plantedAt, now, MOCK_GROWTH_DURATION_MS)
@@ -70,7 +75,7 @@ export function NurserySlot({
       </dl>
       <ProgressBar value={percent} max={100} label="Growth" />
       {treatment?.resolution ? <div className="nursery-treatment" title={`Resolved treatment from extract ${treatment.extractId}`}><span>{extractTargetLabels[treatment.target]}</span><strong>{treatment.resolution.originalValue} → {treatment.resolution.finalValue}</strong><Badge tone="success">+{treatment.resolution.gain}</Badge></div> : <TreatmentHistory treatments={slot.plant.quantitativeTreatments} compact />}
-      {growth.isMature && (
+      {growth.isMature && !readOnly && (
         <button className="nursery-button nursery-button--collect" type="button" onClick={(event) => { event.currentTarget.disabled = true; onCollect(slot.id) }}>
           Collect Plant
         </button>

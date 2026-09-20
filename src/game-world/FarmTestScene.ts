@@ -6,7 +6,7 @@ import { WORLD_DEPTH } from './worldDepth'
 import { GARDEN_V1_MAIN_ART, GENETICS_LAB_V1_MAIN_ART, HOME_V1_MAIN_ART, MAILBOX_V1_MAIN_ART, NURSERY_V2_MAIN_ART } from './farmArtAssets'
 import { GARDEN_DISPLAY_ANCHORS } from './gardenDisplayAnchors'
 import { createPlantWorldVisual } from './PlantWorldVisual'
-import { registeredPlantStageAssets } from '../data/plantVisualAssets'
+import { registeredPlantPigmentationAssets, registeredPlantStageAssets } from '../data/plantVisualAssets'
 import type { GardenDisplayProjection } from './worldTypes'
 import type { EditorObject, WorldEditorController } from './editor/worldEditorState'
 
@@ -93,6 +93,7 @@ export class FarmTestScene extends Phaser.Scene {
 
   preload() {
     registeredPlantStageAssets.forEach(({ key, path }) => this.load.image(key, path))
+    registeredPlantPigmentationAssets.forEach(({ key, path }) => this.load.image(key, path))
     this.load.image(NURSERY_V2_MAIN_ART.key, NURSERY_V2_MAIN_ART.path)
     this.load.image(HOME_V1_MAIN_ART.key, HOME_V1_MAIN_ART.path)
     this.load.image(GENETICS_LAB_V1_MAIN_ART.key, GENETICS_LAB_V1_MAIN_ART.path)

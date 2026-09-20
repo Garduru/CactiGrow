@@ -1,6 +1,17 @@
 # CactiGrow Visual Genetics Composition Matrix V1
 
-Status: **ARCHITECTURE / ART-SYSTEM DESIGN ONLY.** This document does not implement a resolver, integrate the reported San Pedro masters, change genetics, or approve mutation art. The existing Plant Rendering System V1 remains the functional fallback. The [Art/World Bible](CACTIGROW_ART_WORLD_BIBLE.md), [San Pedro V1 asset contract](SAN_PEDRO_V1_ASSET_CONTRACT.md), and actual gameplay definitions govern species identity, style, baseline, and genetic truth. The newer plant-only boundary governs where older Art Bible text treats pots as part of a specimen composition.
+Status: **ARCHITECTURE WITH VARIEGATION RUNTIME COMPOSITION V1 HUMAN VISUALLY APPROVED / LOCKED IMPLEMENTATION BASELINE.** The Normal-body plus pigmentation-mask path and corrected `yellow-green-v02` treatment are approved for Seedling, Juvenile, Developing, and Mature Pattern A plus Mature Patterns B/C. Pattern A is complete at all four visual growth stages. Seedling B/C, Juvenile B/C, and Developing B/C remain PARTIAL with compatible Normal-body fallback. Structural morphology, dense-spine, Shiny, expression bands, and grafting remain design-only. The [Art/World Bible](CACTIGROW_ART_WORLD_BIBLE.md), [San Pedro V1 asset contract](SAN_PEDRO_V1_ASSET_CONTRACT.md), and actual gameplay definitions govern species identity, style, baseline, and genetic truth.
+
+Current approved San Pedro Variegation support:
+
+| Stage | Pattern A | Pattern B | Pattern C |
+| --- | --- | --- | --- |
+| Seedling | FULL | PARTIAL | PARTIAL |
+| Juvenile | FULL | PARTIAL | PARTIAL |
+| Developing | FULL | PARTIAL | PARTIAL |
+| Mature | FULL | FULL | FULL |
+
+These support results are recipe outputs rather than a rewrite of genetic truth. Any additional unsupported role still lowers overall support; for example, Seedling Pattern A plus Crested remains PARTIAL while Crested lacks compatible art.
 
 ## Goal and repository boundary
 

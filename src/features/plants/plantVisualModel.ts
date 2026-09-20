@@ -1,9 +1,9 @@
 import { getSpeciesById } from '../../data/species'
 import { getGeneticFeatureDefinition } from '../../data/geneticFeatures'
-import { plantVisualAssets } from '../../data/plantVisualAssets'
+import { plantPigmentationMasks, plantVisualAssets } from '../../data/plantVisualAssets'
 import { getExpressedGeneticFeatures } from '../genetics/geneticFeatureModel'
 import type { Plant } from '../../types/plant'
-import type { PlantVisualDescriptor, VisualGrowthStage } from '../../types/plantVisual'
+import type { PlantVisualDescriptor, VariegationPattern, VisualGrowthStage } from '../../types/plantVisual'
 
 function stableHash(value: string): number {
   let hash = 2166136261
@@ -21,7 +21,7 @@ export function visualStageFromProgress(progress: number, isMature: boolean): Vi
   return 'seedling'
 }
 
-export function createPlantVisualDescriptor(plant: Plant, visualStage: VisualGrowthStage = 'mature'): PlantVisualDescriptor {
+export function createPlantVisualDescriptor(plant: Plant, visualStage: VisualGrowthStage = 'mature', options?: { variegationPattern?: VariegationPattern }): PlantVisualDescriptor {
   const speciesVisualKey = getSpeciesById(plant.speciesId)?.imageKey ?? plant.speciesId
   const features = getExpressedGeneticFeatures(plant.geneticFeatures)
   const tags = features.flatMap((feature) => getGeneticFeatureDefinition(feature.featureId)?.artTags ?? [])
@@ -39,21 +39,31 @@ export function createPlantVisualDescriptor(plant: Plant, visualStage: VisualGro
   }
   const baseRecipeKey = `${speciesVisualKey}:${visualStage}`
   const registeredAsset = plantVisualAssets[speciesVisualKey]?.stages[visualStage] ?? null
-  const normalAppearance = features.length === 0 && specialTreatmentKey === null
-  const baseAsset = normalAppearance ? registeredAsset : null
+  // An unsupported optional layer must not discard an approved species/stage body.
+  const requestedVariegation = pigmentationRecipeKeys.includes('variegated')
+  const maskAsset = requestedVariegation && options?.variegationPattern
+    ? plantPigmentationMasks[speciesVisualKey]?.[visualStage]?.[options.variegationPattern] ?? null
+    : null
+  const pigmentation = requestedVariegation && options?.variegationPattern
+    ? { featureId: 'variegation' as const, pattern: options.variegationPattern, maskAsset, treatmentVersion: 'yellow-green-v02' as const }
+    : null
+  const missingVisualLayers = [...morphologyRecipeKeys, ...(requestedVariegation && !maskAsset ? [`variegation:${options?.variegationPattern ?? 'pattern-unassigned'}`] : []), ...(spineRecipeKey ? [spineRecipeKey] : []), ...(specialTreatmentKey ? [specialTreatmentKey] : [])]
+  const baseAsset = registeredAsset
   return {
     specimenId: plant.id,
     speciesVisualKey,
     visualStage,
     baseRecipeKey,
     baseAsset,
-    supportState: baseAsset ? 'full' : registeredAsset ? 'partial' : 'fallback',
+    supportState: !baseAsset ? 'fallback' : missingVisualLayers.length ? 'partial' : 'full',
+    missingVisualLayers,
+    pigmentation,
     silhouette: plantVisualAssets[speciesVisualKey]?.silhouette ?? 'generic',
     variation,
     morphologyRecipeKeys,
     pigmentationRecipeKeys,
     spineRecipeKey,
     specialTreatmentKey,
-    visualRevision: [baseRecipeKey, ...Object.values(variation), ...tags, specialTreatmentKey ?? 'normal'].join(':'),
+    visualRevision: [baseRecipeKey, ...Object.values(variation), ...tags, pigmentation?.pattern ?? 'no-pattern', pigmentation?.maskAsset?.version ?? 'no-mask', specialTreatmentKey ?? 'normal'].join(':'),
   }
 }

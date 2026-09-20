@@ -1,6 +1,7 @@
 ﻿import { useCallback } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { createFarmTownRoadEntryState, createTownReturnState, resolveTownSpawnId } from '../app/farmReturnNavigation'
+import { WorldHud } from '../components/layout/WorldHud'
 import { createTownWorldGame } from './createTownWorldGame'
 import { PhaserWorldHost } from './PhaserWorldHost'
 import { townWorldProjection } from './townWorldProjection'
@@ -22,15 +23,16 @@ export function TownWorldPage() {
     <section className="world-page" aria-labelledby="town-world-title">
       <header className="world-page__header">
         <div><span className="eyebrow">Presentation graybox</span><h1 id="town-world-title">Town</h1></div>
-        <div className="world-page__actions"><Link className="cg-button cg-button--ghost" to="/" state={createFarmTownRoadEntryState()}>Return to Farm</Link></div>
       </header>
       <p className="world-page__instructions">Move with WASD or arrow keys, or click/tap the ground. Press E or click/tap a nearby destination to enter.</p>
-      <PhaserWorldHost projection={townWorldProjection} onIntent={handleIntent} createGame={createGame} world="town" />
-      <nav className="world-page__fallback" aria-label="Town destinations">
-        <Link to="/shop" state={createTownReturnState('shop')}>Shop</Link>
-        <Link to="/market" state={createTownReturnState('market')}>Marketplace / Exchange</Link>
-        <Link to="/" state={createFarmTownRoadEntryState()}>Road to Farm</Link>
-      </nav>
+      <div className="world-page__viewport">
+        <PhaserWorldHost projection={townWorldProjection} onIntent={handleIntent} createGame={createGame} world="town" />
+        <WorldHud
+          sceneName="Town"
+          destinations={townWorldProjection.locations}
+          onTravel={(locationId) => handleIntent({ type: 'ENTER_LOCATION', locationId })}
+        />
+      </div>
     </section>
   )
 }

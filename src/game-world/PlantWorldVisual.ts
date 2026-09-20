@@ -1,11 +1,26 @@
 import Phaser from 'phaser'
 import type { GardenDisplayProjection } from './worldTypes'
 import { WORLD_DEPTH } from './worldDepth'
+import { composePlantCanvas, getPlantCompositionKey } from '../features/plants/plantPigmentationCompositor'
+
+function resolveTextureKey(scene: Phaser.Scene, visual: GardenDisplayProjection['visual']): string | null {
+  if (!visual.baseAsset || !scene.textures.exists(visual.baseAsset.key)) return null
+  const compositionKey = getPlantCompositionKey(visual)
+  const mask = visual.pigmentation?.maskAsset
+  if (!compositionKey || !mask || !scene.textures.exists(mask.key)) return visual.baseAsset.key
+  if (!scene.textures.exists(compositionKey)) {
+    const body = scene.textures.get(visual.baseAsset.key).getSourceImage() as CanvasImageSource
+    const maskImage = scene.textures.get(mask.key).getSourceImage() as CanvasImageSource
+    scene.textures.addCanvas(compositionKey, composePlantCanvas(body, maskImage))
+  }
+  return compositionKey
+}
 
 export function createPlantWorldVisual(scene: Phaser.Scene, display: GardenDisplayProjection): Phaser.GameObjects.Container {
   const { x, y, visual } = display
-  if (visual.baseAsset && scene.textures.exists(visual.baseAsset.key)) {
-    const image = new Phaser.GameObjects.Image(scene, 0, 0, visual.baseAsset.key)
+  const textureKey = resolveTextureKey(scene, visual)
+  if (textureKey) {
+    const image = new Phaser.GameObjects.Image(scene, 0, 0, textureKey)
       .setOrigin(0.5, 1)
       .setDisplaySize(53.333, 80)
     return scene.add.container(x, y, [image]).setDepth(WORLD_DEPTH.foreground)
@@ -13,7 +28,7 @@ export function createPlantWorldVisual(scene: Phaser.Scene, display: GardenDispl
       .setAngle((visual.variation.orientationIndex - 1) * 2)
   }
 
-  // Missing or unsupported art retains the existing plant-only geometry fallback.
+  // Geometry is the last fallback when no registered species/stage body is available.
   const graphics = scene.add.graphics()
   const isButton = visual.silhouette === 'button'
   const normalColors = [0x658b55, 0x6c9255, 0x5b8254] as const
