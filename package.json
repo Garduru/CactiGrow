@@ -13,6 +13,7 @@
     "worker:types:check": "wrangler types server/worker-configuration.d.ts --env-interface CloudflareEnv --config wrangler.jsonc --check",
     "typecheck:worker": "npm run worker:types && tsc -p server/tsconfig.json",
     "test:worker": "node --experimental-strip-types --test --test-isolation=none server/api/handler.test.ts",
+    "test:client": "node --experimental-strip-types --test --test-isolation=none src/services/api/CactiGrowApiClient.test.ts",
     "check:worker": "npm run worker:types && npm run worker:types:check && tsc -p server/tsconfig.json && npm run test:worker && wrangler deploy --dry-run --env=\"\" --config wrangler.jsonc --outdir .wrangler/dry-run",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:check": "drizzle-kit check --config drizzle.config.ts",

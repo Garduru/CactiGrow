@@ -1,18 +1,13 @@
 import type { ApiErrorCode } from './errors.ts'
+import type {
+  ApiFailure as SharedApiFailure,
+  ApiSuccess,
+} from '../../shared/api/envelope.ts'
 
-export interface ApiSuccess<T> {
-  ok: true
-  data: T
-  meta: { requestId: string }
-}
+export type { ApiSuccess } from '../../shared/api/envelope.ts'
 
-export interface ApiFailure {
-  ok: false
-  error: {
-    code: ApiErrorCode
-    message: string
-  }
-  meta: { requestId: string }
+export interface ApiFailure extends Omit<SharedApiFailure, 'error'> {
+  error: { code: ApiErrorCode; message: string }
 }
 
 function jsonResponse(body: ApiSuccess<unknown> | ApiFailure, status: number, requestId: string): Response {

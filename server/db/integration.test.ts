@@ -5,9 +5,8 @@ import { and, count, eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { Client } from 'pg'
-import type { AuthenticationConfigurationFactory } from '../auth/authentication.ts'
 import type { WorkerEnv } from '../env.ts'
-import { DevelopmentIdentityProvider, DEVELOPMENT_IDENTITY_HEADER } from '../identity/DevelopmentIdentityProvider.ts'
+import { DEVELOPMENT_IDENTITY_HEADER } from '../identity/DevelopmentIdentityProvider.ts'
 import { PostgresPlayerIdentityResolver } from '../identity/PostgresPlayerIdentityResolver.ts'
 import { handleApiRequest } from '../api/handler.ts'
 import { createApiRouter } from '../api/router.ts'
@@ -33,6 +32,12 @@ function developmentMeRequest(subject?: string) {
   const headers = new Headers()
   if (subject) headers.set(DEVELOPMENT_IDENTITY_HEADER, subject)
   return new Request('http://localhost/api/me', { headers })
+}
+
+function developmentBootstrapRequest(subject?: string) {
+  const headers = new Headers()
+  if (subject) headers.set(DEVELOPMENT_IDENTITY_HEADER, subject)
+  return new Request('http://localhost/api/v1/me/bootstrap', { headers })
 }
 
 test('PostgreSQL identity integration', {
@@ -126,14 +131,11 @@ test('PostgreSQL identity integration', {
       (error) => databaseErrorCode(error) === '23503',
     )
 
-    const authenticationConfigurationFactory: AuthenticationConfigurationFactory = (workerEnv) => ({
-      identityProvider: new DevelopmentIdentityProvider(workerEnv.CACTIGROW_ENVIRONMENT),
-      createPlayerIdentityResolver: async () => resolver,
-    })
-    const router = createApiRouter({ authenticationConfigurationFactory })
+    const router = createApiRouter()
     const workerEnv = {
       CACTIGROW_ENVIRONMENT: 'test',
       CACTIGROW_VERSION: 'database-integration-test',
+      HYPERDRIVE: { connectionString: testDatabaseUrl } as Hyperdrive,
     } as WorkerEnv
 
     const firstMeResponse = await handleApiRequest(
@@ -155,6 +157,49 @@ test('PostgreSQL identity integration', {
     assert.equal(repeatedMeResponse.status, 200)
     assert.equal(firstMe.data.playerId, firstA.playerId)
     assert.equal(repeatedMe.data.playerId, firstA.playerId)
+
+    const [persistedA] = await database
+      .select({ playerId: players.id, createdAt: players.createdAt })
+      .from(players)
+      .where(eq(players.id, firstA.playerId))
+      .limit(1)
+    assert.ok(persistedA)
+
+    const desktopBootstrapResponse = await handleApiRequest(
+      developmentBootstrapRequest('account-a'),
+      workerEnv,
+      undefined,
+      { router, createRequestId: () => 'desktop-bootstrap-request' },
+    )
+    const phoneBootstrapResponse = await handleApiRequest(
+      developmentBootstrapRequest('account-a'),
+      workerEnv,
+      undefined,
+      { router, createRequestId: () => 'phone-bootstrap-request' },
+    )
+    const accountBBootstrapResponse = await handleApiRequest(
+      developmentBootstrapRequest('account-b'),
+      workerEnv,
+      undefined,
+      { router, createRequestId: () => 'account-b-bootstrap-request' },
+    )
+    const desktopBootstrap = await desktopBootstrapResponse.json() as ApiSuccess<{
+      projectionVersion: 1
+      player: { playerId: string; createdAt: string }
+    }>
+    const phoneBootstrap = await phoneBootstrapResponse.json() as typeof desktopBootstrap
+    const accountBBootstrap = await accountBBootstrapResponse.json() as typeof desktopBootstrap
+
+    assert.equal(desktopBootstrapResponse.status, 200)
+    assert.equal(phoneBootstrapResponse.status, 200)
+    assert.deepEqual(desktopBootstrap.data, phoneBootstrap.data)
+    assert.equal(desktopBootstrap.data.player.playerId, persistedA.playerId)
+    assert.equal(desktopBootstrap.data.player.createdAt, persistedA.createdAt.toISOString())
+    assert.notEqual(desktopBootstrap.meta.requestId, phoneBootstrap.meta.requestId)
+    assert.notEqual(
+      desktopBootstrap.data.player.playerId,
+      accountBBootstrap.data.player.playerId,
+    )
 
     for (const subject of [undefined, 'invalid-account']) {
       const response = await handleApiRequest(

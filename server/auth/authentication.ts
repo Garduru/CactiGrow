@@ -1,5 +1,4 @@
-import { getRuntimeMetadata, type WorkerEnv } from '../env.ts'
-import { connectRequestDatabase } from '../db/client/database.ts'
+import { getRuntimeMetadata } from '../env.ts'
 import { PostgresPlayerIdentityRepository } from '../db/repositories/PostgresPlayerIdentityRepository.ts'
 import { DevelopmentIdentityProvider } from '../identity/DevelopmentIdentityProvider.ts'
 import type {
@@ -18,7 +17,7 @@ export interface AuthenticationConfiguration {
 }
 
 export type AuthenticationConfigurationFactory = (
-  env: WorkerEnv,
+  context: ApiRequestContext,
 ) => AuthenticationConfiguration | null
 
 export interface AuthenticatedApiRequestContext extends ApiRequestContext {
@@ -37,7 +36,10 @@ function createVerificationRequest(request: Request): IdentityVerificationReques
   }
 }
 
-function createAuthenticationConfiguration(env: WorkerEnv): AuthenticationConfiguration | null {
+function createAuthenticationConfiguration(
+  context: ApiRequestContext,
+): AuthenticationConfiguration | null {
+  const { env, database } = context
   const { environment } = getRuntimeMetadata(env)
 
   if (environment === 'production') return null
@@ -45,8 +47,7 @@ function createAuthenticationConfiguration(env: WorkerEnv): AuthenticationConfig
   return {
     identityProvider: new DevelopmentIdentityProvider(environment),
     createPlayerIdentityResolver: async () => {
-      const database = await connectRequestDatabase(env)
-      const repository = new PostgresPlayerIdentityRepository(database)
+      const repository = new PostgresPlayerIdentityRepository(await database.getDatabase())
       return new PostgresPlayerIdentityResolver(repository)
     },
   }
@@ -56,7 +57,7 @@ export async function authenticateRequest(
   context: ApiRequestContext,
   configurationFactory: AuthenticationConfigurationFactory = createAuthenticationConfiguration,
 ): Promise<AuthenticatedPlayerContext> {
-  const configuration = configurationFactory(context.env)
+  const configuration = configurationFactory(context)
   if (!configuration) throw ApiError.unauthenticated()
 
   const externalIdentity = await configuration.identityProvider.verify(
