@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cactigrow-api-development",
+  "main": "server/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "5b3c20f4901843799c7105fe6901c166" }],
+  "vars": {
+    "CACTIGROW_ENVIRONMENT": "development",
+    "CACTIGROW_VERSION": "0.0.0"
+  },
+  "env": {
+    "test": {
+      "name": "cactigrow-api-test",
+      // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<test-hyperdrive-id>" }],
+      "vars": {
+        "CACTIGROW_ENVIRONMENT": "test",
+        "CACTIGROW_VERSION": "0.0.0"
+      }
+    },
+    "production": {
+      "name": "cactigrow-api-production",
+      // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<production-hyperdrive-id>" }],
+      "vars": {
+        "CACTIGROW_ENVIRONMENT": "production",
+        "CACTIGROW_VERSION": "0.0.0"
+      }
+    }
+  }
+}
