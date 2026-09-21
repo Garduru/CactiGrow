@@ -18,6 +18,7 @@ interface NurserySlotProps {
   onCollect: (slotId: string) => void
   readOnly?: boolean
   variegationPattern?: VariegationPattern
+  growthDurationMs?: number
 }
 
 export function NurserySlot({
@@ -28,6 +29,7 @@ export function NurserySlot({
   onCollect,
   readOnly = false,
   variegationPattern,
+  growthDurationMs = MOCK_GROWTH_DURATION_MS,
 }: NurserySlotProps) {
   if (!slot.plant) {
     return (
@@ -44,13 +46,14 @@ export function NurserySlot({
   }
 
   const species = getSpeciesById(slot.plant.speciesId)
-  const growth = calculateNurseryGrowth(slot.plant.plantedAt, now)
+  const elapsed = Math.max(0, now - Date.parse(slot.plant.plantedAt))
+  const growth = growthDurationMs > 0 ? { progress: Math.min(elapsed / growthDurationMs, 1), isMature: elapsed >= growthDurationMs } : calculateNurseryGrowth(slot.plant.plantedAt, now)
   const percent = Math.round(growth.progress * 100)
   const presentationStage = getNurseryPresentationStage(growth)
   const visual = presentationStage === 'germinating' ? null : createPlantVisualDescriptor(slot.plant, presentationStage, { variegationPattern })
   const shiny = slot.plant.specialVariants.some(({ variantId }) => variantId === 'shiny')
   const treatment = slot.plant.quantitativeTreatments?.find(({ status }) => status === 'resolved')
-  const remainingLabel = formatGrowthTimeRemaining(slot.plant.plantedAt, now, MOCK_GROWTH_DURATION_MS)
+  const remainingLabel = formatGrowthTimeRemaining(slot.plant.plantedAt, now, growthDurationMs)
 
   return (
     <article className="nursery-slot">

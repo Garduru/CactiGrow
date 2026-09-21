@@ -594,6 +594,8 @@ Approval is needed for these choices before their dependent phases:
 
 ### Phase E — authoritative Nursery vertical slice
 
+**Implementation status: persistent-development activation and live verification complete.** The bounded E1 implementation is documented in [`ONLINE_FOUNDATION_PHASE_E1.md`](ONLINE_FOUNDATION_PHASE_E1.md). It keeps Phase D bootstrap unchanged and migrates only commodity seed planting, six-slot Nursery growth, collection, and resulting owned specimens behind an explicit development authority switch.
+
 - **Purpose:** prove remote mutation, server time/IDs, transactions, rewards, idempotency, and synchronization through plant and collect.
 - **Dependencies:** Phase D; agreed starter state and growth rule revision.
 - **Major systems:** plant/collect commands, inventory and Nursery repositories, specimen/clone-line creation, progression/discovery/achievement effects, command reconciliation UI.

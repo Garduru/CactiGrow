@@ -3,11 +3,16 @@ import { getTotalSeedQuantity } from '../../game/gameState'
 import { useGameState } from '../../game/useGameState'
 import { ProgressBar } from '../ui/ProgressBar'
 import { getProgressionSnapshot } from '../../features/progression/progressionModel'
+import { usePlantLifecycle } from '../../app/usePlantLifecycle'
 
 export function GameHeader() {
   const { state } = useGameState()
   const { player } = state
   const progression = getProgressionSnapshot(player.skills.cultivation.xp)
+  const lifecycle = usePlantLifecycle()
+  const seedCount = lifecycle.state.authority === 'server' && lifecycle.state.status === 'ready'
+    ? lifecycle.state.projection.seedStacks.reduce((total, stack) => total + stack.quantity, 0)
+    : getTotalSeedQuantity(state)
 
   return (
     <header className="game-header">
@@ -25,7 +30,7 @@ export function GameHeader() {
 
           <Link className="game-header__inventory" to="/inventory">
             <span>Inventory</span>
-            <strong>{getTotalSeedQuantity(state)} Seeds</strong>
+            <strong>{seedCount} Seeds</strong>
           </Link>
 
           <div className="game-header__level">

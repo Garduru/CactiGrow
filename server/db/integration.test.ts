@@ -13,6 +13,9 @@ import { createApiRouter } from '../api/router.ts'
 import type { ApiFailure, ApiSuccess } from '../api/response.ts'
 import { PostgresPlayerIdentityRepository } from './repositories/PostgresPlayerIdentityRepository.ts'
 import { playerExternalIdentities, players } from './schema/index.ts'
+import * as schema from './schema/index.ts'
+import { playerSeedStacks } from './schema/index.ts'
+import { PlantLifecycleService } from '../gameplay/PlantLifecycleService.ts'
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL
 const databaseTestsEnabled = process.env.CACTIGROW_DATABASE_TESTS === '1'
@@ -64,7 +67,7 @@ test('PostgreSQL identity integration', {
     assert.deepEqual(existing.rows[0], { players: null, identities: null })
     ownsIdentitySchema = true
 
-    const database = drizzle(primaryClient, { schema: { players, playerExternalIdentities } })
+    const database = drizzle(primaryClient, { schema })
     await migrate(database, { migrationsFolder })
 
     const migrated = await primaryClient.query<{ players: string | null; identities: string | null }>(
@@ -87,6 +90,77 @@ test('PostgreSQL identity integration', {
 
     assert.equal(firstA.playerId, repeatedA.playerId)
     assert.notEqual(firstA.playerId, firstB.playerId)
+
+    await database.insert(playerSeedStacks).values({ playerId: firstA.playerId, speciesId: 'echinopsis-pachanoi', quantity: 1, version: 1 })
+    let serverNow = new Date('2026-01-01T00:00:00.000Z')
+    const ids = ['10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002']
+    const lifecycle = new PlantLifecycleService(database, { environment: 'test', now: () => serverNow, createId: () => ids.shift()!, randomUint16: () => 0 })
+    const plantKey = '30000000-0000-4000-8000-000000000003'
+    const planted = await lifecycle.plantCommoditySeed(firstA.playerId, plantKey, { slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 })
+    const replayed = await lifecycle.plantCommoditySeed(firstA.playerId, plantKey, { slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 })
+    assert.deepEqual(replayed, planted)
+    assert.notEqual(planted.slot.occupancy && planted.slot.occupancy.specimen.specimenId, planted.slot.occupancy && planted.slot.occupancy.specimen.cloneLineId)
+    assert.deepEqual(planted.slot.occupancy && planted.slot.occupancy.specimen.specialVariants.map((variant) => variant.variantId), ['shiny'])
+    const accountBProjection = await lifecycle.getProjection(firstB.playerId)
+    assert.equal(accountBProjection.nursery.slots.every((slot) => slot.occupancy === null), true)
+    const occupancy = planted.slot.occupancy
+    assert.ok(occupancy)
+    await assert.rejects(lifecycle.collectPlant(firstA.playerId, '40000000-0000-4000-8000-000000000004', { slotId: 'slot-1', specimenId: occupancy.specimen.specimenId, expectedOccupancyVersion: 1, expectedSpecimenVersion: 1 }), (error: unknown) => error instanceof Error && error.message.includes('not ready'))
+    serverNow = new Date(occupancy.readyAt)
+    const collected = await lifecycle.collectPlant(firstA.playerId, '50000000-0000-4000-8000-000000000005', { slotId: 'slot-1', specimenId: occupancy.specimen.specimenId, expectedOccupancyVersion: 1, expectedSpecimenVersion: 1 })
+    assert.equal(collected.specimen.specimenId, occupancy.specimen.specimenId)
+    assert.equal(collected.specimen.cloneLineId, occupancy.specimen.cloneLineId)
+    assert.equal((await lifecycle.getProjection(firstA.playerId)).ownedSpecimens.length, 1)
+
+    let raceNow = new Date('2026-01-01T01:00:00.000Z')
+    const createConcurrentLifecycle = async () => {
+      const client = new Client({ connectionString: testDatabaseUrl })
+      concurrentClients.push(client)
+      await client.connect()
+      return new PlantLifecycleService(drizzle(client, { schema }), { environment: 'test', now: () => raceNow })
+    }
+    const [raceOne, raceTwo] = await Promise.all([createConcurrentLifecycle(), createConcurrentLifecycle()])
+    await database.update(playerSeedStacks).set({ quantity: 3, version: 3 }).where(and(eq(playerSeedStacks.playerId, firstA.playerId), eq(playerSeedStacks.speciesId, 'echinopsis-pachanoi')))
+
+    const sameSlotRace = await Promise.allSettled([
+      raceOne.plantCommoditySeed(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-2', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 3 }),
+      raceTwo.plantCommoditySeed(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-2', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 3 }),
+    ])
+    assert.equal(sameSlotRace.filter((result) => result.status === 'fulfilled').length, 1)
+
+    const afterSlotRace = await lifecycle.getProjection(firstA.playerId)
+    const stackAfterSlotRace = afterSlotRace.seedStacks.find((stack) => stack.speciesId === 'echinopsis-pachanoi')!
+    const retryKey = crypto.randomUUID()
+    const identicalRetry = await Promise.all([
+      raceOne.plantCommoditySeed(firstA.playerId, retryKey, { slotId: 'slot-3', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: stackAfterSlotRace.version }),
+      raceTwo.plantCommoditySeed(firstA.playerId, retryKey, { slotId: 'slot-3', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: stackAfterSlotRace.version }),
+    ])
+    assert.deepEqual(identicalRetry[0], identicalRetry[1])
+
+    await database.insert(playerSeedStacks).values({ playerId: firstA.playerId, speciesId: 'lophophora-williamsii', quantity: 1, version: 1 })
+    const afterRetry = await lifecycle.getProjection(firstA.playerId)
+    const sanPedroAfterRetry = afterRetry.seedStacks.find((stack) => stack.speciesId === 'echinopsis-pachanoi')!
+    const independent = await Promise.all([
+      raceOne.plantCommoditySeed(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-4', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: sanPedroAfterRetry.version }),
+      raceTwo.plantCommoditySeed(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-5', speciesId: 'lophophora-williamsii', expectedSeedStackVersion: 1 }),
+    ])
+    assert.equal(independent.length, 2)
+
+    const slotThree = (await lifecycle.getProjection(firstA.playerId)).nursery.slots.find((slot) => slot.slotId === 'slot-3')!
+    assert.ok(slotThree.occupancy)
+    raceNow = new Date(slotThree.occupancy.readyAt)
+    const collectRetryKey = crypto.randomUUID()
+    const duplicateCollection = await Promise.all([
+      raceOne.collectPlant(firstA.playerId, collectRetryKey, { slotId: 'slot-3', specimenId: slotThree.occupancy.specimen.specimenId, expectedOccupancyVersion: 1, expectedSpecimenVersion: 1 }),
+      raceTwo.collectPlant(firstA.playerId, collectRetryKey, { slotId: 'slot-3', specimenId: slotThree.occupancy.specimen.specimenId, expectedOccupancyVersion: 1, expectedSpecimenVersion: 1 }),
+    ])
+    assert.deepEqual(duplicateCollection[0], duplicateCollection[1])
+
+    await database.insert(playerSeedStacks).values({ playerId: firstB.playerId, speciesId: 'echinopsis-pachanoi', quantity: 1, version: 1 })
+    const sharedAcrossPlayersKey = retryKey
+    const accountBPlant = await raceOne.plantCommoditySeed(firstB.playerId, sharedAcrossPlayersKey, { slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 })
+    assert.equal(accountBPlant.commandId, sharedAcrossPlayersKey)
+    assert.notEqual(accountBPlant.slot.occupancy && accountBPlant.slot.occupancy.specimen.specimenId, identicalRetry[0].slot.occupancy && identicalRetry[0].slot.occupancy.specimen.specimenId)
 
     const concurrentIdentity = { provider: 'development', subject: 'concurrent-first-login' }
     const concurrentResolvers = await Promise.all(Array.from({ length: 4 }, async () => {
@@ -215,6 +289,7 @@ test('PostgreSQL identity integration', {
   } finally {
     await Promise.allSettled(concurrentClients.map((client) => client.end()))
     if (ownsIdentitySchema) {
+      await primaryClient.query('drop table if exists gameplay_command_receipts, nursery_occupancies, player_plant_lifecycle_versions, player_seed_stacks, plant_specimens, clone_line_variants, genetic_profiles, clone_lines cascade')
       await primaryClient.query('drop table if exists player_external_identities cascade')
       await primaryClient.query('drop table if exists players cascade')
       await primaryClient.query('drop schema if exists drizzle cascade')

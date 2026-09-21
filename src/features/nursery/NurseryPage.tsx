@@ -7,8 +7,35 @@ import { getNurseryCapacity } from '../property/propertyModel'
 import { getNurseryLevelDefinition } from '../property/propertyConfig'
 import { Badge } from '../../components/ui/Badge'
 import { LocationHeader } from '../../components/ui/LocationHeader'
+import { usePlantLifecycle } from '../../app/usePlantLifecycle'
+import type { PlantSpecimenV1 } from '../../../shared/api/plantLifecycleV1'
+import type { NurserySlotState } from './nurseryModel'
+import type { InventoryItem } from '../../types/inventory'
+
+function serverPlant(specimen: PlantSpecimenV1) {
+  return { id: specimen.specimenId, ownerId: 'server-player', speciesId: specimen.speciesId, cloneLineId: specimen.cloneLineId, stage: 'seed' as const, plantedAt: specimen.plantedAt, lastUpdatedAt: specimen.collectedAt ?? specimen.plantedAt, genetics: specimen.genetics, geneticFeatures: [], specialVariants: specimen.specialVariants, isHarvestable: false, isListedForSale: false }
+}
+
+function ServerNurseryPage() {
+  const { state, plant, collect } = usePlantLifecycle()
+  const [plantingSlotId, setPlantingSlotId] = useState<string | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer) }, [])
+  if (state.authority !== 'server' || state.status === 'loading') return <section className="nursery"><LocationHeader titleId="nursery-title" eyebrow="Greenhouse" title="Nursery" subtitle="Loading the authoritative Nursery…" /></section>
+  if (state.status === 'error') return <section className="nursery"><LocationHeader titleId="nursery-title" eyebrow="Greenhouse" title="Nursery" subtitle={state.error} /></section>
+  const slots: NurserySlotState[] = state.projection.nursery.slots.map((slot) => ({ id: slot.slotId, plant: slot.occupancy ? serverPlant(slot.occupancy.specimen) : null }))
+  const seeds: InventoryItem[] = state.projection.seedStacks.map((stack) => ({ id: `server-seed-${stack.speciesId}`, itemType: 'seed', itemKey: stack.speciesId, quantity: stack.quantity }))
+  const benchSize = 3
+  return <section className="nursery" aria-labelledby="nursery-title"><LocationHeader titleId="nursery-title" eyebrow="Greenhouse" title="Nursery" subtitle="Server-authoritative Phase E1 Nursery." status={<><Badge tone="accent">Lv. 1 · Server</Badge><Badge tone="success">{slots.filter((slot) => slot.plant).length} / 6 growing</Badge></>} /><div className="nursery-greenhouse"><div className="nursery-benches">{[slots.slice(0,benchSize),slots.slice(benchSize)].map((bench,index)=><section className="nursery-bench" aria-label={`Growing bench ${index+1}`} key={index}><span className="nursery-bench__label">Bench {String.fromCharCode(65+index)}</span><div className="nursery-bench__positions">{bench.map((slot,offset)=>{const persisted=state.projection.nursery.slots.find((item)=>item.slotId===slot.id); const duration=persisted?.occupancy ? Date.parse(persisted.occupancy.readyAt)-Date.parse(persisted.occupancy.plantedAt) : undefined; return <NurserySlot key={slot.id} slot={slot} slotNumber={index*benchSize+offset+1} now={now} growthDurationMs={duration} onPlant={setPlantingSlotId} onCollect={(id)=>{void collect(id)}} />})}</div><span className="nursery-bench__front" aria-hidden="true" /></section>)}</div><div className="nursery-greenhouse__status"><span><strong>{seeds.reduce((sum,item)=>sum+item.quantity,0)}</strong> seeds ready</span><span><strong>{state.projection.ownedSpecimens.length}</strong> collected</span></div></div><p className="nursery__notice" role="note">Development preview: server-authoritative growth uses the isolated accelerated rule. Progression rewards are deferred.</p>{plantingSlotId && <SeedPicker seeds={seeds} bredSeeds={[]} onSelect={(speciesId)=>{void plant(plantingSlotId,speciesId).then((ok)=>{if(ok)setPlantingSlotId(null)})}} onSelectBredSeed={()=>undefined} onClose={()=>setPlantingSlotId(null)} />}</section>
+}
 
 export function NurseryPage() {
+  const lifecycle = usePlantLifecycle()
+  if (lifecycle.state.authority === 'server') return <ServerNurseryPage />
+  return <LocalNurseryPage />
+}
+
+function LocalNurseryPage() {
   const [plantingSlotId, setPlantingSlotId] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const { state, plantSeed, plantBredSeed, collectPlant } = useGameState()

@@ -6,6 +6,18 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'METHOD_NOT_ALLOWED'
   | 'INTERNAL_ERROR'
+  | 'INVALID_COMMAND'
+  | 'UNKNOWN_SPECIES'
+  | 'INVALID_NURSERY_SLOT'
+  | 'SEED_STACK_NOT_FOUND'
+  | 'SEED_UNAVAILABLE'
+  | 'SLOT_OCCUPIED'
+  | 'OCCUPANCY_NOT_FOUND'
+  | 'SPECIMEN_NOT_FOUND'
+  | 'PLANT_NOT_READY'
+  | 'STALE_VERSION'
+  | 'IDEMPOTENCY_KEY_REQUIRED'
+  | 'IDEMPOTENCY_KEY_REUSED'
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode

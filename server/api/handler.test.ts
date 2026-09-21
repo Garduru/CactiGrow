@@ -13,6 +13,7 @@ import type {
 } from '../db/client/database.ts'
 import { PostgresRequestDatabaseContext } from '../db/client/database.ts'
 import type { Client } from 'pg'
+import { ApiError } from './errors.ts'
 
 const env = {
   CACTIGROW_ENVIRONMENT: 'development',
@@ -72,6 +73,18 @@ const testAuthenticatedRouter = createApiRouter({
       }
     },
   }),
+  createPlantLifecycleService: async () => ({
+    async getProjection() {
+      return { projectionVersion: 1, lifecycleVersion: '0', generatedAt: '2026-09-20T10:00:00.000Z', seedStacks: [], nursery: { slots: ['slot-1','slot-2','slot-3','slot-4','slot-5','slot-6'].map((slotId) => ({ slotId, occupancy: null })) as never }, ownedSpecimens: [] }
+    },
+    async plantCommoditySeed(_playerId, idempotencyKey, command) {
+      if (!idempotencyKey) throw new ApiError('IDEMPOTENCY_KEY_REQUIRED', 400, 'A valid Idempotency-Key header is required.')
+      return { commandId: idempotencyKey, lifecycleVersion: '1', seedStack: { speciesId: command.speciesId, quantity: 3, version: 2 }, slot: { slotId: command.slotId, occupancy: null } }
+    },
+    async collectPlant(_playerId, idempotencyKey, command) {
+      return { commandId: idempotencyKey, lifecycleVersion: '2', slot: { slotId: command.slotId, occupancy: null }, specimen: { specimenId: command.specimenId, cloneLineId: '10000000-0000-4000-8000-000000000001', speciesId: 'echinopsis-pachanoi', lifecycleStatus: 'owned', plantedAt: '2026-09-20T10:00:00.000Z', collectedAt: '2026-09-20T10:02:00.000Z', genetics: { vigor: 50, growthSpeed: 50, size: 50, flowering: 50, mutationChance: 1 }, geneticFeatures: [], specialVariants: [], geneticRepresentationVersion: 1, visualDerivationVersion: 1, version: 2 } }
+    },
+  }),
 })
 
 function authenticatedTestOptions(requestId: string) {
@@ -105,6 +118,28 @@ async function getMe(subject: string, requestId: string) {
   }>
   return { response, body }
 }
+
+test('plant lifecycle projection is authenticated and remains separate from bootstrap', async () => {
+  const response = await handleApiRequest(developmentIdentityRequest('account-a', '/api/v1/me/plant-lifecycle'), env, undefined, authenticatedTestOptions('lifecycle-read'))
+  const body = await response.json() as ApiSuccess<{ projectionVersion: number; nursery: { slots: unknown[] } }>
+  assert.equal(response.status, 200)
+  assert.equal(body.data.projectionVersion, 1)
+  assert.equal(body.data.nursery.slots.length, 6)
+})
+
+test('plant command rejects client-generated outcome fields and requires idempotency', async () => {
+  const invalid = new Request('http://localhost/api/v1/me/plant-lifecycle/commands/plant-commodity-seed', { method: 'POST', headers: { [DEVELOPMENT_IDENTITY_HEADER]: 'account-a', 'content-type': 'application/json' }, body: JSON.stringify({ slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1, specimenId: crypto.randomUUID() }) })
+  const invalidResponse = await handleApiRequest(invalid, env, undefined, authenticatedTestOptions('invalid-command'))
+  assert.equal(invalidResponse.status, 400)
+  const missingKey = new Request('http://localhost/api/v1/me/plant-lifecycle/commands/plant-commodity-seed', { method: 'POST', headers: { [DEVELOPMENT_IDENTITY_HEADER]: 'account-a', 'content-type': 'application/json' }, body: JSON.stringify({ slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 }) })
+  const missingKeyResponse = await handleApiRequest(missingKey, env, undefined, authenticatedTestOptions('missing-key'))
+  assert.equal(missingKeyResponse.status, 400)
+})
+
+test('production rejects development identity on lifecycle routes', async () => {
+  const response = await handleApiRequest(developmentIdentityRequest('account-a', '/api/v1/me/plant-lifecycle'), productionEnv, undefined, authenticatedTestOptions('production-lifecycle'))
+  assert.equal(response.status, 401)
+})
 
 test('GET /api/health returns safe structured health data', async () => {
   const response = await handleApiRequest(

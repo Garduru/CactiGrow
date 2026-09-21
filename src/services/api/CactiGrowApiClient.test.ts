@@ -132,3 +132,18 @@ test('development credentials require an explicit supported account and are disa
     undefined,
   )
 })
+
+test('lifecycle client validates the six-slot projection', async () => {
+  const lifecycle = { projectionVersion: 1, lifecycleVersion: '0', generatedAt: '2026-09-20T10:00:00.000Z', seedStacks: [{ speciesId: 'echinopsis-pachanoi', quantity: 4, version: 1 }], nursery: { slots: ['slot-1','slot-2','slot-3','slot-4','slot-5','slot-6'].map((slotId) => ({ slotId, occupancy: null })) }, ownedSpecimens: [] }
+  const client = new CactiGrowApiClient({ fetch: async () => response({ ok: true, data: lifecycle, meta: { requestId: 'lifecycle' } }) })
+  assert.deepEqual(await client.getPlantLifecycle(), lifecycle)
+})
+
+test('plant command sends intent and idempotency headers without generated outcome fields', async () => {
+  let captured: RequestInit | undefined
+  const client = new CactiGrowApiClient({ fetch: async (_input, init) => { captured = init; return response({ ok: true, data: { commandId: '30000000-0000-4000-8000-000000000003', lifecycleVersion: '1', seedStack: { speciesId: 'echinopsis-pachanoi', quantity: 3, version: 2 }, slot: { slotId: 'slot-1', occupancy: null } }, meta: { requestId: 'plant' } }) } })
+  await client.plantCommoditySeed({ slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 }, '30000000-0000-4000-8000-000000000003')
+  const headers = new Headers(captured?.headers)
+  assert.equal(headers.get('idempotency-key'), '30000000-0000-4000-8000-000000000003')
+  assert.deepEqual(JSON.parse(String(captured?.body)), { slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 })
+})
