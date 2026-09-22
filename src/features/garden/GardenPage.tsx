@@ -14,10 +14,19 @@ import { GARDEN_DISPLAY_SLOT_IDS } from '../../types/garden'
 import { gardenDisplayLabels } from './gardenDisplayModel'
 import { PlantVisual } from '../../components/ui/PlantVisual'
 import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
+import { usePlantLifecycle } from '../../app/usePlantLifecycle'
+import { ServerGardenPage } from './ServerGardenPage'
+import { GardenDisplaySection } from './GardenDisplaySection'
 
 const defaultFilters: GardenFilters = { favoriteOnly: false, speciesId: '', tag: '', listing: 'all', special: 'all' }
 
 export function GardenPage() {
+  const lifecycle = usePlantLifecycle()
+  if (lifecycle.state.authority === 'server') return <ServerGardenPage />
+  return <LocalGardenPage />
+}
+
+function LocalGardenPage() {
   const { state, setGardenFavorite, addGardenTag, removeGardenTag, assignGardenDisplay, clearGardenDisplay } = useGameState()
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null)
   const [breedingParentId, setBreedingParentId] = useState<string | null>(null)
@@ -42,10 +51,10 @@ export function GardenPage() {
 
   return <section aria-labelledby="garden-title">
     <header className="garden-heading"><div><h1 id="garden-title">Garden <span>Lv. {gardenLevel}</span></h1><p>{gardenDefinition.name}</p></div>{organizationUnlocked && <span className="garden-heading__status">Organized Beds active</span>}</header>
-    <section className="garden-display-summary" aria-labelledby="garden-display-title"><h2 id="garden-display-title">Display beds</h2><p>Choose specimens from your collection to display on the Farm.</p><div className="garden-display-summary__grid">{GARDEN_DISPLAY_SLOT_IDS.map((id) => {
+    <GardenDisplaySection description="Choose specimens from your collection to display on the Farm.">{GARDEN_DISPLAY_SLOT_IDS.map((id) => {
       const specimen = state.ownedPlants.find((plant) => plant.id === state.gardenDisplayAssignments[id])
       return <div key={id} className="garden-display-summary__slot"><strong>{gardenDisplayLabels[id]}</strong><span>{specimen ? `${getSpeciesById(specimen.speciesId)?.commonName ?? 'Unknown cactus'} - ${specimen.id}` : 'Empty'}</span>{specimen && <button type="button" onClick={() => clearGardenDisplay(id)} aria-label={`Remove ${specimen.id} from ${gardenDisplayLabels[id]} display`}>Remove</button>}</div>
-    })}</div></section>
+    })}</GardenDisplaySection>
     {organizationUnlocked && state.ownedPlants.length > 0 && <details className="garden-tools">
       <summary>Filter and sort <span>{visiblePlants.length} of {state.ownedPlants.length}</span></summary>
       <div className="garden-tools__panel">

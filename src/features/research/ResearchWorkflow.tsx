@@ -51,10 +51,10 @@ export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
     else observePlant(plant.id)
   }
 
-  function samplePlant() {
+  async function samplePlant() {
     if (samplingRef.current) return
     samplingRef.current = true
-    const sample = collectTissueSample(plant.id)
+    const sample = await collectTissueSample(plant.id)
     setSamplingNow(Date.now())
     setSampleNotice(sample ? `${sample.qualityBand} tissue sample stored.` : 'The specimen is not currently eligible for sampling.')
     samplingRef.current = false

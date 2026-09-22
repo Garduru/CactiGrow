@@ -5,7 +5,7 @@ import { MAX_GARDEN_TAG_LENGTH, MAX_GARDEN_TAGS_PER_SPECIMEN } from './gardenOrg
 interface GardenOrganizationControlsProps {
   metadata?: GardenSpecimenOrganization
   onFavoriteChange: (favorite: boolean) => void
-  onAddTag: (tag: string) => boolean
+  onAddTag: (tag: string) => boolean | Promise<boolean>
   onRemoveTag: (tag: string) => void
 }
 
@@ -14,9 +14,9 @@ export function GardenOrganizationControls({ metadata, onFavoriteChange, onAddTa
   const [error, setError] = useState('')
   const tags = metadata?.tags ?? []
 
-  function submitTag(event: FormEvent) {
+  async function submitTag(event: FormEvent) {
     event.preventDefault()
-    if (onAddTag(tag)) {
+    if (await onAddTag(tag)) {
       setTag('')
       setError('')
     } else setError(`Use a unique 1–${MAX_GARDEN_TAG_LENGTH} character tag; up to ${MAX_GARDEN_TAGS_PER_SPECIMEN} per specimen.`)

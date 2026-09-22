@@ -56,8 +56,8 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
 
   if (!plant && !success) return null
 
-  function confirmNpcSale() {
-    const value = sellPlantToNpc(plantId)
+  async function confirmNpcSale() {
+    const value = await sellPlantToNpc(plantId)
     if (value === null) {
       setError('This specimen is no longer available to sell.')
       return
@@ -65,13 +65,13 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
     setSuccess({ kind: 'npc', value })
   }
 
-  function confirmListing() {
+  async function confirmListing() {
     const price = Number(priceInput)
     if (!isValidListingPrice(price)) {
       setError(`Enter a whole Token price from 1 to ${MAX_LISTING_PRICE.toLocaleString()}.`)
       return
     }
-    const listing = listPlant(plantId, price)
+    const listing = await listPlant(plantId, price)
     if (!listing) {
       setError('This specimen could not be listed. It may no longer be available.')
       return

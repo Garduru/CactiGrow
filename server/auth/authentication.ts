@@ -1,6 +1,8 @@
 import { getRuntimeMetadata } from '../env.ts'
 import { PostgresPlayerIdentityRepository } from '../db/repositories/PostgresPlayerIdentityRepository.ts'
 import { DevelopmentIdentityProvider } from '../identity/DevelopmentIdentityProvider.ts'
+import { CloudflareAccessIdentityProvider } from '../identity/CloudflareAccessIdentityProvider.ts'
+import { CloudflareAccessJwtVerifier } from '../identity/CloudflareAccessJwtVerifier.ts'
 import type {
   IdentityProvider,
   IdentityVerificationRequest,
@@ -10,6 +12,7 @@ import { PostgresPlayerIdentityResolver } from '../identity/PostgresPlayerIdenti
 import { ApiError } from '../api/errors.ts'
 import type { ApiRequestContext } from '../api/router.ts'
 import type { AuthenticatedPlayerContext } from './AuthenticatedPlayerContext.ts'
+import { initializeStagingGrower } from '../staging/initializeGrower.ts'
 
 export interface AuthenticationConfiguration {
   identityProvider: IdentityProvider
@@ -44,8 +47,22 @@ function createAuthenticationConfiguration(
 
   if (environment === 'production') return null
 
+  let identityProvider: IdentityProvider
+  if (environment === 'staging') {
+    const teamDomain = env.CACTIGROW_ACCESS_TEAM_DOMAIN
+    const audience = env.CACTIGROW_ACCESS_AUDIENCE
+    if (!teamDomain || !audience) return null
+    try {
+      identityProvider = new CloudflareAccessIdentityProvider(new CloudflareAccessJwtVerifier(teamDomain, audience))
+    } catch {
+      return null
+    }
+  } else {
+    identityProvider = new DevelopmentIdentityProvider(environment)
+  }
+
   return {
-    identityProvider: new DevelopmentIdentityProvider(environment),
+    identityProvider,
     createPlayerIdentityResolver: async () => {
       const repository = new PostgresPlayerIdentityRepository(await database.getDatabase())
       return new PostgresPlayerIdentityResolver(repository)
@@ -68,6 +85,12 @@ export async function authenticateRequest(
   const playerIdentityResolver = await configuration.createPlayerIdentityResolver()
   const playerIdentity = await playerIdentityResolver.resolve(externalIdentity)
   if (!playerIdentity) throw ApiError.unauthenticated()
+
+  // Staging onboarding applies only after a signed Access identity resolves to
+  // its own internal player. A durable marker prevents all repeat grants.
+  if (getRuntimeMetadata(context.env).environment === 'staging') {
+    await initializeStagingGrower(await context.database.getDatabase(), playerIdentity.playerId)
+  }
 
   return {
     playerId: playerIdentity.playerId,

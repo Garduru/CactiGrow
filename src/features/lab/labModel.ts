@@ -1,7 +1,7 @@
-import { getSpeciesById } from '../../data/species'
+import { getSpeciesById } from '../../data/species.ts'
 import type { GeneticsLabState, GeneticsLabTierId, TissueSample, TissueSampleQualityBand } from '../../types/lab'
 import type { Plant } from '../../types/plant'
-import { TISSUE_SAMPLING_COOLDOWN_MS, TISSUE_SAMPLING_LAB_TIER, TISSUE_SAMPLING_LEVEL, geneticsLabTiers } from './labConfig'
+import { TISSUE_SAMPLING_COOLDOWN_MS, TISSUE_SAMPLING_LAB_TIER, TISSUE_SAMPLING_LEVEL, geneticsLabTiers } from './labConfig.ts'
 
 export interface LabCapabilityStatus {
   available: boolean

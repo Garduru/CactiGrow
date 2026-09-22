@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../client/database.ts'
-import { players } from '../schema/index.ts'
+import { playerOnboarding, players } from '../schema/index.ts'
 import type {
   PlayerBootstrapRecord,
   PlayerBootstrapRepository,
@@ -21,5 +21,10 @@ export class PostgresPlayerBootstrapRepository implements PlayerBootstrapReposit
       .limit(1)
 
     return player ?? null
+  }
+
+  async findGrowerByPlayerId(playerId: string) {
+    const [grower] = await this.database.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).limit(1)
+    return grower ?? null
   }
 }

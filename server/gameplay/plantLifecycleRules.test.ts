@@ -14,8 +14,9 @@ test('Shiny succeeds for exactly one low twelve-bit outcome', () => {
   assert.equal(rollShiny(() => 4096), true)
   assert.equal(rollShiny(() => 1), false)
 })
-test('development growth is isolated and rejected in production', () => {
+test('two-minute prototype growth is available in development and staging but rejected in production', () => {
   const plantedAt = new Date('2026-01-01T00:00:00.000Z')
   assert.equal(resolveDevelopmentReadyAt(plantedAt, 'development').getTime(), plantedAt.getTime() + DEVELOPMENT_GROWTH_DURATION_MS)
+  assert.equal(resolveDevelopmentReadyAt(plantedAt, 'staging').getTime(), plantedAt.getTime() + DEVELOPMENT_GROWTH_DURATION_MS)
   assert.throws(() => resolveDevelopmentReadyAt(plantedAt, 'production'))
 })

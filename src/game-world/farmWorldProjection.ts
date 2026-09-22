@@ -5,8 +5,9 @@ import type { FarmWorldProjection } from './worldTypes'
 import type { CollectedPlant } from '../game/gameState'
 import type { GardenDisplayAssignments } from '../types/garden'
 import { createGardenWorldProjection } from './gardenWorldProjection'
+import type { PlantSpecimenV2 } from '../../shared/api/plantLifecycleV2.ts'
 
-export function createFarmWorldProjection(property: PropertyState, lab: GeneticsLabState, ownedPlants: readonly CollectedPlant[], displayAssignments: GardenDisplayAssignments): FarmWorldProjection {
+export function createFarmWorldProjection(property: PropertyState, lab: GeneticsLabState, ownedPlants: readonly (CollectedPlant | PlantSpecimenV2)[], displayAssignments: GardenDisplayAssignments): FarmWorldProjection {
   const farmBuildingIds = ['home', 'nursery', 'garden', 'lab'] as const
   return {
     gardenDisplays: createGardenWorldProjection(ownedPlants, displayAssignments),

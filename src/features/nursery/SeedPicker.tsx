@@ -2,12 +2,13 @@ import { useEffect, useRef } from 'react'
 import { getSpeciesById } from '../../data/species'
 import type { InventoryItem } from '../../types/inventory'
 import type { BredSeed } from '../../types/bredSeed'
+import type { BredSeedV2 } from '../../../shared/api/plantLifecycleV2'
 import { Badge } from '../../components/ui/Badge'
 import { EmptyState } from '../../components/ui/EmptyState'
 
 interface SeedPickerProps {
   seeds: InventoryItem[]
-  bredSeeds: BredSeed[]
+  bredSeeds: (BredSeed | BredSeedV2)[]
   onSelect: (speciesId: string) => void
   onSelectBredSeed: (seedId: string) => void
   onClose: () => void
@@ -72,7 +73,9 @@ export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClo
           })}
           {bredSeeds.map((seed) => {
             const seedSpecies = getSpeciesById(seed.speciesId)
-            return <button className="seed-option seed-option--bred" key={seed.id} type="button" onClick={() => onSelectBredSeed(seed.id)}><span className="seed-option__icon" aria-hidden="true">◆</span><span><strong>{seedSpecies?.commonName ?? 'Bred offspring'} seed</strong><small>Unique offspring · Parents {seed.parentPlantIds.join(' + ')}</small></span><span className="seed-option__statuses"><Badge tone="accent">Bred</Badge>{seed.isHybrid && <Badge tone="accent">Hybrid</Badge>}{seed.quantitativeTreatments?.length ? <Badge tone="warning">Treated</Badge> : null}</span></button>
+            const seedId = 'seedId' in seed ? seed.seedId : seed.id
+            const treated = 'quantitativeTreatments' in seed && Boolean(seed.quantitativeTreatments?.length)
+            return <button className="seed-option seed-option--bred" key={seedId} type="button" onClick={() => onSelectBredSeed(seedId)}><span className="seed-option__icon" aria-hidden="true">◆</span><span><strong>{seedSpecies?.commonName ?? 'Bred offspring'} seed</strong><small>Unique offspring · Parents {seed.parentPlantIds.join(' + ')}</small></span><span className="seed-option__statuses"><Badge tone="accent">Bred</Badge>{seed.isHybrid && <Badge tone="accent">Hybrid</Badge>}{treated ? <Badge tone="warning">Treated</Badge> : null}</span></button>
           })}
         </div>
         <p className="seed-picker__note">Prototype growth is accelerated to about two minutes.</p>

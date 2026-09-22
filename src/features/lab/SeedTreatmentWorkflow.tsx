@@ -28,6 +28,6 @@ export function SeedTreatmentWorkflow({ extract, onClose }: { extract: GeneticEx
     {seed && <div className="treatment-seed-preview"><strong>{getSpeciesById(seed.speciesId)?.commonName ?? seed.speciesId}</strong><span>Parents: {seed.parentPlantIds.join(' + ')}</span><span>{extractTargetLabels[extract.target]} currently {seed.genetics[extract.target]}</span></div>}
     <p>One extract will be consumed. This seed can receive one quantitative treatment. Its target may improve when planted, but improvement is not guaranteed.</p>
     {!eligibleSeeds.length && <p role="status">{emptyReason}</p>}
-    <footer><button type="button" onClick={onClose}>Cancel</button><button type="button" disabled={!seed || !canApplyQuantitativeTreatment(state.geneticsLab, state.player, seed, extract)} onClick={() => { if (applyTreatment(extract.id, seedId)) onClose() }}>Apply treatment</button></footer>
+    <footer><button type="button" onClick={onClose}>Cancel</button><button type="button" disabled={!seed || !canApplyQuantitativeTreatment(state.geneticsLab, state.player, seed, extract)} onClick={async () => { if (await applyTreatment(extract.id, seedId)) onClose() }}>Apply treatment</button></footer>
   </section></div>
 }

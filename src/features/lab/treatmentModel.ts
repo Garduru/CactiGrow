@@ -2,8 +2,8 @@ import type { BredSeed } from '../../types/bredSeed'
 import type { GeneticExtract, GeneticsLabState } from '../../types/lab'
 import type { PlayerState } from '../../types/player'
 import type { QuantitativeSeedTreatment } from '../../types/treatment'
-import { getLevelFromXp } from '../progression/progressionModel'
-import { quantitativeExtractTargets, QUANTITATIVE_EXTRACTION_LAB_TIER, QUANTITATIVE_EXTRACTION_LEVEL } from './extractionModel'
+import { getLevelFromXp } from '../progression/progressionModel.ts'
+import { quantitativeExtractTargets, QUANTITATIVE_EXTRACTION_LAB_TIER, QUANTITATIVE_EXTRACTION_LEVEL } from './extractionModel.ts'
 
 export const QUANTITATIVE_TREATMENT_LEVEL = QUANTITATIVE_EXTRACTION_LEVEL
 export const QUANTITATIVE_TREATMENT_LAB_TIER = QUANTITATIVE_EXTRACTION_LAB_TIER

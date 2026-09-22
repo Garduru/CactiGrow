@@ -11,8 +11,8 @@ const DEVELOPMENT_SUBJECTS = new Set(['account-a', 'account-b'])
 
 export class DevelopmentIdentityProvider implements IdentityProvider {
   constructor(environment: ApiEnvironment) {
-    if (environment === 'production') {
-      throw new Error('Development identity cannot be enabled in production.')
+    if (environment !== 'development' && environment !== 'test') {
+      throw new Error('Development identity can only be enabled in development or test.')
     }
   }
 

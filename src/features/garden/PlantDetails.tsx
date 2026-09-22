@@ -12,8 +12,10 @@ import { PlantVisual } from '../../components/ui/PlantVisual'
 import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
 import type { GardenDisplayAssignments, GardenDisplaySlotId } from '../../types/garden'
 import type { VariegationPattern, VisualGrowthStage } from '../../types/plantVisual'
+import type { PlantSpecimenV1 } from '../../../shared/api/plantLifecycleV1'
+import type { PlantSpecimenV2 } from '../../../shared/api/plantLifecycleV2'
 
-interface PlantDetailsProps {
+interface LocalPlantDetailsProps {
   plant: CollectedPlant
   species: Species | undefined
   onClose: () => void
@@ -24,7 +26,7 @@ interface PlantDetailsProps {
   organization?: GardenSpecimenOrganization
   organizationUnlocked: boolean
   onFavoriteChange: (favorite: boolean) => void
-  onAddTag: (tag: string) => boolean
+  onAddTag: (tag: string) => boolean | Promise<boolean>
   onRemoveTag: (tag: string) => void
   displayAssignments: GardenDisplayAssignments
   onAssignDisplay: (slotId: GardenDisplaySlotId) => void
@@ -34,6 +36,16 @@ interface PlantDetailsProps {
   previewVariegationPattern?: VariegationPattern
 }
 
+interface ServerPlantDetailsProps {
+  plant: PlantSpecimenV1 | PlantSpecimenV2
+  species: Species | undefined
+  onClose: () => void
+  readOnly: true
+  onBreed?: () => void
+}
+
+type PlantDetailsProps = LocalPlantDetailsProps | ServerPlantDetailsProps
+
 const detailFields = [
   ['Vigor', 'vigor'],
   ['Growth speed', 'growthSpeed'],
@@ -42,7 +54,16 @@ const detailFields = [
   ['Mutation tendency', 'mutationChance'],
 ] as const
 
-export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResearch, isListed, organization, organizationUnlocked, onFavoriteChange, onAddTag, onRemoveTag, displayAssignments, onAssignDisplay, onClearDisplay, readOnly = false, previewVisualStage, previewVariegationPattern }: PlantDetailsProps) {
+export function PlantDetails(props: PlantDetailsProps) {
+  const { plant, species, onClose } = props
+  const localPlant = 'specimenId' in plant ? null : plant
+  const serverPlant = 'specimenId' in plant ? plant : null
+  const localProps = localPlant ? props as LocalPlantDetailsProps : null
+  const local = props.readOnly ? null : localProps
+  const specimenId = 'specimenId' in plant ? plant.specimenId : plant.id
+  const stage = localPlant?.stage ?? 'mature'
+  const previewVisualStage = localProps?.previewVisualStage
+  const previewVariegationPattern = localProps?.previewVariegationPattern
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const expressedFeatures = getExpressedGeneticFeatures(plant.geneticFeatures)
@@ -119,12 +140,12 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
 
         <div className="plant-details__preview"><PlantVisual visual={createPlantVisualDescriptor(plant, previewVisualStage, { variegationPattern: previewVariegationPattern })} size={100} /></div>
         <dl className="plant-details__identity">
-          <div><dt>Specimen ID</dt><dd>{plant.id}</dd></div>
-          <div><dt>Stage</dt><dd>{previewVisualStage ?? plant.stage}</dd></div>
+          <div><dt>Specimen ID</dt><dd>{specimenId}</dd></div>
+          <div><dt>Stage</dt><dd>{previewVisualStage ?? stage}</dd></div>
           {species && <div><dt>Rarity</dt><dd>{species.rarity}</dd></div>}
-          {plant.isHybrid && <div><dt>Type</dt><dd>Same-genus hybrid</dd></div>}
+          {(localPlant?.isHybrid || (serverPlant && 'isHybrid' in serverPlant && serverPlant.isHybrid)) && <div><dt>Type</dt><dd>Same-genus hybrid</dd></div>}
           <div><dt>Planted</dt><dd>{new Date(plant.plantedAt).toLocaleString()}</dd></div>
-          <div><dt>Collected</dt><dd>{new Date(plant.collectedAt).toLocaleString()}</dd></div>
+          <div><dt>Collected</dt><dd>{plant.collectedAt ? new Date(plant.collectedAt).toLocaleString() : 'Not recorded'}</dd></div>
         </dl>
 
         <section className="plant-details__section" aria-labelledby="genetics-title">
@@ -157,9 +178,9 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
 
         <section className="plant-details__section" aria-labelledby="lineage-title">
           <h3 id="lineage-title">Lineage</h3>
-          {plant.isHybrid && plant.parentSpeciesIds && (
+          {(localPlant?.isHybrid && localPlant.parentSpeciesIds || (serverPlant && 'parentSpeciesIds' in serverPlant && serverPlant.parentSpeciesIds)) && (
             <dl className="plant-details__identity">
-              {plant.parentSpeciesIds.map((speciesId, index) => {
+              {(localPlant?.parentSpeciesIds ?? (serverPlant && 'parentSpeciesIds' in serverPlant ? serverPlant.parentSpeciesIds : null))!.map((speciesId, index) => {
                 const parentSpecies = getSpeciesById(speciesId)
                 return (
                   <div key={`${speciesId}-${index}`}>
@@ -170,27 +191,28 @@ export function PlantDetails({ plant, species, onClose, onBreed, onSell, onResea
               })}
             </dl>
           )}
-          {plant.parentPlantIds ? (
+          {(localPlant?.parentPlantIds || (serverPlant && 'parentPlantIds' in serverPlant && serverPlant.parentPlantIds)) ? (
             <ul className="plant-details__parents">
-              {plant.parentPlantIds.map((parentId) => <li key={parentId}>{parentId}</li>)}
+              {(localPlant?.parentPlantIds ?? (serverPlant && 'parentPlantIds' in serverPlant ? serverPlant.parentPlantIds : null))!.map((parentId) => <li key={parentId}>{parentId}</li>)}
             </ul>
           ) : (
             <p className="plant-details__missing">No parent specimens recorded.</p>
           )}
         </section>
 
-        {!readOnly && <GardenDisplayControls plantId={plant.id} assignments={displayAssignments} onAssign={onAssignDisplay} onClear={onClearDisplay} />}
-        {!readOnly && organizationUnlocked && <GardenOrganizationControls metadata={organization} onFavoriteChange={onFavoriteChange} onAddTag={onAddTag} onRemoveTag={onRemoveTag} />}
-        <TreatmentHistory treatments={plant.quantitativeTreatments} />
+        {local && <GardenDisplayControls plantId={local.plant.id} assignments={local.displayAssignments} onAssign={local.onAssignDisplay} onClear={local.onClearDisplay} />}
+        {local && local.organizationUnlocked && <GardenOrganizationControls metadata={local.organization} onFavoriteChange={local.onFavoriteChange} onAddTag={local.onAddTag} onRemoveTag={local.onRemoveTag} />}
+        {local && <TreatmentHistory treatments={local.plant.quantitativeTreatments} />}
 
-        {!readOnly && <footer className="plant-details__actions">
-          <span>{isListed ? 'Listed on Marketplace' : 'Specimen actions'}</span>
+        {local && <footer className="plant-details__actions">
+          <span>{local.isListed ? 'Listed on Marketplace' : 'Specimen actions'}</span>
           <div>
-            <button className="plant-details__primary-action" type="button" onClick={onResearch}>Study Genetics</button>
-            <button className="plant-details__primary-action" type="button" onClick={onBreed} disabled={isListed}>Breed</button>
-            <button className="plant-details__primary-action" type="button" onClick={onSell} disabled={isListed}>Sell</button>
+            <button className="plant-details__primary-action" type="button" onClick={local.onResearch}>Study Genetics</button>
+            <button className="plant-details__primary-action" type="button" onClick={local.onBreed} disabled={local.isListed}>Breed</button>
+            <button className="plant-details__primary-action" type="button" onClick={local.onSell} disabled={local.isListed}>Sell</button>
           </div>
         </footer>}
+        {serverPlant && props.readOnly && props.onBreed && <footer className="plant-details__actions"><span>Specimen actions</span><div><button className="plant-details__primary-action" type="button" onClick={props.onBreed}>Breed</button></div></footer>}
       </section>
     </div>
   )

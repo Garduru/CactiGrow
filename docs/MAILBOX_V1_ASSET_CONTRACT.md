@@ -8,7 +8,7 @@ Mailbox is a small physical Farm mail station, not a major building or an explor
 
 | Property | V1 value |
 | --- | --- |
-| Authoritative master | `public/assets/world/farm/mailbox/mailbox-v1-master.png` |
+| Authoritative master | `art-source/world/farm/mailbox/mailbox-v1-master.png` |
 | Master SHA-256 | `04DED3CD880E4257908E2F392233B75CB9A5932EA4BC8F31C71A5D33D7182C43` |
 | Master dimensions / color | 1536 × 1024, sRGB RGBA |
 | Raw nonzero-alpha bounds | 1395 × 1024 at `(0, 0)` |

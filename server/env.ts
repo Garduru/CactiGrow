@@ -1,10 +1,12 @@
-export const API_ENVIRONMENTS = ['development', 'test', 'production'] as const
+export const API_ENVIRONMENTS = ['development', 'test', 'staging', 'production'] as const
 
 export type ApiEnvironment = typeof API_ENVIRONMENTS[number]
 
 export type WorkerEnv = Omit<CloudflareEnv, 'CACTIGROW_ENVIRONMENT' | 'CACTIGROW_VERSION'> & {
   CACTIGROW_ENVIRONMENT: ApiEnvironment
   CACTIGROW_VERSION: string
+  CACTIGROW_ACCESS_TEAM_DOMAIN?: string
+  CACTIGROW_ACCESS_AUDIENCE?: string
   HYPERDRIVE?: Hyperdrive
 }
 

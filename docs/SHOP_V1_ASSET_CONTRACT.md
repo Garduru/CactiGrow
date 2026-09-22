@@ -40,7 +40,7 @@ The entrance must look usable beside the current approximately `82 × 128` playe
 
 | Property | Current value |
 | --- | --- |
-| Preserved master | `public/assets/world/town/shop/shop-v1-master.png`; SHA-256 `E20C8CBD29C88415ECBA983A8636B192C78C696F3B1502E3E2749FC5710AF1` |
+| Preserved master | `art-source/world/town/shop/shop-v1-master.png`; SHA-256 `E20C8CBD29C88415ECBA983A8636B192C78C696F3B1502E3E2749FC5710AF1` |
 | Master dimensions / mode | `1487 × 1058`, sRGB RGBA |
 | Raw nonzero-alpha bounds | `1405 × 1003` at `(34, 15)`; minimum transparent margins: left `34`, right `48`, top `15`, bottom `40` source pixels |
 | Meaningful bounds at 5% alpha | `1394 × 863` at `(41, 99)`; meaningful content ends at source Y `961`, with `96` pixels below it |

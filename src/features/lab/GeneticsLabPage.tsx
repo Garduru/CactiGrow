@@ -28,10 +28,10 @@ export function GeneticsLabPage() {
   const unlocks = getSkillUnlocks('genetics')
   const treatmentExtract = state.geneticsLab.geneticExtracts.find((extract) => extract.id === treatmentExtractId)
 
-  function runExtraction() {
+  async function runExtraction() {
     if (extractionLock.current) return
     extractionLock.current = true
-    setResult(extractFromSample(selectedSampleId, target))
+    setResult(await extractFromSample(selectedSampleId, target))
     extractionLock.current = false
   }
 

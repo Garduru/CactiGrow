@@ -1,5 +1,5 @@
-import { geneticFeatureDefinitions } from '../../data/geneticFeatures'
-import { getSpeciesById } from '../../data/species'
+import { geneticFeatureDefinitions } from '../../data/geneticFeatures.ts'
+import { getSpeciesById } from '../../data/species.ts'
 import type { GeneticFeatureDefinition, GeneticFeatureState, GenotypeState, SpecialVariantState } from '../../types/geneticFeature'
 import type { Plant } from '../../types/plant'
 

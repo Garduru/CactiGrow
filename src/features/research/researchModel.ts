@@ -1,9 +1,9 @@
-import { getGeneticFeatureDefinition } from '../../data/geneticFeatures'
-import { getSpeciesById } from '../../data/species'
+import { getGeneticFeatureDefinition } from '../../data/geneticFeatures.ts'
+import { getSpeciesById } from '../../data/species.ts'
 import type { GeneticFeatureState } from '../../types/geneticFeature'
 import type { Plant } from '../../types/plant'
 import type { CloneResearchMilestoneId, CloneResearchRecord, GeneticsResearchState, ResearchDepthId, ResearchKnowledgeCategory } from '../../types/research'
-import { GENETICS_RESEARCH_REWARDS, getResearchDepthDefinition, researchDiscoveryMilestoneIds } from './researchConfig'
+import { GENETICS_RESEARCH_REWARDS, getResearchDepthDefinition, researchDiscoveryMilestoneIds } from './researchConfig.ts'
 
 export interface ResearchResult {
   research: GeneticsResearchState

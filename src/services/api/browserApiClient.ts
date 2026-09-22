@@ -1,9 +1,9 @@
 import { CactiGrowApiClient } from './CactiGrowApiClient'
 import { createDevelopmentCredentials } from './developmentCredentials'
 
-function developmentCredentials(): HeadersInit | undefined {
-  return createDevelopmentCredentials(import.meta.env.DEV, window.location.search)
-}
+const developmentCredentials = import.meta.env.MODE === 'development'
+  ? (): HeadersInit | undefined => createDevelopmentCredentials(true, window.location.search)
+  : (): undefined => undefined
 
 function apiBaseUrl() {
   const configured = import.meta.env.VITE_CACTIGROW_API_BASE_URL

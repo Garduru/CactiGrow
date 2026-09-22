@@ -1,21 +1,48 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "cactigrow-api-development",
+  "name": "cactigrow-deploy-disabled",
   "main": "server/index.ts",
   "compatibility_date": "2026-09-20",
   "compatibility_flags": ["nodejs_compat"],
-  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "5b3c20f4901843799c7105fe6901c166" }],
+  "workers_dev": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
   "vars": {
-    "CACTIGROW_ENVIRONMENT": "development",
+    "CACTIGROW_ENVIRONMENT": "production",
     "CACTIGROW_VERSION": "0.0.0"
   },
   "env": {
+    "development": {
+      "name": "cactigrow-api-development",
+      "workers_dev": true,
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "5b3c20f4901843799c7105fe6901c166" }],
+      "vars": {
+        "CACTIGROW_ENVIRONMENT": "development",
+        "CACTIGROW_VERSION": "0.0.0"
+      }
+    },
     "test": {
       "name": "cactigrow-api-test",
       // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<test-hyperdrive-id>" }],
       "vars": {
         "CACTIGROW_ENVIRONMENT": "test",
         "CACTIGROW_VERSION": "0.0.0"
+      }
+    },
+    "staging": {
+      "name": "cactigrow-staging",
+      "workers_dev": false,
+      "routes": [{ "pattern": "dev.cactigrow.com", "custom_domain": true }],
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "cbb6243e55f24865bf34f3b8bf66a641" }],
+      "vars": {
+        "CACTIGROW_ENVIRONMENT": "staging",
+        "CACTIGROW_VERSION": "0.0.0",
+        "CACTIGROW_ACCESS_TEAM_DOMAIN": "https://sweet-union-f685.cloudflareaccess.com",
+        "CACTIGROW_ACCESS_AUDIENCE": "21735907a315e47f6bb0a1f671b72aa123d269765a4bd5d528d677b314a7bd91"
       }
     },
     "production": {

@@ -82,18 +82,18 @@ export type GameAction =
   | { type: 'treatment/applied'; extractId: string; seedId: string; treatmentId: string; now: number }
   | { type: 'progression/notice-dismissed'; noticeId: string }
 
-export function createInitialGameState(now = Date.now()): GameState {
+export function createInitialGameState(now = Date.now(), serverBacked = false): GameState {
   const player: PlayerState = {
     id: 'local-player',
     username: 'Player',
-    tokens: 1216,
+    tokens: serverBacked ? 0 : 1216,
     skills: {
-      cultivation: { xp: 315 },
+      cultivation: { xp: serverBacked ? 0 : 315 },
       breeding: { xp: 0 },
       genetics: { xp: 0 },
     },
   }
-  const inventory: InventoryItem[] = [
+  const inventory: InventoryItem[] = serverBacked ? [] : [
     { id: 'seed-echinopsis-pachanoi', itemType: 'seed', itemKey: 'echinopsis-pachanoi', quantity: 4 },
     { id: 'seed-lophophora-williamsii', itemType: 'seed', itemKey: 'lophophora-williamsii', quantity: 2 },
   ]

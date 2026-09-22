@@ -13,7 +13,9 @@ export function establishCommoditySeedGenetics(speciesId: string): PlantGenetics
 }
 
 export function resolveDevelopmentReadyAt(plantedAt: Date, environment: string): Date {
-  if (environment === 'production') throw new Error('Development growth rules are unavailable in production.')
+  if (environment !== 'development' && environment !== 'test' && environment !== 'staging') {
+    throw new Error('Prototype growth rules are unavailable in production.')
+  }
   return new Date(plantedAt.getTime() + DEVELOPMENT_GROWTH_DURATION_MS)
 }
 

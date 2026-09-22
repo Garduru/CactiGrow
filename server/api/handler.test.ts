@@ -14,6 +14,8 @@ import type {
 import { PostgresRequestDatabaseContext } from '../db/client/database.ts'
 import type { Client } from 'pg'
 import { ApiError } from './errors.ts'
+import { CloudflareAccessIdentityProvider } from '../identity/CloudflareAccessIdentityProvider.ts'
+import { MAX_MUTATION_BODY_BYTES } from './router.ts'
 
 const env = {
   CACTIGROW_ENVIRONMENT: 'development',
@@ -77,6 +79,15 @@ const testAuthenticatedRouter = createApiRouter({
     async getProjection() {
       return { projectionVersion: 1, lifecycleVersion: '0', generatedAt: '2026-09-20T10:00:00.000Z', seedStacks: [], nursery: { slots: ['slot-1','slot-2','slot-3','slot-4','slot-5','slot-6'].map((slotId) => ({ slotId, occupancy: null })) as never }, ownedSpecimens: [] }
     },
+    async getProjectionV2() {
+      return { projectionVersion: 2, lifecycleVersion: '0', generatedAt: '2026-09-20T10:00:00.000Z', seedStacks: [], bredSeeds: [], nursery: { slots: ['slot-1','slot-2','slot-3','slot-4','slot-5','slot-6'].map((slotId) => ({ slotId, occupancy: null })) as never }, ownedSpecimens: [] }
+    },
+    async breedSpecimens(_playerId, idempotencyKey, command) {
+      return { commandId: idempotencyKey, lifecycleVersion: '1', seed: { seedId: '10000000-0000-4000-8000-000000000001', cloneLineId: '20000000-0000-4000-8000-000000000002', speciesId: 'echinopsis-pachanoi', parentPlantIds: [command.parent1SpecimenId, command.parent2SpecimenId] as [string,string], parentSpeciesIds: ['echinopsis-pachanoi','echinopsis-pachanoi'] as [string,string], isHybrid: false, createdAt: '2026-09-20T10:00:00.000Z', genetics: { vigor: 50, growthSpeed: 50, size: 50, flowering: 50, mutationChance: 1 }, geneticFeatures: [], specialVariants: [] } }
+    },
+    async plantBredSeed(_playerId, idempotencyKey, command) {
+      return { commandId: idempotencyKey, lifecycleVersion: '2', seedId: command.seedId, slot: { slotId: command.slotId, occupancy: null } }
+    },
     async plantCommoditySeed(_playerId, idempotencyKey, command) {
       if (!idempotencyKey) throw new ApiError('IDEMPOTENCY_KEY_REQUIRED', 400, 'A valid Idempotency-Key header is required.')
       return { commandId: idempotencyKey, lifecycleVersion: '1', seedStack: { speciesId: command.speciesId, quantity: 3, version: 2 }, slot: { slotId: command.slotId, occupancy: null } }
@@ -96,6 +107,11 @@ function authenticatedTestOptions(requestId: string) {
 
 const productionEnv = {
   CACTIGROW_ENVIRONMENT: 'production',
+  CACTIGROW_VERSION: 'test-build',
+} as WorkerEnv
+
+const stagingEnv = {
+  CACTIGROW_ENVIRONMENT: 'staging',
   CACTIGROW_VERSION: 'test-build',
 } as WorkerEnv
 
@@ -125,6 +141,25 @@ test('plant lifecycle projection is authenticated and remains separate from boot
   assert.equal(response.status, 200)
   assert.equal(body.data.projectionVersion, 1)
   assert.equal(body.data.nursery.slots.length, 6)
+})
+
+test('V2 breeding routes authenticate and reject client-supplied genetic outcomes', async () => {
+  const projection = await handleApiRequest(developmentIdentityRequest('account-a', '/api/v2/me/plant-lifecycle'), env, undefined, authenticatedTestOptions('v2-projection'))
+  assert.equal(projection.status, 200)
+  assert.equal(((await projection.json()) as ApiSuccess<{ projectionVersion: number; bredSeeds: unknown[] }>).data.projectionVersion, 2)
+  const anonymous = await handleApiRequest(developmentIdentityRequest(undefined, '/api/v2/me/plant-lifecycle'), env, undefined, authenticatedTestOptions('v2-anonymous'))
+  assert.equal(anonymous.status, 401)
+  const command = { parent1SpecimenId: '10000000-0000-4000-8000-000000000001', parent2SpecimenId: '20000000-0000-4000-8000-000000000002', expectedParent1Version: 1, expectedParent2Version: 1 }
+  const endpoint = 'http://localhost/api/v2/me/plant-lifecycle/commands/breed-specimens'
+  const headers = { [DEVELOPMENT_IDENTITY_HEADER]: 'account-a', 'content-type': 'application/json', 'idempotency-key': '30000000-0000-4000-8000-000000000003' }
+  const invalid = await handleApiRequest(new Request(endpoint, { method: 'POST', headers, body: JSON.stringify({ ...command, genetics: { vigor: 100 } }) }), env, undefined, authenticatedTestOptions('v2-invalid'))
+  assert.equal(invalid.status, 400)
+  const valid = await handleApiRequest(new Request(endpoint, { method: 'POST', headers, body: JSON.stringify(command) }), env, undefined, authenticatedTestOptions('v2-valid'))
+  assert.equal(valid.status, 200)
+  const result = (await valid.json()) as ApiSuccess<{ seed: { parentPlantIds: string[] } }>
+  assert.deepEqual(result.data.seed.parentPlantIds, [command.parent1SpecimenId, command.parent2SpecimenId])
+  const production = await handleApiRequest(new Request(endpoint, { method: 'POST', headers, body: JSON.stringify(command) }), productionEnv, undefined, authenticatedTestOptions('v2-production'))
+  assert.equal(production.status, 401)
 })
 
 test('plant command rejects client-generated outcome fields and requires idempotency', async () => {
@@ -299,16 +334,69 @@ test('production rejects all development identity credentials', async () => {
     )
     const body = await response.json() as ApiFailure
 
-    assert.equal(response.status, 401)
-    assert.equal(body.error.code, 'UNAUTHENTICATED')
+    assert.equal(response.status, 404)
+    assert.equal(body.error.code, 'NOT_FOUND')
   }
 })
 
 test('development identity provider cannot be constructed for production', () => {
   assert.throws(
     () => new DevelopmentIdentityProvider('production'),
-    /cannot be enabled in production/,
+    /only be enabled in development or test/,
   )
+  assert.throws(
+    () => new DevelopmentIdentityProvider('staging'),
+    /only be enabled in development or test/,
+  )
+})
+
+test('staging rejects development identity and the diagnostic endpoint is absent', async () => {
+  const bootstrap = await handleApiRequest(
+    developmentIdentityRequest('account-a', '/api/v1/me/bootstrap'),
+    stagingEnv,
+    undefined,
+    testOptions,
+  )
+  assert.equal(bootstrap.status, 401)
+
+  const diagnostic = await handleApiRequest(
+    developmentIdentityRequest('account-a'),
+    stagingEnv,
+    undefined,
+    testOptions,
+  )
+  assert.equal(diagnostic.status, 404)
+})
+
+test('Access identity boundary fails closed without a verifier and ignores identity-like headers', async () => {
+  const provider = new CloudflareAccessIdentityProvider()
+  const result = await provider.verify({
+    getHeader(name) {
+      if (name === 'cf-access-jwt-assertion') return 'unverified-token'
+      if (name === 'cf-access-authenticated-user-email') return 'someone@example.invalid'
+      return null
+    },
+  })
+  assert.equal(result, null)
+})
+
+test('mutation requests reject unsupported media types and oversized bodies safely', async () => {
+  const path = '/api/v1/me/plant-lifecycle/commands/plant-commodity-seed'
+  const unsupported = await handleApiRequest(new Request(`http://localhost${path}`, {
+    method: 'POST',
+    headers: { [DEVELOPMENT_IDENTITY_HEADER]: 'account-a', 'content-type': 'text/plain' },
+    body: '{}',
+  }), env, undefined, authenticatedTestOptions('unsupported'))
+  assert.equal(unsupported.status, 415)
+
+  const oversized = await handleApiRequest(new Request(`http://localhost${path}`, {
+    method: 'POST',
+    headers: { [DEVELOPMENT_IDENTITY_HEADER]: 'account-a', 'content-type': 'application/json' },
+    body: JSON.stringify({ padding: 'x'.repeat(MAX_MUTATION_BODY_BYTES) }),
+  }), env, undefined, authenticatedTestOptions('oversized'))
+  const body = await oversized.json() as ApiFailure
+  assert.equal(oversized.status, 413)
+  assert.equal(body.error.code, 'PAYLOAD_TOO_LARGE')
 })
 
 async function getBootstrap(subject: string | undefined, requestId: string) {
@@ -379,6 +467,40 @@ test('production rejects development credentials for the bootstrap endpoint', as
 
   assert.equal(response.status, 401)
   assert.equal(body.error.code, 'UNAUTHENTICATED')
+})
+
+test('production cannot activate staging Access identity or starter provisioning', async () => {
+  const configuredProduction = {
+    ...productionEnv,
+    CACTIGROW_ACCESS_TEAM_DOMAIN: 'https://cactigrow-test.cloudflareaccess.com',
+    CACTIGROW_ACCESS_AUDIENCE: 'a'.repeat(64),
+  } as WorkerEnv
+  const request = new Request('http://localhost/api/v1/me/bootstrap', {
+    headers: { 'cf-access-jwt-assertion': 'a.signed.access-token', 'cf-access-authenticated-user-email': 'tester@example.invalid' },
+  })
+  const response = await handleApiRequest(request, configuredProduction, undefined, testOptions)
+  const body = await response.json() as ApiFailure
+  assert.equal(response.status, 401)
+  assert.equal(body.error.code, 'UNAUTHENTICATED')
+})
+
+test('Grower onboarding projection is staging-only and cannot be reached with a spoofed identity header', async () => {
+  const path = 'http://localhost/api/v2/me/bootstrap'
+  const spoofed = await handleApiRequest(new Request(path, { headers: { 'cf-access-authenticated-user-email': 'tester@example.invalid' } }), stagingEnv, undefined, testOptions)
+  assert.equal(spoofed.status, 401)
+  const production = await handleApiRequest(new Request(path, { headers: { 'cf-access-jwt-assertion': 'fake' } }), productionEnv, undefined, testOptions)
+  assert.equal(production.status, 404)
+})
+
+test('consolidated Grower and Garden projections are staging-only and reject spoofed identity headers', async () => {
+  for (const path of ['/api/v1/me/grower-alpha', '/api/v1/me/garden']) {
+    const spoofed = await handleApiRequest(new Request(`http://localhost${path}`, { headers: { 'cf-access-authenticated-user-email': 'tester@example.invalid' } }), stagingEnv, undefined, testOptions)
+    const spoofedBody = await spoofed.json() as ApiFailure
+    assert.equal(spoofed.status, 401)
+    assert.equal(spoofedBody.error.code, 'UNAUTHENTICATED')
+    const production = await handleApiRequest(new Request(`http://localhost${path}`, { headers: { 'cf-access-jwt-assertion': 'fake' } }), productionEnv, undefined, testOptions)
+    assert.equal(production.status, 404)
+  }
 })
 
 test('authentication and bootstrap share one isolated request database context', async () => {

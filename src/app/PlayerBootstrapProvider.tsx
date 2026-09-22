@@ -5,6 +5,7 @@ import {
   type PlayerBootstrapState,
 } from './PlayerBootstrapContext'
 import { loadPlayerBootstrapState } from './loadPlayerBootstrapState'
+import { getDeploymentMode } from '../config/deploymentMode'
 
 export function PlayerBootstrapProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PlayerBootstrapState>({ status: 'loading' })
@@ -12,7 +13,7 @@ export function PlayerBootstrapProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const controller = new AbortController()
 
-    loadPlayerBootstrapState(browserApiClient, controller.signal).then(
+    loadPlayerBootstrapState(browserApiClient, controller.signal, getDeploymentMode() === 'staging').then(
       setState,
       (error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return

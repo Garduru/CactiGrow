@@ -409,6 +409,7 @@ export class TownTestScene extends Phaser.Scene {
     const unsubscribe = this.editor.subscribe(apply)
     apply()
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe)
+    if (!import.meta.env.DEV) return
     void import('./editor/WorldEditorOverlay').then(({ WorldEditorOverlay }) => {
       if (this.scene.isActive()) new WorldEditorOverlay(this, this.editor!)
     })

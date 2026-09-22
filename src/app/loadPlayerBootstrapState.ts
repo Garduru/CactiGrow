@@ -4,9 +4,12 @@ import type { PlayerBootstrapState } from './PlayerBootstrapContext.ts'
 export async function loadPlayerBootstrapState(
   client: CactiGrowApiClient,
   signal?: AbortSignal,
+  stagingGrower = false,
 ): Promise<PlayerBootstrapState> {
   try {
-    const { bootstrap, requestId } = await client.getPlayerBootstrap(signal)
+    const { bootstrap, requestId } = stagingGrower
+      ? await client.getGrowerBootstrap(signal)
+      : await client.getPlayerBootstrap(signal)
     return { status: 'authenticated', bootstrap, requestId }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error

@@ -1,8 +1,8 @@
 import type { PlayerState } from '../../types/player'
 import type { BuildingId, DevelopedBuildingLevel, PropertyBuildingId, PropertyState, PropertyUpgradeDefinition } from '../../types/property'
 import type { GeneticsLabState } from '../../types/lab'
-import { getLevelFromXp } from '../progression/progressionModel'
-import { getNurseryLevelDefinition, propertyUpgrades } from './propertyConfig'
+import { getLevelFromXp } from '../progression/progressionModel.ts'
+import { getNurseryLevelDefinition, propertyUpgrades } from './propertyConfig.ts'
 
 export const MAX_DEVELOPED_BUILDING_LEVEL: DevelopedBuildingLevel = 5
 export const DEFAULT_DEVELOPED_BUILDING_LEVEL: DevelopedBuildingLevel = 1

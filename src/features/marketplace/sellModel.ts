@@ -1,7 +1,7 @@
-import { getSpeciesById } from '../../data/species'
+import { getSpeciesById } from '../../data/species.ts'
 import type { GameState } from '../../game/gameState'
 import type { CollectedPlant } from '../../game/gameState'
-import { getListingForPlant } from './marketplaceModel'
+import { getListingForPlant } from './marketplaceModel.ts'
 
 const geneticKeys = ['vigor', 'growthSpeed', 'size', 'flowering', 'mutationChance'] as const
 

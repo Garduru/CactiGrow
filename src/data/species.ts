@@ -1,4 +1,4 @@
-import { sharedSpecies } from '../../shared/gameplay/species'
+import { sharedSpecies } from '../../shared/gameplay/species.ts'
 import type { Species } from '../types/species'
 
 export const species: Species[] = sharedSpecies.map((entry) => ({ ...entry }))

@@ -45,7 +45,7 @@ Integrate one physical, game-readable sign bearing the exact word **MARKET**. Mo
 
 | Asset | Proposed path / rule |
 | --- | --- |
-| Preserved source/master | `public/assets/world/town/marketplace/marketplace-v1-master.png` |
+| Preserved source/master | `art-source/world/town/marketplace/marketplace-v1-master.png` |
 | Production main | `public/assets/world/town/marketplace/town-marketplace-main-v01.webp` |
 | Recommended source canvas | landscape `2100 × 1050` RGBA, approximately 3× the proposed runtime envelope; adjust the canvas if generation requires it, preserving useful transparent padding and the full uncropped building |
 | Default package | one complete main exterior; no separate roof, facade, awning, foreground, prop, or shadow asset |
@@ -57,7 +57,7 @@ Include the whole roof, sign, side walls, covered frontage, attached displays, a
 
 | Property | Current value |
 | --- | --- |
-| Preserved master | `public/assets/world/town/marketplace/marketplace-v1-master.png`; SHA-256 `0A45FBE587C9DE236E10581B6B3EE48605690D204F8617C6AFA2031AA149EECB` |
+| Preserved master | `art-source/world/town/marketplace/marketplace-v1-master.png`; SHA-256 `0A45FBE587C9DE236E10581B6B3EE48605690D204F8617C6AFA2031AA149EECB` |
 | Master dimensions / channels | `1774 × 887`, sRGB RGBA; 2:1 canvas aspect ratio |
 | Raw nonzero-alpha bounds | `1726 × 866` at `(28, 21)`; right margin `20`, bottom margin `0` for faint alpha pixels |
 | Meaningful bounds at 5% alpha | `1718 × 706` at `(31, 88)`; right margin `25`, bottom margin `93` |

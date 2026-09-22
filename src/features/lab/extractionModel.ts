@@ -1,5 +1,5 @@
 import type { ExtractionAttempt, GeneticExtract, GeneticsLabState, QuantitativeExtractTarget, TissueSample } from '../../types/lab'
-import { normalizeTissueSample } from './labModel'
+import { normalizeTissueSample } from './labModel.ts'
 
 export const QUANTITATIVE_EXTRACTION_LEVEL = 50
 export const QUANTITATIVE_EXTRACTION_LAB_TIER = 3

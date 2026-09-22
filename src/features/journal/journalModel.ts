@@ -1,4 +1,4 @@
-import { getSpeciesById } from '../../data/species'
+import { getSpeciesById } from '../../data/species.ts'
 import type { DiscoverySource, SpeciesDiscoveries } from '../../types/journal'
 import type { JournalStats } from '../../types/journal'
 import type { SpecialVariantState } from '../../types/geneticFeature'

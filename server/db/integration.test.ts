@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
-import { and, count, eq } from 'drizzle-orm'
+import { and, count, eq, inArray } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { Client } from 'pg'
@@ -14,8 +14,17 @@ import type { ApiFailure, ApiSuccess } from '../api/response.ts'
 import { PostgresPlayerIdentityRepository } from './repositories/PostgresPlayerIdentityRepository.ts'
 import { playerExternalIdentities, players } from './schema/index.ts'
 import * as schema from './schema/index.ts'
-import { playerSeedStacks } from './schema/index.ts'
+import { bredSeeds, cloneLines, geneticProfiles, plantSpecimens, playerGrowerState, playerOnboarding, playerSeedStacks } from './schema/index.ts'
 import { PlantLifecycleService } from '../gameplay/PlantLifecycleService.ts'
+import { initializeStagingGrower } from '../staging/initializeGrower.ts'
+import { PostgresPlayerBootstrapRepository } from './repositories/PostgresPlayerBootstrapRepository.ts'
+import { PlayerBootstrapService } from '../player/PlayerBootstrapService.ts'
+import { createGeneticsLabState } from '../../src/features/lab/labModel.ts'
+import { createPropertyState } from '../../src/features/property/propertyModel.ts'
+import { createAchievementProgress } from '../../src/features/achievements/achievementsModel.ts'
+import { GardenService } from '../gameplay/GardenService.ts'
+import { GrowerAlphaService } from '../gameplay/GrowerAlphaService.ts'
+import { XP_THRESHOLDS } from '../../src/features/progression/progressionModel.ts'
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL
 const databaseTestsEnabled = process.env.CACTIGROW_DATABASE_TESTS === '1'
@@ -91,6 +100,9 @@ test('PostgreSQL identity integration', {
     assert.equal(firstA.playerId, repeatedA.playerId)
     assert.notEqual(firstA.playerId, firstB.playerId)
 
+    await database.insert(playerOnboarding).values([firstA.playerId, firstB.playerId].map((playerId) => ({ playerId, profileId: 'grower-alpha-v1' })))
+    await database.insert(playerGrowerState).values([firstA.playerId, firstB.playerId].map((playerId) => ({ playerId, achievements: createAchievementProgress(), lab: createGeneticsLabState(), property: createPropertyState(Date.now()) })))
+
     await database.insert(playerSeedStacks).values({ playerId: firstA.playerId, speciesId: 'echinopsis-pachanoi', quantity: 1, version: 1 })
     let serverNow = new Date('2026-01-01T00:00:00.000Z')
     const ids = ['10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002']
@@ -156,6 +168,152 @@ test('PostgreSQL identity integration', {
     ])
     assert.deepEqual(duplicateCollection[0], duplicateCollection[1])
 
+    // The two collected San Pedro specimens are durable parents; breeding creates a
+    // separate genetic individual and never updates either parent row.
+    const parentA = collected.specimen
+    const parentB = duplicateCollection[0].specimen
+    const parentRowsBefore = await database.select().from(plantSpecimens).where(inArray(plantSpecimens.id, [parentA.specimenId, parentB.specimenId]))
+    const gardenService = new GardenService(database)
+    const displayCommand = { type: 'assign-display' as const, commandId: crypto.randomUUID(), slotId: 'garden-display-back-left' as const, specimenId: parentA.specimenId }
+    const displayed = await gardenService.execute(firstA.playerId, displayCommand)
+    assert.equal(displayed.displayAssignments['garden-display-back-left'], parentA.specimenId)
+    assert.deepEqual(await gardenService.execute(firstA.playerId, displayCommand), displayed)
+    await assert.rejects(gardenService.execute(firstB.playerId, { ...displayCommand, commandId: crypto.randomUUID() }))
+    assert.equal((await gardenService.project(firstB.playerId)).displayAssignments['garden-display-back-left'], null)
+    const growerService = new GrowerAlphaService(database, () => raceNow)
+    const listingCommandId = crypto.randomUUID()
+    const listed = await growerService.execute(firstA.playerId, { type: 'list-specimen', commandId: listingCommandId, specimenId: parentA.specimenId, askingPrice: 123 })
+    const listing = listed.marketplaceListings.find((entry) => entry.plantId === parentA.specimenId && entry.status === 'active')
+    assert.ok(listing)
+    assert.deepEqual(await growerService.execute(firstA.playerId, { type: 'list-specimen', commandId: listingCommandId, specimenId: parentA.specimenId, askingPrice: 123 }), listed)
+    await assert.rejects(raceOne.breedSpecimens(firstA.playerId, crypto.randomUUID(), { parent1SpecimenId: parentA.specimenId, parent2SpecimenId: parentB.specimenId, expectedParent1Version: parentA.version, expectedParent2Version: parentB.version }))
+    await growerService.execute(firstA.playerId, { type: 'cancel-listing', commandId: crypto.randomUUID(), listingId: listing.id })
+    const breedCommand = { parent1SpecimenId: parentA.specimenId, parent2SpecimenId: parentB.specimenId, expectedParent1Version: parentA.version, expectedParent2Version: parentB.version }
+    const breedKey = crypto.randomUUID()
+    const [offspring, duplicateOffspring] = await Promise.all([
+      raceOne.breedSpecimens(firstA.playerId, breedKey, breedCommand),
+      raceTwo.breedSpecimens(firstA.playerId, breedKey, breedCommand),
+    ])
+    assert.deepEqual(offspring, duplicateOffspring)
+    assert.deepEqual(offspring.seed.parentPlantIds, [parentA.specimenId, parentB.specimenId])
+    assert.equal(offspring.seed.cloneLineId === parentA.cloneLineId || offspring.seed.cloneLineId === parentB.cloneLineId, false)
+    assert.deepEqual(await database.select().from(plantSpecimens).where(inArray(plantSpecimens.id, [parentA.specimenId, parentB.specimenId])), parentRowsBefore)
+    const repeatedOffspring = await raceOne.breedSpecimens(firstA.playerId, crypto.randomUUID(), breedCommand)
+    assert.notEqual(repeatedOffspring.seed.seedId, offspring.seed.seedId)
+    assert.notEqual(repeatedOffspring.seed.cloneLineId, offspring.seed.cloneLineId)
+    assert.deepEqual(await database.select().from(plantSpecimens).where(inArray(plantSpecimens.id, [parentA.specimenId, parentB.specimenId])), parentRowsBefore)
+    const persistedSeed = (await lifecycle.getProjectionV2(firstA.playerId)).bredSeeds.find((seed) => seed.seedId === offspring.seed.seedId)
+    assert.deepEqual(persistedSeed, offspring.seed)
+    const independentProjection = await new PlantLifecycleService(drizzle(concurrentClients[0], { schema }), { environment: 'test' }).getProjectionV2(firstA.playerId)
+    assert.deepEqual(independentProjection.bredSeeds.find((seed) => seed.seedId === offspring.seed.seedId), offspring.seed)
+    assert.equal((await lifecycle.getProjectionV2(firstB.playerId)).bredSeeds.length, 0)
+    assert.equal((await database.select().from(bredSeeds).where(eq(bredSeeds.id, offspring.seed.seedId))).length, 1)
+    await assert.rejects(raceOne.breedSpecimens(firstA.playerId, crypto.randomUUID(), { ...breedCommand, parent2SpecimenId: parentA.specimenId }))
+    await assert.rejects(raceOne.breedSpecimens(firstB.playerId, crypto.randomUUID(), breedCommand))
+    const growingParent = independent[0].slot.occupancy!.specimen
+    await assert.rejects(raceOne.breedSpecimens(firstA.playerId, crypto.randomUUID(), { ...breedCommand, parent2SpecimenId: growingParent.specimenId, expectedParent2Version: growingParent.version }))
+
+    const plantBredKey = crypto.randomUUID()
+    const bredPlantCommand = { slotId: 'slot-1' as const, seedId: offspring.seed.seedId }
+    const [bredPlant, bredPlantReplay] = await Promise.all([
+      raceOne.plantBredSeed(firstA.playerId, plantBredKey, bredPlantCommand),
+      raceTwo.plantBredSeed(firstA.playerId, plantBredKey, bredPlantCommand),
+    ])
+    assert.deepEqual(bredPlantReplay, bredPlant)
+    assert.equal(bredPlant.slot.occupancy?.specimen.cloneLineId, offspring.seed.cloneLineId)
+    assert.deepEqual(bredPlant.slot.occupancy?.specimen.genetics, offspring.seed.genetics)
+    assert.deepEqual(bredPlant.slot.occupancy?.specimen.geneticFeatures, offspring.seed.geneticFeatures)
+    assert.deepEqual(bredPlant.slot.occupancy?.specimen.specialVariants, offspring.seed.specialVariants)
+    assert.deepEqual(bredPlant.slot.occupancy?.specimen.parentPlantIds, offspring.seed.parentPlantIds)
+    assert.equal((await lifecycle.getProjectionV2(firstA.playerId)).bredSeeds.some((seed) => seed.seedId === offspring.seed.seedId), false)
+    assert.equal((await database.select().from(cloneLines).where(eq(cloneLines.id, offspring.seed.cloneLineId))).length, 1)
+    assert.equal((await database.select().from(geneticProfiles).where(eq(geneticProfiles.cloneLineId, offspring.seed.cloneLineId))).length, 1)
+    await assert.rejects(raceOne.plantBredSeed(firstA.playerId, crypto.randomUUID(), { ...bredPlantCommand, slotId: 'slot-6' }))
+    await assert.rejects(raceOne.plantBredSeed(firstB.playerId, crypto.randomUUID(), { ...bredPlantCommand, slotId: 'slot-2' }))
+    raceNow = new Date(bredPlant.slot.occupancy!.readyAt)
+    const bredCollected = await raceOne.collectPlant(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-1', specimenId: bredPlant.slot.occupancy!.specimen.specimenId, expectedOccupancyVersion: 1, expectedSpecimenVersion: 1 })
+    assert.equal(bredCollected.specimen.cloneLineId, offspring.seed.cloneLineId)
+    const collectedV2 = (await lifecycle.getProjectionV2(firstA.playerId)).ownedSpecimens.find((specimen) => specimen.specimenId === bredCollected.specimen.specimenId)
+    assert.deepEqual(collectedV2?.parentPlantIds, offspring.seed.parentPlantIds)
+    assert.deepEqual(collectedV2?.geneticFeatures, offspring.seed.geneticFeatures)
+    assert.deepEqual(await database.select().from(plantSpecimens).where(inArray(plantSpecimens.id, [parentA.specimenId, parentB.specimenId])), parentRowsBefore)
+    const peyoteGrowing = independent[1].slot.occupancy!
+    raceNow = new Date(Math.max(raceNow.getTime(), new Date(peyoteGrowing.readyAt).getTime()))
+    const peyoteCollected = await raceOne.collectPlant(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-5', specimenId: peyoteGrowing.specimen.specimenId, expectedOccupancyVersion: 1, expectedSpecimenVersion: 1 })
+    await assert.rejects(raceOne.breedSpecimens(firstA.playerId, crypto.randomUUID(), { ...breedCommand, parent2SpecimenId: peyoteCollected.specimen.specimenId, expectedParent2Version: peyoteCollected.specimen.version }))
+    await database.update(playerSeedStacks).set({ quantity: 1, version: 2 }).where(and(eq(playerSeedStacks.playerId, firstA.playerId), eq(playerSeedStacks.speciesId, 'lophophora-williamsii')))
+    const secondPeyote = await raceOne.plantCommoditySeed(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-1', speciesId: 'lophophora-williamsii', expectedSeedStackVersion: 2 })
+    raceNow = new Date(secondPeyote.slot.occupancy!.readyAt)
+    const secondPeyoteCollected = await raceOne.collectPlant(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-1', specimenId: secondPeyote.slot.occupancy!.specimen.specimenId, expectedOccupancyVersion: 1, expectedSpecimenVersion: 1 })
+    const peyoteOffspring = await raceOne.breedSpecimens(firstA.playerId, crypto.randomUUID(), { parent1SpecimenId: peyoteCollected.specimen.specimenId, parent2SpecimenId: secondPeyoteCollected.specimen.specimenId, expectedParent1Version: peyoteCollected.specimen.version, expectedParent2Version: secondPeyoteCollected.specimen.version })
+    assert.equal(peyoteOffspring.seed.speciesId, 'lophophora-williamsii')
+
+    const saleCommandId = crypto.randomUUID()
+    const beforeSale = await growerService.project(firstA.playerId)
+    const sold = await growerService.execute(firstA.playerId, { type: 'sell-specimen-to-npc', commandId: saleCommandId, specimenId: bredCollected.specimen.specimenId })
+    assert.ok(sold.player.tokenBalance > beforeSale.player.tokenBalance)
+    assert.deepEqual(await growerService.execute(firstA.playerId, { type: 'sell-specimen-to-npc', commandId: saleCommandId, specimenId: bredCollected.specimen.specimenId }), sold)
+    assert.equal((await lifecycle.getProjectionV2(firstA.playerId)).ownedSpecimens.some((entry) => entry.specimenId === bredCollected.specimen.specimenId), false)
+    assert.equal((await growerService.project(firstB.playerId)).player.tokenBalance, 0)
+    assert.ok((await growerService.project(firstA.playerId)).player.skills.cultivationXp > 0)
+    assert.ok((await growerService.project(firstA.playerId)).player.skills.breedingXp > 0)
+
+    // Remaining Grower Alpha state uses the same ownership, replay, and account
+    // isolation boundaries as the lifecycle. Seed controlled prerequisite values
+    // directly so this integration test can exercise the established upgrade and
+    // research rules without inventing an economy acquisition path.
+    await database.update(playerOnboarding).set({ tokenBalance: 10_000, cultivationXp: XP_THRESHOLDS[9], geneticsXp: XP_THRESHOLDS[49], version: 20 }).where(eq(playerOnboarding.playerId, firstA.playerId))
+    const organizedBedsCommand = { type: 'upgrade-property' as const, commandId: crypto.randomUUID(), upgradeId: 'garden-organized-beds' }
+    const organizedBeds = await growerService.execute(firstA.playerId, organizedBedsCommand)
+    assert.equal(organizedBeds.property.buildings.garden.level, 2)
+    assert.deepEqual(await growerService.execute(firstA.playerId, organizedBedsCommand), organizedBeds)
+    const favoriteCommand = { type: 'favorite' as const, commandId: crypto.randomUUID(), specimenId: parentA.specimenId, favorite: true }
+    const favorite = await gardenService.execute(firstA.playerId, favoriteCommand)
+    assert.equal(favorite.organization[parentA.specimenId]?.favorite, true)
+    assert.deepEqual(await gardenService.execute(firstA.playerId, favoriteCommand), favorite)
+    const tagged = await gardenService.execute(firstA.playerId, { type: 'add-tag', commandId: crypto.randomUUID(), specimenId: parentA.specimenId, tag: 'breeder' })
+    assert.deepEqual(tagged.organization[parentA.specimenId]?.tags, ['breeder'])
+
+    const expanded = await growerService.execute(firstA.playerId, { type: 'upgrade-property', commandId: crypto.randomUUID(), upgradeId: 'nursery-expanded-benches' })
+    assert.equal(expanded.property.buildings.nursery.level, 2)
+    await assert.rejects(raceOne.plantCommoditySeedV3(firstB.playerId, crypto.randomUUID(), { slotId: 'slot-7', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 }))
+    const [currentStack] = await database.select().from(playerSeedStacks).where(and(eq(playerSeedStacks.playerId, firstA.playerId), eq(playerSeedStacks.speciesId, 'echinopsis-pachanoi'))).limit(1)
+    await database.update(playerSeedStacks).set({ quantity: 1, version: currentStack.version + 1 }).where(and(eq(playerSeedStacks.playerId, firstA.playerId), eq(playerSeedStacks.speciesId, 'echinopsis-pachanoi')))
+    const expandedPlant = await raceOne.plantCommoditySeedV3(firstA.playerId, crypto.randomUUID(), { slotId: 'slot-7', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: currentStack.version + 1 })
+    assert.equal(expandedPlant.slot.slotId, 'slot-7')
+    const expandedProjection = await raceOne.getProjectionV3(firstA.playerId)
+    assert.equal(expandedProjection.nursery.capacity, 8)
+    assert.equal(expandedProjection.nursery.slots.length, 8)
+    assert.ok(expandedProjection.nursery.slots.find((slot) => slot.slotId === 'slot-7')?.occupancy)
+
+    const farmAccessCommand = { type: 'set-farm-access' as const, commandId: crypto.randomUUID(), preference: 'friends' as const }
+    const farmAccess = await growerService.execute(firstA.playerId, farmAccessCommand)
+    assert.equal(farmAccess.property.farmAccessPreference, 'friends')
+    assert.deepEqual(await growerService.execute(firstA.playerId, farmAccessCommand), farmAccess)
+    const observedCommand = { type: 'observe-specimen' as const, commandId: crypto.randomUUID(), specimenId: parentA.specimenId }
+    const observed = await growerService.execute(firstA.playerId, observedCommand)
+    assert.ok(observed.research.records[parentA.cloneLineId])
+    assert.deepEqual(await growerService.execute(firstA.playerId, observedCommand), observed)
+    const analyzed = await growerService.execute(firstA.playerId, { type: 'analyze-specimen', commandId: crypto.randomUUID(), specimenId: parentA.specimenId })
+    assert.equal(analyzed.research.records[parentA.cloneLineId]?.analysisDepth, 'basic-analysis')
+
+    let labProjection = await growerService.project(firstA.playerId)
+    for (const targetTier of [1, 2, 3] as const) {
+      labProjection = await growerService.execute(firstA.playerId, { type: 'upgrade-lab', commandId: crypto.randomUUID(), targetTier })
+      assert.equal(labProjection.lab.tier, targetTier)
+    }
+    const sampleCommand = { type: 'collect-tissue-sample' as const, commandId: crypto.randomUUID(), specimenId: parentA.specimenId }
+    const sampled = await growerService.execute(firstA.playerId, sampleCommand)
+    assert.equal(sampled.lab.tissueSamples.length, 1)
+    assert.deepEqual(await growerService.execute(firstA.playerId, sampleCommand), sampled)
+    const sample = sampled.lab.tissueSamples[0]!
+    const extractionCommand = { type: 'extract-sample' as const, commandId: crypto.randomUUID(), sampleId: sample.id, target: 'vigor' as const }
+    const extracted = await growerService.execute(firstA.playerId, extractionCommand)
+    assert.equal(extracted.lab.extractionAttemptIds.length, 1)
+    assert.deepEqual(await growerService.execute(firstA.playerId, extractionCommand), extracted)
+    assert.equal((await growerService.project(firstB.playerId)).research.records[parentA.cloneLineId], undefined)
+    assert.equal((await gardenService.project(firstB.playerId)).organization[parentA.specimenId], undefined)
+
     await database.insert(playerSeedStacks).values({ playerId: firstB.playerId, speciesId: 'echinopsis-pachanoi', quantity: 1, version: 1 })
     const sharedAcrossPlayersKey = retryKey
     const accountBPlant = await raceOne.plantCommoditySeed(firstB.playerId, sharedAcrossPlayersKey, { slotId: 'slot-1', speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 })
@@ -205,9 +363,58 @@ test('PostgreSQL identity integration', {
       (error) => databaseErrorCode(error) === '23503',
     )
 
+    const stagingTester = await resolver.resolve({ provider: 'cloudflare-access', subject: 'verified-test-subject-c' })
+    const repeatedStagingTester = await resolver.resolve({ provider: 'cloudflare-access', subject: 'verified-test-subject-c' })
+    const otherStagingTester = await resolver.resolve({ provider: 'cloudflare-access', subject: 'verified-test-subject-d' })
+    assert.equal(stagingTester.playerId, repeatedStagingTester.playerId)
+    assert.notEqual(stagingTester.playerId, otherStagingTester.playerId)
+    assert.notEqual(stagingTester.playerId, firstA.playerId)
+    await Promise.all([
+      initializeStagingGrower(database, stagingTester.playerId),
+      initializeStagingGrower(drizzle(concurrentClients[0], { schema }), stagingTester.playerId),
+    ])
+    const bootstrapService = new PlayerBootstrapService(new PostgresPlayerBootstrapRepository(database))
+    const freshBootstrap = await bootstrapService.getGrowerForPlayer(stagingTester.playerId)
+    assert.equal(freshBootstrap.projectionVersion, 2)
+    assert.equal(freshBootstrap.grower.profileId, 'grower-alpha-v1')
+    assert.deepEqual(freshBootstrap.grower.skills, { cultivationXp: 0, breedingXp: 0, geneticsXp: 0 })
+    assert.equal(freshBootstrap.grower.tokenBalance, 0)
+    assert.ok(freshBootstrap.grower.starterGrantedAt)
+    const starterRows = await database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, stagingTester.playerId))
+    assert.deepEqual(starterRows.map(({ speciesId, quantity }) => ({ speciesId, quantity })).sort((left, right) => left.speciesId.localeCompare(right.speciesId)), [
+      { speciesId: 'echinopsis-pachanoi', quantity: 4 },
+      { speciesId: 'lophophora-williamsii', quantity: 2 },
+    ])
+    await database.update(playerSeedStacks).set({ quantity: 0 }).where(and(eq(playerSeedStacks.playerId, stagingTester.playerId), eq(playerSeedStacks.speciesId, 'echinopsis-pachanoi')))
+    await initializeStagingGrower(database, stagingTester.playerId)
+    const depleted = await database.select().from(playerSeedStacks).where(and(eq(playerSeedStacks.playerId, stagingTester.playerId), eq(playerSeedStacks.speciesId, 'echinopsis-pachanoi')))
+    assert.equal(depleted[0]?.quantity, 0)
+    assert.equal((await database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, otherStagingTester.playerId))).length, 0)
+    await initializeStagingGrower(database, otherStagingTester.playerId)
+    assert.notEqual((await bootstrapService.getGrowerForPlayer(otherStagingTester.playerId)).player.playerId, freshBootstrap.player.playerId)
+    const existingSpecimens = await database.select().from(plantSpecimens).where(eq(plantSpecimens.ownerPlayerId, firstA.playerId))
+    const existingBredSeeds = await database.select().from(bredSeeds).where(eq(bredSeeds.ownerPlayerId, firstA.playerId))
+    const existingStacks = await database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, firstA.playerId))
+    await initializeStagingGrower(database, firstA.playerId)
+    const preservedExisting = await bootstrapService.getGrowerForPlayer(firstA.playerId)
+    assert.equal(preservedExisting.grower.starterGrantedAt, null)
+    assert.equal((await database.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, firstA.playerId))).length, 1)
+    assert.deepEqual(await database.select().from(plantSpecimens).where(eq(plantSpecimens.ownerPlayerId, firstA.playerId)), existingSpecimens)
+    assert.deepEqual(await database.select().from(bredSeeds).where(eq(bredSeeds.ownerPlayerId, firstA.playerId)), existingBredSeeds)
+    assert.deepEqual(await database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, firstA.playerId)), existingStacks)
+    const otherBefore = await lifecycle.getProjectionV2(otherStagingTester.playerId)
+    const ownPlanted = await raceOne.plantCommoditySeed(stagingTester.playerId, crypto.randomUUID(), { slotId: 'slot-1', speciesId: 'lophophora-williamsii', expectedSeedStackVersion: 1 })
+    assert.equal(ownPlanted.slot.occupancy?.specimen.speciesId, 'lophophora-williamsii')
+    await initializeStagingGrower(database, stagingTester.playerId)
+    assert.equal((await database.select().from(playerSeedStacks).where(and(eq(playerSeedStacks.playerId, stagingTester.playerId), eq(playerSeedStacks.speciesId, 'lophophora-williamsii'))))[0]?.quantity, 1)
+    const otherAfter = await lifecycle.getProjectionV2(otherStagingTester.playerId)
+    assert.deepEqual(otherAfter.seedStacks, otherBefore.seedStacks)
+    assert.deepEqual(otherAfter.nursery, otherBefore.nursery)
+    assert.deepEqual(otherAfter.ownedSpecimens, otherBefore.ownedSpecimens)
+
     const router = createApiRouter()
     const workerEnv = {
-      CACTIGROW_ENVIRONMENT: 'test',
+      CACTIGROW_ENVIRONMENT: 'development',
       CACTIGROW_VERSION: 'database-integration-test',
       HYPERDRIVE: { connectionString: testDatabaseUrl } as Hyperdrive,
     } as WorkerEnv
@@ -289,7 +496,7 @@ test('PostgreSQL identity integration', {
   } finally {
     await Promise.allSettled(concurrentClients.map((client) => client.end()))
     if (ownsIdentitySchema) {
-      await primaryClient.query('drop table if exists gameplay_command_receipts, nursery_occupancies, player_plant_lifecycle_versions, player_seed_stacks, plant_specimens, clone_line_variants, genetic_profiles, clone_lines cascade')
+      await primaryClient.query('drop table if exists bred_seed_treatments, marketplace_listings, player_garden_displays, player_garden_specimens, player_grower_events, player_grower_state, player_onboarding, bred_seeds, gameplay_command_receipts, nursery_occupancies, player_plant_lifecycle_versions, player_seed_stacks, plant_specimens, clone_line_variants, genetic_profiles, clone_lines cascade')
       await primaryClient.query('drop table if exists player_external_identities cascade')
       await primaryClient.query('drop table if exists players cascade')
       await primaryClient.query('drop schema if exists drizzle cascade')

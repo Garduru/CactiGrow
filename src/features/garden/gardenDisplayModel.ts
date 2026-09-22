@@ -1,4 +1,4 @@
-import { GARDEN_DISPLAY_SLOT_IDS, type GardenDisplayAssignments, type GardenDisplaySlotId } from '../../types/garden'
+import { GARDEN_DISPLAY_SLOT_IDS, type GardenDisplayAssignments, type GardenDisplaySlotId } from '../../types/garden.ts'
 
 export function createGardenDisplayAssignments(): GardenDisplayAssignments {
   return Object.fromEntries(GARDEN_DISPLAY_SLOT_IDS.map((id) => [id, null])) as GardenDisplayAssignments

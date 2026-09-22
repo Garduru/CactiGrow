@@ -3,6 +3,8 @@ import { getGeneticFeatureDefinition } from '../../data/geneticFeatures'
 import { plantPigmentationMasks, plantVisualAssets } from '../../data/plantVisualAssets'
 import { getExpressedGeneticFeatures } from '../genetics/geneticFeatureModel'
 import type { Plant } from '../../types/plant'
+import type { PlantSpecimenV1 } from '../../../shared/api/plantLifecycleV1'
+import type { PlantSpecimenV2 } from '../../../shared/api/plantLifecycleV2'
 import type { PlantVisualDescriptor, VariegationPattern, VisualGrowthStage } from '../../types/plantVisual'
 
 function stableHash(value: string): number {
@@ -21,7 +23,8 @@ export function visualStageFromProgress(progress: number, isMature: boolean): Vi
   return 'seedling'
 }
 
-export function createPlantVisualDescriptor(plant: Plant, visualStage: VisualGrowthStage = 'mature', options?: { variegationPattern?: VariegationPattern }): PlantVisualDescriptor {
+export function createPlantVisualDescriptor(plant: Plant | PlantSpecimenV1 | PlantSpecimenV2, visualStage: VisualGrowthStage = 'mature', options?: { variegationPattern?: VariegationPattern }): PlantVisualDescriptor {
+  const specimenId = 'specimenId' in plant ? plant.specimenId : plant.id
   const speciesVisualKey = getSpeciesById(plant.speciesId)?.imageKey ?? plant.speciesId
   const features = getExpressedGeneticFeatures(plant.geneticFeatures)
   const tags = features.flatMap((feature) => getGeneticFeatureDefinition(feature.featureId)?.artTags ?? [])
@@ -30,7 +33,7 @@ export function createPlantVisualDescriptor(plant: Plant, visualStage: VisualGro
   const spineRecipeKey = tags.includes('dense-spines') ? 'dense-spines' : null
   const specialTreatmentKey = plant.specialVariants.some((variant) => variant.variantId === 'shiny') ? 'shiny' : null
   const geneticHash = stableHash(`plant-v1:clone:${plant.cloneLineId}`)
-  const physicalHash = stableHash(`plant-v1:specimen:${plant.id}`)
+  const physicalHash = stableHash(`plant-v1:specimen:${specimenId}`)
   const variation = {
     paletteIndex: geneticHash % 3,
     formIndex: (geneticHash >>> 8) % 3,
@@ -50,7 +53,7 @@ export function createPlantVisualDescriptor(plant: Plant, visualStage: VisualGro
   const missingVisualLayers = [...morphologyRecipeKeys, ...(requestedVariegation && !maskAsset ? [`variegation:${options?.variegationPattern ?? 'pattern-unassigned'}`] : []), ...(spineRecipeKey ? [spineRecipeKey] : []), ...(specialTreatmentKey ? [specialTreatmentKey] : [])]
   const baseAsset = registeredAsset
   return {
-    specimenId: plant.id,
+    specimenId,
     speciesVisualKey,
     visualStage,
     baseRecipeKey,

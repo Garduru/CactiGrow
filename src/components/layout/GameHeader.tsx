@@ -4,14 +4,19 @@ import { useGameState } from '../../game/useGameState'
 import { ProgressBar } from '../ui/ProgressBar'
 import { getProgressionSnapshot } from '../../features/progression/progressionModel'
 import { usePlantLifecycle } from '../../app/usePlantLifecycle'
+import { usePlayerBootstrap } from '../../app/usePlayerBootstrap'
+import { getDeploymentMode } from '../../config/deploymentMode'
+import { getHeaderPlayerValues } from './headerPlayerModel'
 
 export function GameHeader() {
   const { state } = useGameState()
   const { player } = state
-  const progression = getProgressionSnapshot(player.skills.cultivation.xp)
+  const bootstrap = usePlayerBootstrap()
+  const values = getHeaderPlayerValues(getDeploymentMode(), { cultivationXp: player.skills.cultivation.xp, tokens: player.tokens }, bootstrap.status === 'authenticated' ? bootstrap.bootstrap : null)
+  const progression = getProgressionSnapshot(values.cultivationXp)
   const lifecycle = usePlantLifecycle()
   const seedCount = lifecycle.state.authority === 'server' && lifecycle.state.status === 'ready'
-    ? lifecycle.state.projection.seedStacks.reduce((total, stack) => total + stack.quantity, 0)
+    ? lifecycle.state.projection.seedStacks.reduce((total, stack) => total + stack.quantity, 0) + lifecycle.state.projection.bredSeeds.length
     : getTotalSeedQuantity(state)
 
   return (
@@ -25,7 +30,7 @@ export function GameHeader() {
         <div className="game-header__player">
           <div className="game-header__stat">
             <span>Tokens</span>
-            <strong>{player.tokens.toLocaleString()}</strong>
+            <strong>{values.tokens.toLocaleString()}</strong>
           </div>
 
           <Link className="game-header__inventory" to="/inventory">

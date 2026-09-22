@@ -18,6 +18,8 @@ export type ApiErrorCode =
   | 'STALE_VERSION'
   | 'IDEMPOTENCY_KEY_REQUIRED'
   | 'IDEMPOTENCY_KEY_REUSED'
+  | 'PAYLOAD_TOO_LARGE'
+  | 'UNSUPPORTED_MEDIA_TYPE'
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode
@@ -56,5 +58,13 @@ export class ApiError extends Error {
 
   static internal() {
     return new ApiError('INTERNAL_ERROR', 500, 'An unexpected error occurred.')
+  }
+
+  static payloadTooLarge() {
+    return new ApiError('PAYLOAD_TOO_LARGE', 413, 'The request body is too large.')
+  }
+
+  static unsupportedMediaType() {
+    return new ApiError('UNSUPPORTED_MEDIA_TYPE', 415, 'A JSON request body is required.')
   }
 }

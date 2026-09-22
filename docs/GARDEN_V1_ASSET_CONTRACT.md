@@ -12,7 +12,7 @@ Status: **HUMAN APPROVED / LOCKED.** Garden V1 passed in-game runtime review. Th
 
 | Property | Value |
 | --- | --- |
-| Preserved master | `public/assets/world/farm/garden/garden-v1-master.png` |
+| Preserved master | `art-source/world/farm/garden/garden-v1-master.png` |
 | Master size/color | 1671 × 941, sRGBA, sRGB, transparent |
 | Master SHA-256 | `051A529F39ACAB60E70205C507B1BF4CFFF4132D147A3F7BF2C4C59066CFB267` |
 | Raw nonzero-alpha bounds | 1657 × 906 at `(0, 35)`; faint edge alpha reaches left and bottom |

@@ -1,8 +1,8 @@
 import type { BredSeed } from '../../types/bredSeed'
 import type { PlantGenetics } from '../../types/genetics'
 import type { Plant } from '../../types/plant'
-import { getSpeciesById } from '../../data/species'
-import { getMutationTendencyMultiplier, resolveSexualGeneticOutcome } from '../genetics/geneticFeatureResolver'
+import { getSpeciesById } from '../../data/species.ts'
+import { getMutationTendencyMultiplier, resolveSexualGeneticOutcome } from '../genetics/geneticFeatureResolver.ts'
 
 export const GENETIC_MIN = 0
 export const GENETIC_MAX = 100

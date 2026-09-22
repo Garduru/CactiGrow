@@ -1,6 +1,6 @@
 import type { AchievementProgress } from '../../types/achievement'
 import type { GameplayEventSource } from '../progression/rewardConfig'
-import { getLevelFromXp } from '../progression/progressionModel'
+import { getLevelFromXp } from '../progression/progressionModel.ts'
 import type { PlayerSkills, SkillId } from '../../types/skill'
 
 export interface AchievementDefinition {

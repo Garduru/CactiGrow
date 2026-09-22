@@ -2,9 +2,11 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import type Phaser from 'phaser'
 import type { WorldIntent, WorldProjection } from './worldTypes'
 import { WorldBridge } from './WorldBridge'
-import { getWorldEditor, type EditorWorld, type WorldEditorController } from './editor/worldEditorState'
+import type { EditorWorld, WorldEditorController } from './editor/worldEditorState'
 
-const WorldEditorPanel = lazy(() => import('./editor/WorldEditorPanel').then((module) => ({ default: module.WorldEditorPanel })))
+const DevelopmentWorldHost = import.meta.env.DEV
+  ? lazy(() => import('./editor/DevelopmentWorldHost').then((module) => ({ default: module.DevelopmentWorldHost })))
+  : null
 
 interface PhaserWorldHostProps {
   projection: WorldProjection
@@ -14,9 +16,16 @@ interface PhaserWorldHostProps {
 }
 
 export function PhaserWorldHost({ projection, onIntent, createGame, world }: PhaserWorldHostProps) {
+  const editorRequested = import.meta.env.DEV && new URLSearchParams(window.location.search).has('worldEdit')
+  if (editorRequested && DevelopmentWorldHost) {
+    return <Suspense fallback={null}><DevelopmentWorldHost projection={projection} onIntent={onIntent} createGame={createGame} world={world} /></Suspense>
+  }
+  return <div className="phaser-world-shell"><PhaserWorldCanvas projection={projection} onIntent={onIntent} createGame={createGame} /></div>
+}
+
+export function PhaserWorldCanvas({ projection, onIntent, createGame, editor }: Omit<PhaserWorldHostProps, 'world'> & { editor?: WorldEditorController }) {
   const hostRef = useRef<HTMLDivElement>(null)
   const [bridge] = useState(() => new WorldBridge(projection, onIntent))
-  const [editor] = useState(() => import.meta.env.DEV && new URLSearchParams(window.location.search).has('worldEdit') ? getWorldEditor(world) : undefined)
   const gameRef = useRef<Phaser.Game | null>(null)
 
   useEffect(() => bridge.setIntentHandler(onIntent), [bridge, onIntent])
@@ -33,5 +42,5 @@ export function PhaserWorldHost({ projection, onIntent, createGame, world }: Pha
     }
   }, [bridge, createGame, editor])
 
-  return <div className="phaser-world-shell"><div ref={hostRef} className="phaser-world-host" />{editor && <Suspense fallback={null}><WorldEditorPanel editor={editor} world={world} /></Suspense>}</div>
+  return <div ref={hostRef} className="phaser-world-host" />
 }

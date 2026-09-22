@@ -503,6 +503,10 @@ button, input, select { font-family: var(--cg-font-ui); }
 .garden-heading__status { color: #e5b16f; font-size: 11px; }
 .garden-display-summary { margin-top: var(--cg-section-space); padding: 14px; background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); }
 .garden-display-summary h2 { margin: 0; font: 500 18px Georgia, serif; }
+.garden-display-summary__toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: var(--cg-touch-target); padding: 0; color: var(--cg-text); background: none; border: 0; font: inherit; text-align: left; cursor: pointer; }
+.garden-display-summary__toggle:focus-visible { outline: 2px solid var(--cg-accent); outline-offset: 3px; border-radius: var(--cg-radius-sm); }
+.garden-display-summary__chevron { width: 9px; height: 9px; flex: none; margin-right: 5px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); transition: transform .15s ease; }
+.garden-display-summary__toggle[aria-expanded="true"] .garden-display-summary__chevron { transform: rotate(225deg); }
 .garden-display-summary p, .garden-display-controls p { margin: 6px 0 12px; color: var(--cg-text-muted); font-size: 12px; }
 .garden-display-summary__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr)); gap: 8px; }
 .garden-display-summary__slot { min-width: 0; display: grid; gap: 5px; padding: 10px; border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); }
@@ -1191,4 +1195,11 @@ button, input, select { font-family: var(--cg-font-ui); }
 
 @media (prefers-reduced-motion: reduce) {
   .cg-button, .utility-menu__toggle, :where(.plant-details__close, .seed-picker__close, .treatment-workflow > header > button) { transition: none; }
+}
+.deployment-access-state {
+  width: min(34rem, calc(100% - 2 * var(--page-gutter)));
+  margin: clamp(3rem, 15vh, 9rem) auto;
+  padding: var(--section-space);
+  color: var(--color-text, #ead9bd);
+  text-align: center;
 }
