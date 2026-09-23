@@ -57,7 +57,7 @@ export class GardenService {
         if (command.type === 'clear-display') {
           await tx.delete(playerGardenDisplays).where(and(eq(playerGardenDisplays.playerId, playerId), eq(playerGardenDisplays.slotId, command.slotId)))
         } else {
-          const [specimen] = await tx.select().from(plantSpecimens).where(and(eq(plantSpecimens.ownerPlayerId, playerId), eq(plantSpecimens.id, command.specimenId))).limit(1)
+          const [specimen] = await tx.select().from(plantSpecimens).where(and(eq(plantSpecimens.ownerPlayerId, playerId), eq(plantSpecimens.id, command.specimenId))).for('update').limit(1)
           if (!specimen || specimen.lifecycleStatus !== 'owned') throw new ApiError('SPECIMEN_NOT_FOUND', 404, 'The collected specimen was not found.')
           if (command.type === 'assign-display') {
             await tx.delete(playerGardenDisplays).where(and(eq(playerGardenDisplays.playerId, playerId), eq(playerGardenDisplays.specimenId, command.specimenId)))

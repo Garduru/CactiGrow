@@ -75,6 +75,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return true
     },
     async sellPlantToNpc(plantId) {
+      // A loading/failed server projection must never select the demo reducer.
+      if (grower.state.authority === 'server' && !server) return null
       if (!canSellPlantToNpc(effectiveState, plantId)) return null
       const plant = effectiveState.ownedPlants.find((specimen) => specimen.id === plantId)
       const saleValue = plant ? getNpcSaleValue(plant) : null

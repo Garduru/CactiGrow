@@ -538,6 +538,7 @@ button, input, select { font-family: var(--cg-font-ui); }
 }
 
 .garden-specimen__select {
+  position: relative;
   width: 100%;
   min-height: var(--cg-touch-target);
   padding: clamp(14px, 2vw, 18px);
@@ -556,9 +557,392 @@ button, input, select { font-family: var(--cg-font-ui); }
 .garden-specimen__select strong { margin-top: 12px; overflow-wrap: anywhere; font: 500 22px Georgia, serif; }
 .garden-specimen__select em { margin-top: 3px; color: var(--cg-text-muted); font: italic 11px Georgia, serif; }
 .garden-specimen__id { margin-top: 18px; overflow-wrap: anywhere; color: var(--cg-text-muted); font-size: 10px; }
-.garden-specimen__prompt { margin-top: 14px; color: #d9b38b; font-size: 12px; }
 .garden-specimen__favorite { align-self: flex-end; margin-top: -20px; color: #f3c764; font-size: 18px; }
 .garden-specimen__tags { margin-top: 9px; overflow-wrap: anywhere; color: #d9b38b; font-size: 10px; }
+
+.garden-specimen__actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 12px;
+}
+
+.garden-specimen__quick-view {
+  flex: 1;
+  min-height: var(--cg-touch-target);
+  padding: 6px 10px;
+  color: var(--cg-text);
+  background: #2a1f16;
+  border: 1px solid var(--cg-border);
+  border-radius: var(--cg-radius-sm);
+  cursor: pointer;
+  font-size: 11px;
+  font: inherit;
+}
+
+.garden-specimen__quick-view:hover {
+  background: #3d2b1a;
+  border-color: #8b593a;
+}
+
+.garden-specimen__details {
+  flex: 1;
+  min-height: var(--cg-touch-target);
+  padding: 6px 10px;
+  color: var(--cg-text);
+  background: #543522;
+  border: 1px solid #8b593a;
+  border-radius: var(--cg-radius-sm);
+  cursor: pointer;
+  font-size: 11px;
+  font: inherit;
+}
+
+.garden-specimen__details:hover {
+  background: #6b4530;
+}
+
+/* Garden selection mode */
+.garden-specimen--selected {
+  border-color: var(--cg-accent);
+  box-shadow: inset 0 0 0 1px var(--cg-accent), var(--cg-shadow-panel);
+}
+
+.garden-specimen__check {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--cg-accent);
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  z-index: 2;
+  box-shadow: 0 2px 8px #0004;
+}
+
+.garden-selection-bar {
+  margin-top: var(--cg-section-space);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cg-card-gap);
+  flex-wrap: wrap;
+  background: var(--cg-surface-raised);
+  border: 1px solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+}
+
+.garden-selection-bar__count {
+  color: var(--cg-text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.garden-selection-bar__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.garden-selection-bar__actions button {
+  min-height: var(--cg-touch-target);
+  padding-inline: 14px;
+}
+
+/* Sell action button in selection bar */
+.cg-button--sell {
+  background: var(--cg-accent);
+  color: #1a120d;
+  font-weight: 700;
+}
+
+.cg-button--sell:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.cg-button--sell:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Marketplace placeholder button */
+.cg-button--marketplace {
+  background: var(--cg-surface-hover);
+  color: var(--cg-text-muted);
+  cursor: not-allowed;
+  position: relative;
+}
+
+.cg-button--marketplace::after {
+  content: 'Coming soon';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--cg-surface-raised);
+  color: var(--cg-text-muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--cg-radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  border: 1px solid var(--cg-border);
+}
+
+.cg-button--marketplace:hover::after {
+  opacity: 1;
+}
+
+/* Multi-sell confirmation dialog */
+.multi-sell-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+}
+
+.multi-sell-overlay > button[type='button'][aria-label] {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.multi-sell-dialog {
+  position: relative;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--cg-surface);
+  border: 1px solid var(--cg-border);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: var(--cg-shadow-panel);
+  color: var(--cg-text);
+  overflow: hidden;
+}
+
+.multi-sell-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--cg-border);
+  flex-shrink: 0;
+}
+
+.multi-sell-dialog__header h2 {
+  margin: 0;
+  font-size: var(--cg-font-panel-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.multi-sell-dialog__header button {
+  flex-shrink: 0;
+  background: transparent;
+  border: 0;
+  color: var(--cg-text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.multi-sell-dialog__header button:hover {
+  color: var(--cg-text);
+}
+
+.multi-sell-dialog__body {
+  overflow-y: auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+.multi-sell-specimen-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--cg-border);
+  border-radius: var(--cg-radius-md);
+  background: var(--cg-surface-raised);
+  padding: 10px 14px;
+}
+
+.multi-sell-specimen-list__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.multi-sell-specimen-list__shiny {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.multi-sell-specimen-list__name {
+  font-weight: 600;
+  color: var(--cg-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multi-sell-specimen-list__id {
+  color: var(--cg-text-muted);
+  font-size: 11px;
+  font-family: var(--cg-font-ui);
+  flex-shrink: 0;
+}
+
+.multi-sell-reward {
+  font-size: 13px;
+  color: var(--cg-text);
+  padding: 8px 0 0;
+  border-top: 1px solid var(--cg-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.multi-sell-reward strong {
+  color: var(--cg-accent);
+}
+
+.multi-sell-status {
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.multi-sell-status.success {
+  color: #4caf50;
+}
+
+.multi-sell-status.partial {
+  color: var(--cg-text);
+}
+
+.multi-sell-status.partial .failed {
+  color: #e57373;
+  font-weight: 600;
+}
+
+.multi-sell-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--cg-border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.multi-sell-dialog__footer button {
+  min-height: var(--cg-touch-target);
+  padding-inline: 16px;
+}
+
+.garden-heading__status {
+  color: #e5b16f;
+  font-size: 11px;
+}
+
+.garden-heading__status[aria-live] {
+  color: var(--cg-accent);
+  font-weight: 600;
+}
+
+/* Specimen Quick Preview */
+.specimen-quick-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: grid;
+  place-items: center;
+  padding: var(--cg-page-gutter);
+}
+
+.specimen-quick-preview__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: #080604c0;
+  border: 0;
+  cursor: default;
+}
+
+.specimen-quick-preview {
+  position: relative;
+  width: min(100%, 420px);
+  padding: clamp(14px, 3vw, 22px);
+  background: var(--cg-surface);
+  border: 1px solid var(--cg-border-strong);
+  border-radius: var(--cg-radius-lg);
+  box-shadow: 0 16px 48px #000b;
+}
+
+.specimen-quick-preview__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cg-card-gap);
+}
+
+.specimen-quick-preview__header h2 { margin: 4px 0 1px; font-size: clamp(20px, 3.5vw, 26px); }
+.specimen-quick-preview__header em { color: var(--cg-text-muted); font: italic 11px Georgia, serif; }
+.specimen-quick-preview__close { width: var(--cg-touch-target); height: var(--cg-touch-target); flex: 0 0 var(--cg-touch-target); padding: 0; color: var(--cg-text-muted); background: transparent; border: 1px solid var(--cg-border); border-radius: 50%; cursor: pointer; font-size: 16px; }
+.specimen-quick-preview__close:hover { color: var(--cg-text); background: var(--cg-surface-hover); }
+
+.specimen-quick-preview__visual { display: flex; justify-content: center; padding: 8px 0; }
+
+.specimen-quick-preview__info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin: 10px 0 0;
+  padding: 14px;
+  background: var(--cg-surface-raised);
+  border-radius: var(--cg-radius-sm);
+}
+
+.specimen-quick-preview__info > div { min-width: 0; }
+.specimen-quick-preview__info dt { color: var(--cg-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.specimen-quick-preview__info dd { margin: 2px 0 0; font-size: 14px; color: var(--cg-text); }
+.specimen-quick-preview__info dd.shiny-indicator { color: #f3c764; font-weight: 600; }
+.specimen-quick-preview__info dd.favorite-indicator { color: #f3c764; font-weight: 600; }
+
+.specimen-quick-preview__traits dt { color: var(--cg-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.specimen-quick-preview__traits dd { margin: 4px 0 0; }
+.specimen-quick-preview__traits ul { margin: 0; padding: 0 0 0 16px; list-style: disc; }
+.specimen-quick-preview__traits li { color: var(--cg-text); font-size: 12px; margin: 2px 0; }
+
+.specimen-quick-preview__tags dt { color: var(--cg-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.specimen-quick-preview__tags dd { margin: 2px 0 0; color: #d9b38b; font-size: 11px; overflow-wrap: anywhere; }
+
+.specimen-quick-preview__actions { margin-top: 14px; display: flex; justify-content: center; }
+.specimen-quick-preview__primary-action { min-height: var(--cg-touch-target); padding: 8px 20px; color: var(--cg-text); background: #543522; border: 1px solid #8b593a; border-radius: var(--cg-radius-sm); cursor: pointer; font: inherit; font-size: 14px; }
+.specimen-quick-preview__primary-action:hover { background: #6b4530; }
 
 .plant-details-overlay {
   position: fixed;
@@ -944,6 +1328,8 @@ button, input, select { font-family: var(--cg-font-ui); }
   .sell-controls { flex-direction: column-reverse; }
   .sell-controls button { width: 100%; }
   .market-listing header { flex-direction: column; }
+  .garden-selection-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .garden-selection-bar__actions { justify-content: flex-end; }
   .level-up-notice { bottom: max(8px, env(safe-area-inset-bottom)); }
   .game-header__skill-name { display: none; }
   .journal-heading { align-items: flex-start; flex-direction: column; }
