@@ -19,16 +19,22 @@ export type CactiGrowApiErrorKind =
 export class CactiGrowApiError extends Error {
   readonly kind: CactiGrowApiErrorKind
   readonly requestId?: string
+  readonly status?: number
+  readonly code?: string
 
   constructor(
     kind: CactiGrowApiErrorKind,
     message: string,
     requestId?: string,
+    status?: number,
+    code?: string,
   ) {
     super(message)
     this.name = 'CactiGrowApiError'
     this.kind = kind
     this.requestId = requestId
+    this.status = status
+    this.code = code
   }
 }
 
@@ -81,34 +87,8 @@ export class CactiGrowApiClient {
   }
 
   private async getBootstrap<T extends PlayerBootstrapV1 | PlayerBootstrapV2>(path: string, validate: (value: unknown) => value is T, signal?: AbortSignal): Promise<{ bootstrap: T; requestId: string }> {
-    let response: Response
-    try {
-      response = await this.request.call(globalThis, endpoint(this.baseUrl, path), {
-        method: 'GET',
-        credentials: 'include',
-        headers: this.getCredentials(),
-        signal,
-      })
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') throw error
-      throw new CactiGrowApiError('network', 'Unable to reach the CactiGrow service.')
-    }
-
-    let body: unknown
-    try {
-      body = await response.json()
-    } catch {
-      throw new CactiGrowApiError('invalid-response', 'The CactiGrow service returned an invalid response.')
-    }
-
-    if (!isEnvelope(body)) {
-      throw new CactiGrowApiError('invalid-response', 'The CactiGrow service returned an invalid response.')
-    }
-
-    if (!body.ok) {
-      const kind = response.status === 401 ? 'unauthenticated' : 'server'
-      throw new CactiGrowApiError(kind, body.error.message, body.meta.requestId)
-    }
+    const response = await this.fetchResponse(path, { method: 'GET', signal })
+    const body = await this.readEnvelope(response)
 
     if (!response.ok || !validate(body.data)) {
       throw new CactiGrowApiError(
@@ -129,8 +109,8 @@ export class CactiGrowApiClient {
   async getGrowerAlpha(signal?: AbortSignal): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'GET', signal }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
   async mutateGrowerAlpha(command: GrowerAlphaCommandV1): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
   async getPlantLifecycleV3(signal?: AbortSignal): Promise<PlantLifecycleProjectionV3> { return this.execute('/api/v3/me/plant-lifecycle', { method: 'GET', signal }, isPlantLifecycleProjectionV3, 'plant lifecycle V3 projection') }
-  async plantCommoditySeedV3(command: PlantCommoditySeedCommandV3, idempotencyKey: string): Promise<PlantCommoditySeedResultV3> { return this.execute('/api/v3/me/plant-lifecycle/commands/plant-commodity-seed', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isPlantCommoditySeedResultV3, 'planting result') }
-  async plantBredSeedV3(command: PlantBredSeedCommandV3, idempotencyKey: string): Promise<PlantBredSeedResultV3> { return this.execute('/api/v3/me/plant-lifecycle/commands/plant-bred-seed', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isPlantBredSeedResultV3, 'bred-seed planting result') }
+  async plantCommoditySeedV3(command: PlantCommoditySeedCommandV3, idempotencyKey: string): Promise<PlantCommoditySeedResultV3> { return this.execute('/api/v3/me/plant-lifecycle/commands/plant-commodity-seed', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isPlantCommoditySeedResultV3, 'planting result', true) }
+  async plantBredSeedV3(command: PlantBredSeedCommandV3, idempotencyKey: string): Promise<PlantBredSeedResultV3> { return this.execute('/api/v3/me/plant-lifecycle/commands/plant-bred-seed', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isPlantBredSeedResultV3, 'bred-seed planting result', true) }
   async collectPlantV3(command: CollectPlantCommandV3, idempotencyKey: string): Promise<CollectPlantResultV3> { return this.execute('/api/v3/me/plant-lifecycle/commands/collect-plant', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isCollectPlantResultV3, 'collection result') }
 
   async getPlantLifecycleV2(signal?: AbortSignal): Promise<PlantLifecycleProjectionV2> {
@@ -153,14 +133,54 @@ export class CactiGrowApiClient {
     return this.execute('/api/v1/me/plant-lifecycle/commands/collect-plant', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isCollectPlantResultV1, 'collection result')
   }
 
-  private async execute<T>(path: string, init: RequestInit, validate: (value: unknown) => value is T, label: string): Promise<T> {
-    let response: Response
-    try { response = await this.request.call(globalThis, endpoint(this.baseUrl, path), { ...init, credentials: 'include', headers: { ...this.getCredentials(), ...init.headers } }) } catch (error) { if (error instanceof DOMException && error.name === 'AbortError') throw error; throw new CactiGrowApiError('network', 'Unable to reach the CactiGrow service.') }
+  private async fetchResponse(path: string, init: RequestInit, retryIdempotentPlant = false): Promise<Response> {
+    const url = endpoint(this.baseUrl, path)
+    const requestInit: RequestInit = { ...init, credentials: 'include', redirect: 'manual', headers: { ...this.getCredentials(), ...init.headers } }
+    // Only the V3 planting methods opt in. Reuse the identical body and receipt
+    // key after a transport failure: the first attempt may already have committed.
+    const attempts = retryIdempotentPlant ? 2 : 1
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        const response = await this.request.call(globalThis, url, requestInit)
+        if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+          throw new CactiGrowApiError('unauthenticated', 'Your CactiGrow session needs authentication. Reload to sign in again.', undefined, response.status)
+        }
+        return response
+      } catch (error) {
+        if (init.signal?.aborted || (error instanceof Error && error.name === 'AbortError')) throw error
+        if (error instanceof CactiGrowApiError) throw error
+        if (attempt + 1 < attempts) {
+          await new Promise((resolve) => setTimeout(resolve, 250))
+          continue
+        }
+        throw new CactiGrowApiError('network', 'Unable to reach the CactiGrow service.')
+      }
+    }
+    throw new Error('Unreachable request attempt.')
+  }
+
+  private async readEnvelope(response: Response): Promise<ApiEnvelope<unknown> & { ok: true }> {
     let body: unknown
-    try { body = await response.json() } catch { throw new CactiGrowApiError('invalid-response', 'The CactiGrow service returned an invalid response.') }
-    if (!isEnvelope(body)) throw new CactiGrowApiError('invalid-response', 'The CactiGrow service returned an invalid response.')
-    if (!body.ok) throw new CactiGrowApiError(response.status === 401 ? 'unauthenticated' : 'server', body.error.message, body.meta.requestId)
-    if (!response.ok || !validate(body.data)) throw new CactiGrowApiError('invalid-response', `The CactiGrow ${label} is invalid.`, body.meta.requestId)
+    try { body = await response.json() } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw error
+      throw this.unstructuredResponseError(response)
+    }
+    if (!isEnvelope(body)) throw this.unstructuredResponseError(response)
+    if (!body.ok) throw new CactiGrowApiError(response.status === 401 ? 'unauthenticated' : 'server', body.error.message, body.meta.requestId, response.status, body.error.code)
+    return body
+  }
+
+  private unstructuredResponseError(response: Response): CactiGrowApiError {
+    if (response.status === 401 || response.status === 403) return new CactiGrowApiError('unauthenticated', 'Access to CactiGrow was denied. Reload to check your session.', undefined, response.status)
+    if (response.status === 429) return new CactiGrowApiError('server', 'Too many requests. Please wait a moment before trying again.', undefined, response.status)
+    if (!response.ok) return new CactiGrowApiError('server', `The CactiGrow service returned HTTP ${response.status}. Please try again shortly.`, undefined, response.status)
+    return new CactiGrowApiError('invalid-response', 'The CactiGrow service returned an invalid response.', undefined, response.status)
+  }
+
+  private async execute<T>(path: string, init: RequestInit, validate: (value: unknown) => value is T, label: string, retryIdempotentPlant = false): Promise<T> {
+    const response = await this.fetchResponse(path, init, retryIdempotentPlant)
+    const body = await this.readEnvelope(response)
+    if (!response.ok || !validate(body.data)) throw new CactiGrowApiError('invalid-response', `The CactiGrow ${label} is invalid.`, body.meta.requestId, response.status)
     return body.data
   }
 }

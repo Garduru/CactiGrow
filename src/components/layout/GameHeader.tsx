@@ -7,12 +7,14 @@ import { usePlantLifecycle } from '../../app/usePlantLifecycle'
 import { usePlayerBootstrap } from '../../app/usePlayerBootstrap'
 import { getDeploymentMode } from '../../config/deploymentMode'
 import { getHeaderPlayerValues } from './headerPlayerModel'
+import { useGrowerAuthority } from '../../app/useGrowerAuthority'
 
 export function GameHeader() {
   const { state } = useGameState()
   const { player } = state
   const bootstrap = usePlayerBootstrap()
-  const values = getHeaderPlayerValues(getDeploymentMode(), { cultivationXp: player.skills.cultivation.xp, tokens: player.tokens }, bootstrap.status === 'authenticated' ? bootstrap.bootstrap : null)
+  const grower = useGrowerAuthority()
+  const values = getHeaderPlayerValues(getDeploymentMode(), { cultivationXp: player.skills.cultivation.xp, tokens: player.tokens }, bootstrap.status === 'authenticated' ? bootstrap.bootstrap : null, grower.state.authority === 'server' && grower.state.status === 'ready' ? grower.state.projection : null)
   const progression = getProgressionSnapshot(values.cultivationXp)
   const lifecycle = usePlantLifecycle()
   const seedCount = lifecycle.state.authority === 'server' && lifecycle.state.status === 'ready'

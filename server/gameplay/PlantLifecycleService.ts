@@ -218,7 +218,9 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       const [occupied] = await tx.select({ specimenId: nurseryOccupancies.specimenId }).from(nurseryOccupancies).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.slotId, command.slotId))).limit(1)
       if (occupied) throw safeConflict('SLOT_OCCUPIED', 'That Nursery position is already occupied.')
       const [line] = await tx.select().from(cloneLines).where(eq(cloneLines.id, seed.cloneLineId)).limit(1)
-      const [profile] = await tx.select().from(geneticProfiles).where(eq(geneticProfiles.cloneLineId, seed.cloneLineId)).for('update').limit(1)
+      // The owned seed lock serializes planting and treatment application. Reading
+      // established genetics must not require UPDATE privileges for untreated seeds.
+      const [profile] = await tx.select().from(geneticProfiles).where(eq(geneticProfiles.cloneLineId, seed.cloneLineId)).limit(1)
       const variants = await tx.select().from(cloneLineVariants).where(eq(cloneLineVariants.cloneLineId, seed.cloneLineId))
       if (!line || !profile) throw new Error('The bred seed has incomplete genetic identity.')
       const [treatmentRow] = await tx.select().from(bredSeedTreatments).where(and(eq(bredSeedTreatments.ownerPlayerId, playerId), eq(bredSeedTreatments.seedId, seed.id))).for('update').limit(1)

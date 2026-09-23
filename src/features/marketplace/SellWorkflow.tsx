@@ -3,6 +3,7 @@ import { getSpeciesById } from '../../data/species'
 import { useGameState } from '../../game/useGameState'
 import { MAX_LISTING_PRICE, isValidListingPrice } from './marketplaceModel'
 import { getNpcSaleValue } from './sellModel'
+import { CactiGrowApiError } from '../../services/api/CactiGrowApiClient'
 
 interface SellWorkflowProps {
   plantId: string
@@ -18,6 +19,8 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
   const [priceInput, setPriceInput] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState<Success | null>(null)
+  const submitting = useRef(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const plant = state.ownedPlants.find((specimen) => specimen.id === plantId)
@@ -30,7 +33,7 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        if (!submitting.current) onClose()
         return
       }
       if (event.key !== 'Tab') return
@@ -57,12 +60,24 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
   if (!plant && !success) return null
 
   async function confirmNpcSale() {
-    const value = await sellPlantToNpc(plantId)
-    if (value === null) {
-      setError('This specimen is no longer available to sell.')
-      return
+    if (submitting.current) return
+    submitting.current = true
+    setIsSubmitting(true)
+    setError('')
+    try {
+      const value = await sellPlantToNpc(plantId)
+      if (value === null) {
+        setError('This specimen is no longer available to sell.')
+        submitting.current = false
+        return
+      }
+      setSuccess({ kind: 'npc', value })
+    } catch (error) {
+      submitting.current = false
+      setError(error instanceof CactiGrowApiError ? error.message : 'The sale could not be completed. Please try again.')
+    } finally {
+      setIsSubmitting(false)
     }
-    setSuccess({ kind: 'npc', value })
   }
 
   async function confirmListing() {
@@ -81,7 +96,7 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
 
   return (
     <div className="sell-overlay">
-      <button className="plant-details__backdrop" type="button" onClick={onClose} aria-label="Close sell workflow" />
+      <button className="plant-details__backdrop" type="button" onClick={onClose} disabled={isSubmitting} aria-label="Close sell workflow" />
       <section
         className="sell-workflow"
         ref={panelRef}
@@ -95,7 +110,7 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
             <h2 id="sell-title">Sell {species?.commonName ?? 'specimen'}</h2>
             {plant && <em>{plant.id}</em>}
           </div>
-          <button className="plant-details__close" ref={closeRef} type="button" onClick={onClose} aria-label="Close sell workflow">&times;</button>
+          <button className="plant-details__close" ref={closeRef} type="button" onClick={onClose} disabled={isSubmitting} aria-label="Close sell workflow">&times;</button>
         </header>
 
         {success ? (
@@ -129,8 +144,8 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
             <p className="sell-warning">This permanently removes the specimen from your Garden.</p>
             {error && <p className="form-error" role="alert">{error}</p>}
             <div className="sell-controls">
-              <button type="button" onClick={() => setMode('choose')}>Back</button>
-              <button className="nursery-button" type="button" onClick={confirmNpcSale}>Confirm NPC sale</button>
+              <button type="button" onClick={() => setMode('choose')} disabled={isSubmitting}>Back</button>
+              <button className="nursery-button" type="button" onClick={confirmNpcSale} disabled={isSubmitting}>{isSubmitting ? 'Selling...' : 'Confirm NPC sale'}</button>
             </div>
           </div>
         ) : (

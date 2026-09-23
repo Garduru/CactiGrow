@@ -28,7 +28,7 @@
     "test:db": "node --experimental-strip-types --test --test-isolation=none server/db/integration.test.ts"
     ,"db:provision:development-seeds": "node --experimental-strip-types server/development/provisionSeedFixtures.ts",
     "db:provision:staging-seeds": "node --experimental-strip-types server/staging/provisionSeedFixtures.ts",
-    "test:e1": "node --experimental-strip-types --test --test-isolation=none server/gameplay/plantLifecycleRules.test.ts server/gameplay/breedingRules.test.ts"
+    "test:e1": "node --experimental-strip-types --test --test-isolation=none server/gameplay/plantLifecycleRules.test.ts server/gameplay/breedingRules.test.ts server/gameplay/bredSeedPlanting.test.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.7",

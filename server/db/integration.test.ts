@@ -25,6 +25,7 @@ import { createAchievementProgress } from '../../src/features/achievements/achie
 import { GardenService } from '../gameplay/GardenService.ts'
 import { GrowerAlphaService } from '../gameplay/GrowerAlphaService.ts'
 import { XP_THRESHOLDS } from '../../src/features/progression/progressionModel.ts'
+import { getNpcSaleValue } from '../../src/features/marketplace/sellModel.ts'
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL
 const databaseTestsEnabled = process.env.CACTIGROW_DATABASE_TESTS === '1'
@@ -251,8 +252,11 @@ test('PostgreSQL identity integration', {
     const saleCommandId = crypto.randomUUID()
     const beforeSale = await growerService.project(firstA.playerId)
     const sold = await growerService.execute(firstA.playerId, { type: 'sell-specimen-to-npc', commandId: saleCommandId, specimenId: bredCollected.specimen.specimenId })
-    assert.ok(sold.player.tokenBalance > beforeSale.player.tokenBalance)
+    const expectedSaleValue = getNpcSaleValue({ ...bredCollected.specimen, parentPlantIds: bredCollected.specimen.parentPlantIds ?? undefined, parentSpeciesIds: bredCollected.specimen.parentSpeciesIds ?? undefined, id: bredCollected.specimen.specimenId, ownerId: firstA.playerId, stage: 'mature', lastUpdatedAt: bredCollected.specimen.collectedAt!, collectedAt: bredCollected.specimen.collectedAt!, isHarvestable: false, isListedForSale: false })
+    assert.equal(sold.player.tokenBalance, beforeSale.player.tokenBalance + expectedSaleValue!)
     assert.deepEqual(await growerService.execute(firstA.playerId, { type: 'sell-specimen-to-npc', commandId: saleCommandId, specimenId: bredCollected.specimen.specimenId }), sold)
+    await assert.rejects(growerService.execute(firstA.playerId, { type: 'sell-specimen-to-npc', commandId: crypto.randomUUID(), specimenId: bredCollected.specimen.specimenId }))
+    assert.equal((await growerService.project(firstA.playerId)).player.tokenBalance, sold.player.tokenBalance)
     assert.equal((await lifecycle.getProjectionV2(firstA.playerId)).ownedSpecimens.some((entry) => entry.specimenId === bredCollected.specimen.specimenId), false)
     assert.equal((await growerService.project(firstB.playerId)).player.tokenBalance, 0)
     assert.ok((await growerService.project(firstA.playerId)).player.skills.cultivationXp > 0)

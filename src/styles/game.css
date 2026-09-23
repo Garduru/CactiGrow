@@ -435,7 +435,7 @@ button, input, select { font-family: var(--cg-font-ui); }
   min-height: 64px;
   padding: 10px 12px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   color: var(--cg-text);
@@ -1203,3 +1203,21 @@ button, input, select { font-family: var(--cg-font-ui); }
   color: var(--color-text, #ead9bd);
   text-align: center;
 }
+
+/* The shell owns the visible viewport; content and dialogs own their scrolling. */
+.game-header { flex: none; }
+.game-main { flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; }
+.game-main:has(> .world-page) { overflow: hidden; padding-bottom: var(--cg-space-sm); display: flex; flex-direction: column; }
+.game-main > .world-page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.world-page > .world-page__viewport { flex: 1; min-height: 0; }
+.world-page__viewport > .phaser-world-shell { height: 100%; min-height: 0; }
+.world-page__viewport .phaser-world-host { height: 100%; min-height: 0; }
+.deployment-access-state { overflow: auto; }
+.breeding-candidates > .breeding-candidate { display: flex; flex-direction: column; gap: 8px; padding: 14px; background: var(--cg-surface-raised); border: 2px solid var(--cg-border-strong); overflow-wrap: anywhere; min-width: 0; }
+.breeding-candidates > .breeding-candidate:hover { border-color: var(--cg-accent); }
+.breeding-candidates > .breeding-candidate[aria-pressed='true'] { border-color: var(--cg-accent); background: var(--cg-surface-selected); box-shadow: inset 0 0 0 1px var(--cg-accent); }
+.breeding-candidate__selected { font-weight: 700; font-size: 12px; }
+.breeding-section > p { overflow-wrap: anywhere; }
+.seed-option small { overflow-wrap: anywhere; }
+.seed-picker, .breeding-overlay { padding: max(var(--cg-page-gutter), env(safe-area-inset-top)) max(var(--cg-page-gutter), env(safe-area-inset-right)) max(var(--cg-page-gutter), env(safe-area-inset-bottom)) max(var(--cg-page-gutter), env(safe-area-inset-left)); }
+.seed-picker__panel, .breeding-workflow { max-height: calc(100dvh - max(var(--cg-page-gutter), env(safe-area-inset-top)) - max(var(--cg-page-gutter), env(safe-area-inset-bottom))); }

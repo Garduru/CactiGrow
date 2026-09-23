@@ -5,6 +5,96 @@ import { createDevelopmentCredentials } from './developmentCredentials.ts'
 import { loadPlayerBootstrapState } from '../../app/loadPlayerBootstrapState.ts'
 import { resolveDeploymentMode, resolveServerLifecycle } from '../../config/deploymentMode.ts'
 import { getHeaderPlayerValues } from '../../components/layout/headerPlayerModel.ts'
+import type { GrowerAlphaProjectionV1 } from '../../../shared/api/growerAlphaV1.ts'
+import { reconcilePlanting } from '../../app/reconcilePlanting.ts'
+import type { PlantLifecycleProjectionV3 } from '../../../shared/api/plantLifecycleV3.ts'
+
+test('HUD uses the live authoritative sale balance instead of the login snapshot', () => {
+  const live = { player: { tokenBalance: 75, skills: { cultivationXp: 100 } } } as GrowerAlphaProjectionV1
+  assert.deepEqual(getHeaderPlayerValues('staging', { tokens: 1216, cultivationXp: 315 }, null, live), { tokens: 75, cultivationXp: 100 })
+})
+
+const plantCommand = { slotId: 'slot-1' as const, speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 }
+const plantKey = '80000000-0000-4000-8000-000000000008'
+const plantResult = { commandId: plantKey, lifecycleVersion: '2', seedStack: { speciesId: 'echinopsis-pachanoi', quantity: 3, version: 2 }, slot: { slotId: 'slot-1' as const, occupancy: null } }
+
+test('lost planting response retries once with the identical receipt key and body', async () => {
+  const requests: RequestInit[] = []
+  const receipts = new Map<string, typeof plantResult>()
+  let consumed = 0
+  const client = new CactiGrowApiClient({ fetch: async (_path, init) => {
+    requests.push(init!)
+    const key = new Headers(init?.headers).get('idempotency-key')!
+    if (!receipts.has(key)) { receipts.set(key, plantResult); consumed += 1; throw new TypeError('Failed to fetch') }
+    return response({ ok: true, data: receipts.get(key), meta: { requestId: 'replay' } })
+  } })
+  assert.deepEqual(await client.plantCommoditySeedV3(plantCommand, plantKey), plantResult)
+  assert.equal(consumed, 1)
+  assert.equal(requests.length, 2)
+  assert.equal(requests[0].body, requests[1].body)
+  assert.equal(new Headers(requests[1].headers).get('idempotency-key'), plantKey)
+})
+
+test('network retries are bounded and never enabled for an unapproved mutation', async () => {
+  let calls = 0
+  const client = new CactiGrowApiClient({ fetch: async () => { calls++; throw new TypeError('Failed to fetch') } })
+  await assert.rejects(client.plantCommoditySeedV3(plantCommand, plantKey), (error: unknown) => error instanceof CactiGrowApiError && error.kind === 'network')
+  assert.equal(calls, 2)
+  calls = 0
+  await assert.rejects(client.mutateGrowerAlpha({ type: 'sell-specimen-to-npc', specimenId: plantKey, commandId: plantKey }))
+  assert.equal(calls, 1)
+})
+
+test('HTTP conflicts, rate limits, and server errors retain status and are never retried', async () => {
+  for (const status of [409, 429, 500]) {
+    let calls = 0
+    const client = new CactiGrowApiClient({ fetch: async () => { calls++; return response({ ok: false, error: { code: 'TEST_ERROR', message: 'Useful safe server message.' }, meta: { requestId: 'server-request' } }, status) } })
+    await assert.rejects(client.plantCommoditySeedV3(plantCommand, plantKey), (error: unknown) => error instanceof CactiGrowApiError && error.kind === 'server' && error.status === status && error.code === 'TEST_ERROR' && error.message === 'Useful safe server message.' && error.requestId === 'server-request')
+    assert.equal(calls, 1)
+  }
+})
+
+test('HTML edge errors and session redirects do not masquerade as network failures', async () => {
+  for (const status of [302, 403, 429, 502]) {
+    let calls = 0
+    const client = new CactiGrowApiClient({ fetch: async (_path, init) => { calls++; assert.equal(init?.redirect, 'manual'); return new Response('<html>Private infrastructure details</html>', { status }) } })
+    await assert.rejects(client.plantCommoditySeedV3(plantCommand, plantKey), (error: unknown) => error instanceof CactiGrowApiError && error.kind !== 'network' && error.status === status && !error.message.includes('Private infrastructure'))
+    assert.equal(calls, 1)
+  }
+})
+
+test('aborted fetches are preserved without connectivity errors or retries', async () => {
+  let calls = 0
+  const abort = new DOMException('Aborted', 'AbortError')
+  const client = new CactiGrowApiClient({ fetch: async () => { calls++; throw abort } })
+  await assert.rejects(client.plantCommoditySeedV3(plantCommand, plantKey), (error: unknown) => error === abort)
+  assert.equal(calls, 1)
+})
+
+test('plant reconciliation takes stack versions and occupancy only from the command result', () => {
+  const initial = { lifecycleVersion: '1', nursery: { capacity: 6, slots: [{ slotId: 'slot-1', occupancy: null }, { slotId: 'slot-2', occupancy: null }] }, seedStacks: [{ speciesId: 'echinopsis-pachanoi', quantity: 4, version: 1 }], bredSeeds: [] } as unknown as PlantLifecycleProjectionV3
+  const updated = reconcilePlanting(initial, plantResult)
+  assert.equal(updated.nursery.slots[0], plantResult.slot)
+  assert.equal(updated.nursery.slots[1], initial.nursery.slots[1])
+  assert.equal(updated.seedStacks[0], plantResult.seedStack)
+  assert.equal(updated.seedStacks[0].version, 2)
+  assert.equal(initial.seedStacks[0].quantity, 4)
+})
+
+test('V3 bred-seed rejection retains the actual user-facing server error', async () => {
+  const command = { slotId: 'slot-1' as const, seedId: '10000000-0000-4000-8000-000000000001' }
+  const client = new CactiGrowApiClient({ fetch: async (path, init) => {
+    assert.equal(path, '/api/v3/me/plant-lifecycle/commands/plant-bred-seed')
+    assert.deepEqual(JSON.parse(String(init?.body)), command)
+    return response({ ok: false, error: { code: 'SLOT_OCCUPIED', message: 'That Nursery position is already occupied.' }, meta: { requestId: 'plant-rejected' } }, 409)
+  } })
+  await assert.rejects(client.plantBredSeedV3(command, '20000000-0000-4000-8000-000000000002'), (error: unknown) => {
+    assert.ok(error instanceof CactiGrowApiError)
+    assert.equal(error.message, 'That Nursery position is already occupied.')
+    assert.equal(error.requestId, 'plant-rejected')
+    return true
+  })
+})
 
 const projection = {
   projectionVersion: 1,
