@@ -1,8 +1,6 @@
 import type { TownWorldLocationId, TownWorldSpawnId } from './worldTypes'
-
-export const TOWN_WORLD_WIDTH = 2200
-export const TOWN_WORLD_HEIGHT = 1500
-export const TOWN_PLAYER_SPAWN = { x: 1100, y: 1280 } as const
+import { TOWN_ENTRY_POINTS } from '../../shared/realtime/areas.ts'
+export { TOWN_WORLD_WIDTH, TOWN_WORLD_HEIGHT, TOWN_PLAYER_SPAWN } from '../../shared/realtime/areas.ts'
 
 export interface TownColliderLayout {
   id: string
@@ -42,8 +40,4 @@ export const townWorldLayout: readonly TownLocationLayout[] = [
   { id: 'farm', x: 1100, y: 1420, width: 340, height: 90, interactionX: 1100, interactionY: 1370, interactionRadius: 130, approachX: 1100, approachY: 1300, tapRadius: 220, visualKind: 'farm-exit' },
 ]
 
-export const townWorldSpawns: Readonly<Record<TownWorldSpawnId, Readonly<{ x: number; y: number }>>> = {
-  'farm-arrival': TOWN_PLAYER_SPAWN,
-  'shop-exterior': { x: 650, y: 560 },
-  'marketplace-exterior': { x: 1510, y: 590 },
-}
+export const townWorldSpawns: Readonly<Record<TownWorldSpawnId, Readonly<{ x: number; y: number }>>> = TOWN_ENTRY_POINTS
