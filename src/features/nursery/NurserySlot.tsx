@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react'
 import { getSpeciesById } from '../../data/species'
 import { ProgressBar } from '../../components/ui/ProgressBar'
 import { calculateNurseryGrowth, type NurserySlotState } from './nurseryModel'
@@ -15,7 +16,7 @@ interface NurserySlotProps {
   slotNumber: number
   now: number
   onPlant: (slotId: string) => void
-  onCollect: (slotId: string) => void
+  onCollect: (slotId: string) => void | boolean | Promise<boolean>
   readOnly?: boolean
   variegationPattern?: VariegationPattern
   growthDurationMs?: number
@@ -31,6 +32,25 @@ export function NurserySlot({
   variegationPattern,
   growthDurationMs = MOCK_GROWTH_DURATION_MS,
 }: NurserySlotProps) {
+  const submitting = useRef(false)
+  const [collecting, setCollecting] = useState(false)
+  const [collectionError, setCollectionError] = useState('')
+
+  async function collectPlant() {
+    if (submitting.current) return
+    submitting.current = true
+    setCollecting(true)
+    setCollectionError('')
+    try {
+      if (await onCollect(slot.id) === false) setCollectionError('Collection could not be completed. Please try again.')
+    } catch {
+      setCollectionError('Collection could not be completed. Please try again.')
+    } finally {
+      submitting.current = false
+      setCollecting(false)
+    }
+  }
+
   if (!slot.plant) {
     return (
       <article className="nursery-slot nursery-slot--empty">
@@ -76,11 +96,12 @@ export function NurserySlot({
         <div><dt>Planted</dt><dd>{new Date(slot.plant.plantedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</dd></div>
         <div><dt>Time</dt><dd>{remainingLabel}</dd></div>
       </dl>
-      <ProgressBar value={percent} max={100} label="Growth" />
+      <ProgressBar value={percent} max={100} displayValue={`${percent}%`} ariaLabel="Growth progress" />
       {treatment?.resolution ? <div className="nursery-treatment" title={`Resolved treatment from extract ${treatment.extractId}`}><span>{extractTargetLabels[treatment.target]}</span><strong>{treatment.resolution.originalValue} → {treatment.resolution.finalValue}</strong><Badge tone="success">+{treatment.resolution.gain}</Badge></div> : <TreatmentHistory treatments={slot.plant.quantitativeTreatments} compact />}
+      {collectionError && <p role="alert">{collectionError}</p>}
       {growth.isMature && !readOnly && (
-        <button className="nursery-button nursery-button--collect" type="button" onClick={(event) => { event.currentTarget.disabled = true; onCollect(slot.id) }}>
-          Collect Plant
+        <button className="nursery-button nursery-button--collect" type="button" disabled={collecting} onClick={() => void collectPlant()}>
+          {collecting ? 'Collecting...' : 'Collect Plant'}
         </button>
       )}
     </article>

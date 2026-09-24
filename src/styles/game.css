@@ -58,26 +58,30 @@ button, input, select { font-family: var(--cg-font-ui); }
 :where(.plant-details__close, .seed-picker__close, .treatment-workflow > header > button) { transition: color var(--cg-motion-fast), background var(--cg-motion-fast), border-color var(--cg-motion-fast); }
 :where(.plant-details__close, .seed-picker__close, .treatment-workflow > header > button):hover { color: var(--cg-text); background: var(--cg-surface-hover); border-color: var(--cg-border-interactive); }
 
-.game-header { border-bottom: 1px solid var(--cg-border); background: linear-gradient(180deg, #211913, var(--cg-surface)); box-shadow: 0 5px 18px #0003; }
+.game-header { position: relative; z-index: 150; border-bottom: 1px solid var(--cg-border); background: linear-gradient(180deg, #211913, var(--cg-surface)); box-shadow: 0 5px 18px #0003; }
 .game-header__inner { width: min(calc(100% - 2 * var(--cg-page-gutter)), var(--cg-content-width)); min-height: var(--cg-header-height); margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: var(--cg-card-gap); padding-block: var(--cg-header-padding); }
 .game-header__brand { display: flex; flex-shrink: 0; align-items: center; justify-content: center; min-width: 58px; min-height: var(--cg-touch-target); }
 .game-header__brand img { display: block; height: 48px; width: auto; object-fit: contain; }
+.game-header__stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.game-header__stat > span { color: var(--cg-text-muted); font-size: 11px; }
+.game-header__stat strong { font-size: 13px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .game-header__player { display: flex; align-items: center; gap: clamp(10px, 2vw, 24px); min-width: 0; }
-.game-header__stat, .game-header__inventory { display: flex; flex-direction: column; gap: 2px; }
-.game-header__stat > span, .game-header__inventory > span { color: var(--cg-text-muted); font-size: 11px; }
-.game-header__stat strong, .game-header__inventory strong { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.game-header__inventory { justify-content: center; min-height: var(--cg-touch-target); padding: 4px 10px; border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); background: var(--cg-surface-raised); }
-.game-header__inventory:hover { background: var(--cg-surface-hover); border-color: var(--cg-border-strong); }
 .game-header__level { width: 152px; }
 .game-header__level-title { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; margin-bottom: 2px; }
 .game-header__level-title span { color: var(--cg-text-muted); }
 .game-header__level-title .game-header__skill-name { color: var(--cg-text); }
+.game-header__backpack { flex-shrink: 0; display: flex; align-items: center; justify-content: center; min-width: var(--cg-touch-target); min-height: var(--cg-touch-target); padding: 8px; color: var(--cg-text); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); cursor: pointer; text-decoration: none; }
+.game-header__backpack:hover { background: var(--cg-surface-hover); border-color: var(--cg-border-strong); }
+.game-header__menu { flex-shrink: 0; position: relative; }
+.game-header__menu-toggle { display: flex; align-items: center; justify-content: center; min-width: var(--cg-touch-target); min-height: var(--cg-touch-target); padding: 8px; color: var(--cg-text); background: var(--cg-surface-raised); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); cursor: pointer; }
+.game-header__menu-toggle:hover { background: var(--cg-surface-hover); border-color: var(--cg-border-strong); }
 .progress__info { display: flex; justify-content: space-between; gap: 5px; font-size: 10px; color: var(--cg-text-muted); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
 .progress__track { height: 4px; background: var(--cg-border); overflow: hidden; border-radius: 999px; }
+.nursery-slot .progress__track { height: 6px; }
 .progress__fill { height: 100%; background: var(--cg-accent); border-radius: inherit; }
 .skip-link { position: fixed; left: 12px; top: -100px; z-index: 300; padding: 12px; background: var(--cg-surface); border-radius: 8px; }
 .skip-link:focus { top: 8px; }
-.game-main { width: min(calc(100% - 2 * var(--cg-page-gutter)), var(--cg-content-width)); margin: 0 auto; padding: var(--cg-section-space) 0 var(--cg-shell-bottom-space); }
+.game-main { width: min(calc(100% - 2 * var(--cg-page-gutter)), var(--cg-content-width)); margin: 0 auto; padding: var(--cg-section-space) 0 var(--cg-shell-bottom-space); display: flex; flex-direction: column; }
 .eyebrow { color: var(--cg-accent); text-transform: uppercase; letter-spacing: .16em; font-size: 10px; font-weight: 600; }
 .farm-world { position: relative; isolation: isolate; width: min(100%, var(--cg-world-width)); aspect-ratio: 16 / 10; min-height: 560px; margin-inline: auto; overflow: hidden; border: 1px solid #4b3a2a; border-radius: var(--cg-radius-lg); background: radial-gradient(ellipse at 53% 42%, #4a3c29 0%, #2c2820 58%, #211c17 100%); }
 .farm-world::before { content: ''; position: absolute; inset: 0; z-index: -1; opacity: .22; background-image: radial-gradient(#c7a272 .8px, transparent .8px); background-size: 21px 23px; pointer-events: none; }
@@ -96,8 +100,7 @@ button, input, select { font-family: var(--cg-font-ui); }
 .location-page__content { min-width: 0; margin-top: clamp(8px, 1.5vw, 14px); padding: clamp(16px, 3vw, 40px); background: var(--cg-surface); border: 1px solid var(--cg-border); border-radius: var(--cg-radius-md); }
 .location-page__content h2 { margin: 0; font-size: 32px; }
 .location-page__content p { max-width: 640px; margin-bottom: 0; }
-.utility-menu { position: fixed; right: max(var(--cg-page-gutter), env(safe-area-inset-right)); bottom: max(var(--cg-page-gutter), env(safe-area-inset-bottom)); z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-.utility-menu__panel { width: min(210px, calc(100vw - 2 * var(--cg-page-gutter))); max-height: calc(100dvh - var(--cg-touch-target) - 3 * var(--cg-page-gutter)); overflow-y: auto; padding: 4px; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: 12px; box-shadow: 0 12px 36px #0007; }
+.utility-menu__panel { position: absolute; top: calc(100% + 6px); right: 0; width: min(210px, calc(100vw - 2 * var(--cg-page-gutter))); max-height: calc(100dvh - max(var(--cg-header-height), 56px) - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; padding: 4px; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: 12px; box-shadow: 0 12px 36px #0007; z-index: 1000; }
 .utility-menu__panel button, .utility-menu__panel a { display: flex; align-items: center; width: 100%; min-height: 36px; padding: 6px 10px; text-align: left; background: transparent; border: 0; border-radius: 7px; color: var(--cg-text-muted); font-size: 12px; }
 .utility-menu__panel button { cursor: pointer; }
 .utility-menu__panel button[aria-disabled='true'] { cursor: default; }
@@ -108,9 +111,6 @@ button, input, select { font-family: var(--cg-font-ui); }
 .utility-menu__section-items { padding: 0 3px 3px; }
 .utility-menu__section-items a, .utility-menu__section-items button { padding-left: 14px; }
 .utility-menu__standalone { border-radius: 0 !important; color: var(--cg-text) !important; font-weight: 700; }
-.utility-menu__toggle { min-width: 92px; height: var(--cg-touch-target); padding: 0 12px; display: grid; place-items: center; color: var(--cg-text); font-size: 12px; font-weight: 700; border: 1px solid #eb966e77; border-radius: var(--cg-radius-sm); background: #a84f31; box-shadow: 0 6px 20px #0006; cursor: pointer; }
-.utility-menu__toggle:hover { background: var(--cg-accent-hover); }
-.utility-menu__toggle[aria-expanded='true'] { background: var(--cg-surface-elevated); border-color: var(--cg-accent); }
 @media (max-width: 720px) {
   .game-header__level { width: clamp(110px, 25vw, 132px); }
   .farm-world { aspect-ratio: 4 / 5; min-height: 440px; max-height: 720px; }
@@ -123,12 +123,12 @@ button, input, select { font-family: var(--cg-font-ui); }
   .game-header__brand { width: clamp(44px, 12vw, 54px); min-width: 44px; }
   .game-header__brand img { width: auto; max-width: 100%; height: clamp(32px, 9.5vw, 42px); }
   .game-header__player { flex: 1 1 auto; justify-content: space-between; gap: clamp(3px, 1.5vw, 6px); min-width: 0; }
-  .game-header__stat > span, .game-header__inventory > span { font-size: 10px; }
-  .game-header__stat strong, .game-header__inventory strong { font-size: 12px; }
-  .game-header__inventory { flex-shrink: 0; padding-inline: clamp(4px, 1.5vw, 7px); }
+  .game-header__stat > span { font-size: 10px; }
+  .game-header__stat strong { font-size: 12px; }
   .game-header__level { flex: 1 1 88px; width: auto; min-width: 78px; max-width: 112px; }
+  .game-header__level-title > span { display: none; }
   .game-header__level-title { gap: 3px; font-size: 10px; }
-  .game-header__level .progress__info { gap: 3px; font-size: 9px; }
+  .game-header__level .progress__info { flex-wrap: wrap; gap: 3px; font-size: 9px; }
   .farm-world { min-height: 430px; }
   .farm-world__locations { padding-inline: 8px; }
   .farm-world { border-radius: 14px; }
@@ -1357,8 +1357,7 @@ button, input, select { font-family: var(--cg-font-ui); }
   }
 
   .game-header__brand img { height: 40px; }
-  .game-header__inventory { min-height: var(--cg-touch-target); }
-  .game-main { padding-top: 10px; }
+  .game-main { padding-top: 10px; padding-bottom: 0; }
   .farm-world { aspect-ratio: 16 / 9; min-height: 380px; }
   .farm-world__locations { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-areas: "nursery garden home lab shop market"; gap: 3px; padding: 8px 5px 42px; }
   .location-art { width: min(100%, 112px); max-height: 82px; }
@@ -1383,34 +1382,20 @@ button, input, select { font-family: var(--cg-font-ui); }
   .breeding-section { margin-top: 12px; }
   .sell-workflow { padding-block: 14px; }
   .sell-choices, .sell-confirmation, .sell-success { margin-top: 12px; }
-  .utility-menu { bottom: max(8px, env(safe-area-inset-bottom)); }
   .journal-entry { min-height: 230px; }
   .research-workflow { padding-block: 14px; }
   .research-identity, .research-knowledge__section, .research-workflow__actions { margin-top: 10px; }
 }
 
 /* Shared Phaser Farm and Town world surfaces. */
-.world-page { width: min(100%, var(--cg-world-width)); margin-inline: auto; }
-.world-page__header { display: flex; align-items: end; justify-content: space-between; gap: var(--cg-space-md); margin-bottom: var(--cg-space-sm); }
-.world-page__header h1 { margin: 2px 0 0; font: 700 var(--cg-font-section-title) var(--cg-font-display); }
-.world-page__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--cg-space-xs); }
-.world-page__instructions { margin: 0 0 var(--cg-space-sm); color: var(--cg-text-secondary); font-size: 13px; }
-.world-page__viewport { position: relative; isolation: isolate; }
-.phaser-world-shell { position: relative; }
-.phaser-world-host { width: 100%; height: clamp(420px, calc(100dvh - 190px), 720px); overflow: hidden; border: 1px solid var(--cg-border-interactive); border-radius: var(--cg-radius-lg); background: #17120f; box-shadow: var(--cg-shadow-panel); }
+.world-page { width: min(100%, var(--cg-world-width)); margin-inline: auto; display: flex; flex-direction: column; height: 100%; }
+.world-page__viewport { flex: 1; min-height: 0; position: relative; isolation: isolate; border: 1px solid var(--cg-border); border-radius: 0 0 var(--cg-radius-lg) var(--cg-radius-lg); overflow: hidden; background: #17120f; box-shadow: var(--cg-shadow-panel); }
+.phaser-world-shell { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+.phaser-world-host { flex: 1; min-height: 0; width: 100%; overflow: hidden; }
 .phaser-world-host canvas { display: block; width: 100%; height: 100%; outline: none; touch-action: none; }
 .phaser-world-host canvas:focus-visible { outline: 3px solid var(--cg-accent); outline-offset: -4px; }
 .world-page__loading { width: min(100%, var(--cg-world-width)); margin: var(--cg-space-lg) auto; }
-.world-hud { position: absolute; z-index: 20; inset: 0; pointer-events: none; }
-.world-hud__control { position: absolute; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 1; min-width: 72px; min-height: var(--cg-touch-target); padding: 8px 12px; color: var(--cg-text); background: #251d18eF; border: 1px solid #ad6848; border-radius: var(--cg-radius-sm); box-shadow: 0 5px 18px #0009; font-size: 12px; font-weight: 700; cursor: pointer; pointer-events: auto; backdrop-filter: blur(5px); }
-.world-hud__control:hover, .world-hud__control[aria-expanded='true'] { background: #543522f2; border-color: var(--cg-accent); }
-.world-hud__chat { left: max(10px, env(safe-area-inset-left)); }
-.world-hud__center > .world-hud__control { left: 50%; transform: translateX(-50%); }
-.world-hud__right > .world-hud__control { right: max(10px, env(safe-area-inset-right)); min-width: 92px; }
-.world-hud__popover, .world-hud__right > .utility-menu__panel { position: absolute; bottom: calc(max(10px, env(safe-area-inset-bottom)) + var(--cg-touch-target) + 8px); z-index: 2; max-height: calc(100% - var(--cg-touch-target) - 30px); overflow-y: auto; pointer-events: auto; }
-.world-hud__popover { left: 50%; width: min(220px, calc(100% - 20px)); padding: 5px; transform: translateX(-50%); color: var(--cg-text); background: #191411f5; border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-md); box-shadow: 0 12px 36px #000a; }
-.world-hud__right > .utility-menu__panel { right: max(10px, env(safe-area-inset-right)); width: min(210px, calc(100% - 20px)); }
-.world-chat-hud { position: absolute; left: max(10px, env(safe-area-inset-left)); bottom: calc(max(10px, env(safe-area-inset-bottom)) + var(--cg-touch-target) + 8px); z-index: 2; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: min(420px, calc(100% - 20px)); height: clamp(180px, 32%, 240px); max-height: calc(100% - var(--cg-touch-target) - 28px); overflow: hidden; color: var(--cg-text); background: #17120fe8; border: 1px solid #765039cc; border-radius: var(--cg-radius-md); box-shadow: 0 10px 30px #0009; pointer-events: auto; backdrop-filter: blur(5px); }
+.world-chat-hud { position: absolute; z-index: 100; left: max(10px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom)); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: min(420px, calc(100% - 20px)); height: clamp(200px, 40%, 260px); max-height: calc(100% - 28px); overflow: hidden; color: var(--cg-text); background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: var(--cg-radius-md); box-shadow: 0 10px 30px #0009; pointer-events: auto; }
 .world-chat-hud__tabs { display: flex; gap: 3px; padding: 5px; border-bottom: 1px solid var(--cg-border); }
 .world-chat-hud__tabs button { min-height: 34px; padding: 5px 12px; color: var(--cg-text-muted); background: transparent; border: 1px solid transparent; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; }
 .world-chat-hud__tabs button:hover, .world-chat-hud__tabs button:focus-visible { color: var(--cg-text); background: var(--cg-surface-hover); }
@@ -1424,9 +1409,6 @@ button, input, select { font-family: var(--cg-font-ui); }
 .world-chat-hud__composer input { width: 100%; padding: 7px 9px; }
 .world-chat-hud__composer button { padding-inline: 11px; }
 .world-chat-hud__composer :disabled { color: var(--cg-text-disabled); cursor: not-allowed; }
-.world-travel > strong { display: block; padding: 7px 10px 5px; color: var(--cg-text-secondary); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-.world-travel button { display: flex; align-items: center; width: 100%; min-height: 38px; padding: 7px 10px; color: var(--cg-text-secondary); background: transparent; border: 0; border-radius: 7px; font-size: 12px; text-align: left; cursor: pointer; }
-.world-travel button:hover, .world-travel button:focus-visible { color: var(--cg-text); background: var(--cg-surface-hover); outline-offset: -2px; }
 .world-editor { position: absolute; z-index: 5; top: 12px; right: 12px; width: min(310px, calc(100% - 24px)); max-height: calc(100% - var(--cg-touch-target) - 42px); overflow: auto; padding: 12px; border: 1px solid #a77846; border-radius: 10px; background: #211a16f2; color: #f3dfc1; box-shadow: 0 8px 28px #0009; font: 12px system-ui, sans-serif; }
 .world-editor__header, .world-editor__buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; justify-content: space-between; }
 .world-editor__header { margin-bottom: 8px; }
@@ -1446,21 +1428,25 @@ button, input, select { font-family: var(--cg-font-ui); }
 .world-editor__check { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
 .world-editor p[role='status'] { min-height: 1em; margin: 6px 0 0; color: #d9b985; }
 
+/* Top world navigation row */
+.world-nav { position: relative; z-index: 110; display: flex; align-items: center; gap: 0; padding: 6px var(--cg-page-gutter); background: var(--cg-surface); border-bottom: 1px solid var(--cg-border); flex-shrink: 0; }
+.world-nav__control { min-width: 72px; min-height: var(--cg-control-height); padding: 8px 12px; color: var(--cg-text); background: var(--cg-surface-raised); border: 1px solid var(--cg-border-interactive); border-radius: var(--cg-radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; }
+.world-nav__control:hover, .world-nav__control[aria-expanded='true'] { background: var(--cg-surface-hover); border-color: var(--cg-accent); }
+.world-nav__chat { color: var(--cg-accent); border-color: var(--cg-accent); }
+.world-nav__spacer { flex: 1; min-width: 0; }
+.world-nav__group { display: flex; align-items: center; gap: var(--cg-space-xs); }
+.world-nav__travel { position: relative; display: inline-flex; flex-direction: column; align-items: center; }
+.world-nav__popover { position: absolute; top: calc(100% + 8px); left: 50%; right: auto; transform: translateX(-50%); z-index: 1000; max-height: calc(100dvh - 200px); overflow-y: auto; pointer-events: auto; background: var(--cg-surface); border: 1px solid var(--cg-border-strong); border-radius: 12px; box-shadow: 0 12px 36px #0007; }
+.world-nav__popover.world-travel { width: max-content; max-width: calc(100vw - 40px); }
+.world-nav__popover button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 38px; padding: 7px 14px; color: var(--cg-text-secondary); background: transparent; border: 0; border-radius: 7px; font-size: 12px; text-align: center; cursor: pointer; }
+.world-nav__popover button:hover, .world-nav__popover button:focus-visible { color: var(--cg-text); background: var(--cg-surface-hover); outline-offset: -2px; }
+
 @media (max-width: 620px) {
-  .world-page__header { align-items: flex-start; }
-  .world-page__instructions { font-size: 12px; }
-  .phaser-world-host { height: max(440px, calc(100dvh - 210px)); border-radius: var(--cg-radius-md); }
-  .world-hud__control { min-width: 64px; padding-inline: 9px; font-size: 11px; }
-  .world-hud__right > .world-hud__control { min-width: 84px; }
-  .world-chat-hud { width: calc(100% - 20px); height: clamp(180px, 42%, 230px); }
+  .world-chat-hud { width: calc(100% - 20px); height: clamp(200px, 42%, 240px); }
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  .world-page__header .eyebrow, .world-page__instructions { display: none; }
-  .world-page__header { margin-bottom: var(--cg-space-xs); }
-  .phaser-world-host { height: max(300px, calc(100dvh - 98px)); }
-  .world-hud__popover, .world-hud__right > .utility-menu__panel { bottom: calc(max(8px, env(safe-area-inset-bottom)) + var(--cg-touch-target) + 6px); max-height: calc(100% - 62px); }
-  .world-chat-hud { bottom: calc(max(8px, env(safe-area-inset-bottom)) + var(--cg-touch-target) + 6px); height: min(180px, calc(100% - var(--cg-touch-target) - 28px)); }
+  .world-chat-hud { bottom: max(8px, env(safe-area-inset-bottom)); height: min(180px, calc(100% - var(--cg-touch-target) - 28px)); }
 }
 
 /* Nursery greenhouse */
@@ -1575,12 +1561,11 @@ button, input, select { font-family: var(--cg-font-ui); }
 @media (max-width: 440px) {
   .cg-location-header__title-row { align-items: flex-start; flex-direction: column; }
   .cg-location-header__actions > * { max-width: 100%; }
-  .utility-menu { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
   :where(.seed-picker__panel, .plant-details, .breeding-workflow, .sell-workflow, .research-workflow, .treatment-workflow) { border-radius: var(--cg-radius-md); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cg-button, .utility-menu__toggle, :where(.plant-details__close, .seed-picker__close, .treatment-workflow > header > button) { transition: none; }
+  .cg-button, :where(.plant-details__close, .seed-picker__close, .treatment-workflow > header > button) { transition: none; }
 }
 .deployment-access-state {
   width: min(34rem, calc(100% - 2 * var(--page-gutter)));
@@ -1593,7 +1578,7 @@ button, input, select { font-family: var(--cg-font-ui); }
 /* The shell owns the visible viewport; content and dialogs own their scrolling. */
 .game-header { flex: none; }
 .game-main { flex: 1; min-height: 0; min-width: 0; overflow-x: hidden; overflow-y: auto; }
-.game-main:has(> .world-page) { overflow: hidden; padding-bottom: var(--cg-space-sm); display: flex; flex-direction: column; }
+.game-main:has(> .world-page) { overflow: hidden; padding-top: 0; padding-bottom: var(--cg-space-sm); display: flex; flex-direction: column; }
 .game-main > .world-page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .world-page > .world-page__viewport { flex: 1; min-height: 0; }
 .world-page__viewport > .phaser-world-shell { height: 100%; min-height: 0; }
@@ -1607,3 +1592,7 @@ button, input, select { font-family: var(--cg-font-ui); }
 .seed-option small { overflow-wrap: anywhere; }
 .seed-picker, .breeding-overlay { padding: max(var(--cg-page-gutter), env(safe-area-inset-top)) max(var(--cg-page-gutter), env(safe-area-inset-right)) max(var(--cg-page-gutter), env(safe-area-inset-bottom)) max(var(--cg-page-gutter), env(safe-area-inset-left)); }
 .seed-picker__panel, .breeding-workflow { max-height: calc(100dvh - max(var(--cg-page-gutter), env(safe-area-inset-top)) - max(var(--cg-page-gutter), env(safe-area-inset-bottom))); }
+
+@media (pointer: coarse) {
+  .world-nav__popover button { min-height: var(--cg-touch-target); }
+}

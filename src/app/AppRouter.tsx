@@ -7,7 +7,6 @@ import { InventoryPage } from '../features/inventory/InventoryPage'
 import { ShopPage } from '../features/shop/ShopPage'
 import { MarketplacePage } from '../features/marketplace/MarketplacePage'
 import { GameHeader } from '../components/layout/GameHeader'
-import { UtilityMenu } from '../components/layout/UtilityMenu'
 import { PageLayout } from '../components/layout/PageLayout'
 import { AchievementsPage } from '../features/achievements/AchievementsPage'
 import { LevelUpNotice } from '../features/progression/LevelUpNotice'
@@ -57,7 +56,6 @@ export function AppRouter() {
         </Routes>
       </main>
 
-      <UtilityMenu />
       <SocialOverlay />
       <LevelUpNotice />
       </SocialPanelProvider>

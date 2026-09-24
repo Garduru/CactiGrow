@@ -25,8 +25,7 @@ export function InGameChatHud({ mode, onModeChange }: InGameChatHudProps) {
   const presentation = chatPresentation[mode]
 
   function containTyping(event: KeyboardEvent<HTMLElement>) {
-    event.stopPropagation()
-    if (event.key === 'Escape' && event.target instanceof HTMLElement) event.target.blur()
+    if (event.key !== 'Escape') event.stopPropagation()
   }
 
   function selectMode(event: MouseEvent<HTMLButtonElement>, nextMode: InGameChatMode) {

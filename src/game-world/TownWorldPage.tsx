@@ -1,7 +1,9 @@
-﻿import { useCallback } from 'react'
+import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { createFarmTownRoadEntryState, createTownReturnState, resolveTownSpawnId } from '../app/farmReturnNavigation'
-import { WorldHud } from '../components/layout/WorldHud'
+import { WorldNav } from '../components/layout/WorldNav'
+import { InGameChatHud } from '../features/social/InGameChatHud'
+import { useSocialPanel } from '../features/social/useSocialPanel'
 import { createTownWorldGame } from './createTownWorldGame'
 import { PhaserWorldHost } from './PhaserWorldHost'
 import { townWorldProjection } from './townWorldProjection'
@@ -11,6 +13,7 @@ export function TownWorldPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const spawnId = resolveTownSpawnId(location.state)
+  const social = useSocialPanel()
   const handleIntent = useCallback((intent: WorldIntent) => {
     const destination = townWorldProjection.locations.find((location) => location.id === intent.locationId)
     if (!destination) return
@@ -20,18 +23,20 @@ export function TownWorldPage() {
   const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1], editor?: Parameters<typeof createTownWorldGame>[2]['editor']) => createTownWorldGame(parent, bridge, { spawnId, editor }), [spawnId])
 
   return (
-    <section className="world-page" aria-labelledby="town-world-title">
-      <header className="world-page__header">
-        <div><span className="eyebrow">Presentation graybox</span><h1 id="town-world-title">Town</h1></div>
-      </header>
-      <p className="world-page__instructions">Move with WASD or arrow keys, or click/tap the ground. Press E or click/tap a nearby destination to enter.</p>
+    <section className="world-page" aria-label="Town">
+      <WorldNav
+        sceneName="Town"
+        destinations={townWorldProjection.locations}
+        onTravel={(locationId) => handleIntent({ type: 'ENTER_LOCATION', locationId })}
+      />
       <div className="world-page__viewport">
         <PhaserWorldHost projection={townWorldProjection} onIntent={handleIntent} createGame={createGame} world="town" />
-        <WorldHud
-          sceneName="Town"
-          destinations={townWorldProjection.locations}
-          onTravel={(locationId) => handleIntent({ type: 'ENTER_LOCATION', locationId })}
-        />
+        {social.chatDockExpanded && (
+          <InGameChatHud
+            mode={social.activeTab === 'messages' ? 'messages' : 'world-chat'}
+            onModeChange={social.setActiveTab}
+          />
+        )}
       </div>
     </section>
   )

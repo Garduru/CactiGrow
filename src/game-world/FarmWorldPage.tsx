@@ -1,6 +1,8 @@
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { WorldHud } from '../components/layout/WorldHud'
+import { WorldNav } from '../components/layout/WorldNav'
+import { InGameChatHud } from '../features/social/InGameChatHud'
+import { useSocialPanel } from '../features/social/useSocialPanel'
 import { createFarmReturnState, createTownFarmArrivalState, resolveFarmSpawnId } from '../app/farmReturnNavigation'
 import { useGameState } from '../game/useGameState'
 import { createFarmWorldProjection } from './farmWorldProjection'
@@ -20,6 +22,7 @@ export function FarmWorldPage() {
   const location = useLocation()
   const spawnId = resolveFarmSpawnId(location.state)
   const [testGardenDisplay, setTestGardenDisplay] = useState<GardenDisplayProjection | null>(null)
+  const social = useSocialPanel()
   const testEnabled = import.meta.env.DEV && new URLSearchParams(location.search).has('plantTest')
   const projection = useMemo(() => {
     const serverPlants = lifecycle.state.authority === 'server' && lifecycle.state.status === 'ready' ? lifecycle.state.projection.ownedSpecimens : null
@@ -35,16 +38,20 @@ export function FarmWorldPage() {
   }, [navigate, projection])
 
   return (
-    <section className="world-page" aria-labelledby="world-page-title">
-      <header className="world-page__header"><h1 id="world-page-title">Farm</h1></header>
-      <p className="world-page__instructions">Move with WASD or arrow keys, or click/tap the ground. Press E or click/tap a nearby building to enter.</p>
+    <section className="world-page" aria-label="Farm">
+      <WorldNav
+        sceneName="Farm"
+        destinations={projection.locations}
+        onTravel={(locationId) => handleIntent({ type: 'ENTER_LOCATION', locationId })}
+      />
       <div className="world-page__viewport">
         <FarmWorldHost projection={projection} onIntent={handleIntent} spawnId={spawnId} />
-        <WorldHud
-          sceneName="Farm"
-          destinations={projection.locations}
-          onTravel={(locationId) => handleIntent({ type: 'ENTER_LOCATION', locationId })}
-        />
+        {social.chatDockExpanded && (
+          <InGameChatHud
+            mode={social.activeTab === 'messages' ? 'messages' : 'world-chat'}
+            onModeChange={social.setActiveTab}
+          />
+        )}
       </div>
       {testEnabled && PlantVisualTestTool && <Suspense fallback={null}><PlantVisualTestTool onGardenPreview={setTestGardenDisplay} /></Suspense>}
     </section>

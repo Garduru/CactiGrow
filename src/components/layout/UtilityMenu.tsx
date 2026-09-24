@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
-import { useSocialPanel } from '../../features/social/useSocialPanel'
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 type MenuSection = 'game' | 'social' | 'other'
 
@@ -65,68 +64,5 @@ function MenuDisclosure({ label, section, openSection, onToggle, children }: {
       </button>
       {expanded && <div className="utility-menu__section-items" id={panelId}>{children}</div>}
     </section>
-  )
-}
-
-export function UtilityMenu() {
-  const location = useLocation()
-  const { openPanel, setChatDockExpanded } = useSocialPanel()
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const toggleRef = useRef<HTMLButtonElement>(null)
-  const isWorldRoute = location.pathname === '/' || location.pathname === '/farm' || location.pathname === '/world-preview' || location.pathname === '/town'
-
-  useEffect(() => {
-    if (!open) return
-
-    function dismissOutside(event: PointerEvent) {
-      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) setOpen(false)
-    }
-
-    function dismissEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setOpen(false)
-        toggleRef.current?.focus()
-      }
-    }
-
-    document.addEventListener('pointerdown', dismissOutside)
-    document.addEventListener('keydown', dismissEscape)
-    return () => {
-      document.removeEventListener('pointerdown', dismissOutside)
-      document.removeEventListener('keydown', dismissEscape)
-    }
-  }, [open])
-
-  if (isWorldRoute) return null
-
-  function openSocial(tab: 'friends' | 'messages') {
-    setOpen(false)
-    setChatDockExpanded(false)
-    openPanel(tab)
-  }
-
-  return (
-    <div className="utility-menu" ref={containerRef}>
-      {open && (
-        <GameMenuPanel
-          id="utility-panel"
-          onDismiss={() => setOpen(false)}
-          onOpenChat={() => openSocial('messages')}
-          onOpenFriends={() => openSocial('friends')}
-        />
-      )}
-      <button
-        className="utility-menu__toggle"
-        ref={toggleRef}
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        aria-controls={open ? 'utility-panel' : undefined}
-        aria-label={`${open ? 'Close' : 'Open'} CactiGrow game menu`}
-      >
-        Game Menu
-      </button>
-    </div>
   )
 }
