@@ -95,6 +95,7 @@ export async function authenticateRequest(
   return {
     playerId: playerIdentity.playerId,
     requestId: context.requestId,
+    authorizationExpiresAt: externalIdentity.expiresAt,
     externalIdentity: {
       provider: externalIdentity.provider,
       subject: externalIdentity.subject,

@@ -16,6 +16,7 @@ import { GardenService } from '../gameplay/GardenService.ts'
 import { isGrowerAlphaCommandV1 } from '../../shared/api/growerAlphaV1.ts'
 import { GrowerAlphaService } from '../gameplay/GrowerAlphaService.ts'
 import { isCollectPlantCommandV3, isPlantBredSeedCommandV3, isPlantCommoditySeedCommandV3 } from '../../shared/api/plantLifecycleV3.ts'
+import { routeRealtime } from '../realtime/admissionRoutes.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -85,6 +86,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
   return async (context) => {
     const { request, env, requestId } = context
     const url = new URL(request.url)
+    if (url.pathname.startsWith('/api/v1/realtime/')) return routeRealtime(context, readJson, dependencies.authenticationConfigurationFactory)
 
     if (url.pathname === '/api/health') {
       if (request.method !== 'GET') throw ApiError.methodNotAllowed()

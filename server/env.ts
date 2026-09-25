@@ -8,6 +8,9 @@ export type WorkerEnv = Omit<CloudflareEnv, 'CACTIGROW_ENVIRONMENT' | 'CACTIGROW
   CACTIGROW_ACCESS_TEAM_DOMAIN?: string
   CACTIGROW_ACCESS_AUDIENCE?: string
   HYPERDRIVE?: Hyperdrive
+  AREA_PRESENCE?: DurableObjectNamespace
+  CACTIGROW_REALTIME_ENABLED?: string
+  CACTIGROW_REALTIME_ORIGIN?: string
 }
 
 export interface RuntimeMetadata {

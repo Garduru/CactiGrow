@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cactigrow-realtime-integration-local-only",
+  "main": "server/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  // Local connection supplied through CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE.
+  // Placeholder ID deliberately cannot point at an existing remote resource. Never deploy this config.
+  "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "00000000000000000000000000000000" }],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": ["/api/*"] },
+  "vars": {
+    "CACTIGROW_ENVIRONMENT": "development",
+    "CACTIGROW_VERSION": "0.0.0",
+    "CACTIGROW_REALTIME_ENABLED": "true",
+    "CACTIGROW_REALTIME_ORIGIN": "http://localhost:8787"
+  },
+  "durable_objects": { "bindings": [{ "name": "AREA_PRESENCE", "class_name": "AreaPresence" }] },
+  "exports": { "AreaPresence": { "type": "durable-object", "storage": "sqlite" } }
+}
