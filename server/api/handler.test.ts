@@ -219,6 +219,21 @@ test('unknown API routes return a structured 404', async () => {
   assert.equal(body.meta.requestId, 'request-test-1')
 })
 
+test('L2 exposes no public realtime admission or upgrade route in any environment', async () => {
+  for (const environment of ['development', 'test', 'staging', 'production'] as const) {
+    const database = new TrackingRequestDatabaseContext(1)
+    for (const path of ['/api/v1/realtime/admission', '/api/v1/realtime/areas/town', '/connect']) {
+      const response = await handleApiRequest(new Request(`http://localhost${path}`, {
+        headers: { Upgrade: 'websocket', 'X-CactiGrow-Trusted-Scope': '{"areaId":"town","playerId":"forged"}' },
+      }), { ...env, CACTIGROW_ENVIRONMENT: environment }, undefined, {
+        ...testOptions, createRequestDatabaseContext: () => database,
+      })
+      assert.equal(response.status, 404)
+    }
+    assert.equal(database.getCount, 0)
+  }
+})
+
 test('unexpected exceptions return a generic structured 500', async () => {
   const response = await handleApiRequest(
     new Request('http://localhost/api/health'),

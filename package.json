@@ -18,6 +18,7 @@
     "test:client": "node --experimental-strip-types --test --test-isolation=none src/services/api/CactiGrowApiClient.test.ts",
     "test:garden": "node --experimental-strip-types --test --test-isolation=none src/features/garden/gardenSale.test.ts server/gameplay/gardenSaleLock.test.ts",
     "test:realtime": "node --experimental-strip-types --test --test-isolation=none server/realtime/areas.test.ts server/realtime/layerAssignment.test.ts server/realtime/presenceState.test.ts server/realtime/protocolV1.test.ts server/realtime/realtimeAdmissionV1.test.ts",
+    "test:realtime:runtime": "node --experimental-strip-types --test --test-isolation=none server/realtime/AreaCoordinator.test.ts server/realtime/AreaPresence.runtime.test.ts",
     "check:worker": "npm run worker:types && npm run worker:types:check && tsc -p server/tsconfig.json && npm run test:worker",
     "dry-run:development": "wrangler deploy --dry-run --env development --config wrangler.jsonc --outdir .wrangler/dry-run-development",
     "dry-run:staging": "wrangler deploy --dry-run --env staging --config wrangler.jsonc --outdir .wrangler/dry-run-staging",
