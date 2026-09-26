@@ -8,11 +8,13 @@ import { createTownWorldGame } from './createTownWorldGame'
 import { PhaserWorldHost } from './PhaserWorldHost'
 import { townWorldProjection } from './townWorldProjection'
 import type { WorldIntent } from './worldTypes'
+import { useTownPresence } from './useTownPresence'
 
 export function TownWorldPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const spawnId = resolveTownSpawnId(location.state)
+  const { connection, status, enabled } = useTownPresence(spawnId)
   const social = useSocialPanel()
   const handleIntent = useCallback((intent: WorldIntent) => {
     const destination = townWorldProjection.locations.find((location) => location.id === intent.locationId)
@@ -20,7 +22,7 @@ export function TownWorldPage() {
     if (destination.id === 'farm') navigate('/', { state: createFarmTownRoadEntryState() })
     else navigate(destination.route, { state: createTownReturnState(destination.id) })
   }, [navigate])
-  const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1], editor?: Parameters<typeof createTownWorldGame>[2]['editor']) => createTownWorldGame(parent, bridge, { spawnId, editor }), [spawnId])
+  const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1], editor?: Parameters<typeof createTownWorldGame>[2]['editor']) => createTownWorldGame(parent, bridge, { spawnId, editor, connection }), [spawnId, connection])
 
   return (
     <section className="world-page" aria-label="Town">
@@ -30,6 +32,7 @@ export function TownWorldPage() {
         onTravel={(locationId) => handleIntent({ type: 'ENTER_LOCATION', locationId })}
       />
       <div className="world-page__viewport">
+        {enabled && <div className="town-multiplayer-status" role="status">{status}</div>}
         <PhaserWorldHost projection={townWorldProjection} onIntent={handleIntent} createGame={createGame} world="town" />
         {social.chatDockExpanded && (
           <InGameChatHud

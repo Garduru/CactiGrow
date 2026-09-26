@@ -14,3 +14,9 @@ export const browserApiClient = new CactiGrowApiClient({
   baseUrl: apiBaseUrl(),
   getCredentials: developmentCredentials,
 })
+
+// Capture the explicit development selection at bootstrap, before navigation drops the query.
+// Realtime must use the page's own origin; L3 deliberately rejects cross-origin admission.
+const realtimeDevelopmentCredentials = import.meta.env.MODE === 'development'
+  ? createDevelopmentCredentials(true, window.location.search) : undefined
+export const browserRealtimeApiClient = new CactiGrowApiClient({ getCredentials: () => realtimeDevelopmentCredentials })

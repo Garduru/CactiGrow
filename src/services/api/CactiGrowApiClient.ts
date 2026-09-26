@@ -1,4 +1,5 @@
 import type { ApiEnvelope } from '../../../shared/api/envelope.ts'
+import { isRealtimeCredentialsResponseV1, type RealtimeCredentialsRequestV1, type RealtimeCredentialsResponseV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
 import {
   isPlayerBootstrapV1,
   type PlayerBootstrapV1,
@@ -80,6 +81,11 @@ export class CactiGrowApiClient {
 
   async getPlayerBootstrap(signal?: AbortSignal): Promise<PlayerBootstrapResult> {
     return this.getBootstrap('/api/v1/me/bootstrap', isPlayerBootstrapV1, signal)
+  }
+
+  async requestRealtimeAdmission(input: RealtimeCredentialsRequestV1, signal?: AbortSignal): Promise<RealtimeCredentialsResponseV1> {
+    return this.execute('/api/v1/realtime/admission', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input), signal }, isRealtimeCredentialsResponseV1, 'realtime admission')
   }
 
   async getGrowerBootstrap(signal?: AbortSignal): Promise<PlayerBootstrapResult> {

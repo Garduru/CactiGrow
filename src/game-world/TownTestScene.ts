@@ -5,6 +5,9 @@ import type { TownWorldLocationProjection, TownWorldSpawnId } from './worldTypes
 import { WORLD_DEPTH } from './worldDepth'
 import { MARKETPLACE_V1_MAIN_ART, SHOP_V1_MAIN_ART } from './townArtAssets'
 import type { EditorObject, WorldEditorController } from './editor/worldEditorState'
+import type { AreaConnection } from '../services/realtime/AreaConnection'
+import type { Facing } from '../../shared/realtime/protocolV1'
+import { RemotePlayers } from './RemotePlayers'
 
 const PLAYER_SPEED = 245
 const CAMERA_ZOOM_FLOOR = 0.1
@@ -48,13 +51,16 @@ export class TownTestScene extends Phaser.Scene {
   private pinchStartDistance = 0
   private pinchStartZoom = 1
   private cameraDebugText: Phaser.GameObjects.Text | null = null
+  private readonly connection?: AreaConnection
+  private remotePlayers?: RemotePlayers
 
-  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: TownWorldSpawnId; editor?: WorldEditorController }) {
+  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: TownWorldSpawnId; editor?: WorldEditorController; connection?: AreaConnection }) {
     super('town-graybox')
     this.bridge = bridge
     this.debugWorld = debugWorld
     this.playerSpawn = options.editor?.getSnapshot().objects.flatMap((object) => object.returnSpawn?.id === options.spawnId ? [object.returnSpawn] : [])[0] ?? townWorldSpawns[options.spawnId]
     this.editor = options.editor
+    this.connection = options.connection
   }
 
   preload() {
@@ -69,6 +75,7 @@ export class TownTestScene extends Phaser.Scene {
     this.drawBoundary()
     this.createLocations(this.bridge.getProjection().locations.filter((location): location is TownWorldLocationProjection => location.id === 'shop' || location.id === 'market' || location.id === 'farm'))
     this.createPlayer()
+    this.setupPresence()
     this.createInput()
     this.configureCamera()
     if (this.editor) this.setupEditor()
@@ -86,6 +93,7 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   update() {
+    this.remotePlayers?.update(performance.now())
     const body = this.player.body as Phaser.Physics.Arcade.Body
     this.updateCameraZoom()
     if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.movementTarget = null; return }
@@ -223,6 +231,36 @@ export class TownTestScene extends Phaser.Scene {
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setCircle(27).setCollideWorldBounds(true)
     this.staticColliders.forEach((collider) => this.attachCollider(collider))
+  }
+
+  private setupPresence() {
+    const connection = this.connection
+    if (!connection) return
+    const remotes = new RemotePlayers((presence) => this.add.container(presence.position.x, presence.position.y, [
+      this.add.rectangle(0, -18, 34, 62, 0x58806b).setStrokeStyle(4, 0x2b1a13),
+      this.add.circle(0, -61, 20, 0xd39a6b).setStrokeStyle(4, 0x2b1a13),
+      this.add.text(0, -96, presence.label, { color: '#fff3dc', fontFamily: 'system-ui', fontSize: '14px' }).setOrigin(0.5),
+    ]).setDepth(WORLD_DEPTH.remotePlayers))
+    this.remotePlayers = remotes
+    const refresh = () => remotes.sync(connection.getSnapshot().remotes, performance.now())
+    const unsubscribe = connection.subscribe(refresh)
+    refresh()
+    let previous = { x: this.player.x, y: this.player.y }, facing: Facing = 'south'
+    const sample = () => {
+      const position = { x: this.player.x, y: this.player.y }
+      const dx = position.x - previous.x, dy = position.y - previous.y
+      const moving = Math.abs(dx) + Math.abs(dy) > 0.01
+      if (moving) facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'east' : 'west') : (dy > 0 ? 'south' : 'north')
+      connection.sampleMovement(position, facing, moving)
+      previous = position
+    }
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, sample)
+    const cleanup = () => {
+      unsubscribe(); remotes.clear(); this.events.off(Phaser.Scenes.Events.POST_UPDATE, sample)
+      this.events.off(Phaser.Scenes.Events.SHUTDOWN, cleanup); this.events.off(Phaser.Scenes.Events.DESTROY, cleanup)
+    }
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, cleanup)
+    this.events.once(Phaser.Scenes.Events.DESTROY, cleanup)
   }
 
   private createInput() {
