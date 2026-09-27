@@ -1,6 +1,6 @@
 import type { FarmInteriorLocationId, FarmWorldSpawnId, TownInteriorLocationId, TownWorldSpawnId } from '../game-world/worldTypes'
 
-export const CANONICAL_FARM_PATH = '/' as const
+export const CANONICAL_FARM_PATH = '/play' as const
 export const TOWN_WORLD_RETURN_PATH = '/town' as const
 export type InteriorReturnPath = typeof CANONICAL_FARM_PATH | typeof TOWN_WORLD_RETURN_PATH
 

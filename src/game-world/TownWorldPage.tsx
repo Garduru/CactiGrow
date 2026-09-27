@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { createFarmTownRoadEntryState, createTownReturnState, resolveTownSpawnId } from '../app/farmReturnNavigation'
+import { CANONICAL_FARM_PATH, createFarmTownRoadEntryState, createTownReturnState, resolveTownSpawnId } from '../app/farmReturnNavigation'
 import { WorldNav } from '../components/layout/WorldNav'
 import { InGameChatHud } from '../features/social/InGameChatHud'
 import { useSocialPanel } from '../features/social/useSocialPanel'
@@ -19,7 +19,7 @@ export function TownWorldPage() {
   const handleIntent = useCallback((intent: WorldIntent) => {
     const destination = townWorldProjection.locations.find((location) => location.id === intent.locationId)
     if (!destination) return
-    if (destination.id === 'farm') navigate('/', { state: createFarmTownRoadEntryState() })
+    if (destination.id === 'farm') navigate(CANONICAL_FARM_PATH, { state: createFarmTownRoadEntryState() })
     else navigate(destination.route, { state: createTownReturnState(destination.id) })
   }, [navigate])
   const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1], editor?: Parameters<typeof createTownWorldGame>[2]['editor']) => createTownWorldGame(parent, bridge, { spawnId, editor, connection }), [spawnId, connection])

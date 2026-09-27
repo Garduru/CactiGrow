@@ -47,10 +47,19 @@
     },
     "production": {
       "name": "cactigrow-api-production",
-      // "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "<production-hyperdrive-id>" }],
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [],
+      "hyperdrive": [],
+      // CUTOVER PENDING: after production prerequisites and explicit domain approval,
+      // replace routes with [{ "pattern": "cactigrow.com", "custom_domain": true }].
+      // Bind HYPERDRIVE only to a separately provisioned production database.
+      // See docs/OFFICIAL_WEBSITE_DEPLOYMENT.md; never copy staging bindings here.
       "vars": {
         "CACTIGROW_ENVIRONMENT": "production",
-        "CACTIGROW_VERSION": "0.0.0"
+        "CACTIGROW_VERSION": "0.0.0",
+        "CACTIGROW_REALTIME_ENABLED": "false",
+        "CACTIGROW_REALTIME_ORIGIN": "https://cactigrow.com"
       }
     }
   }

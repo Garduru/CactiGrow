@@ -6,6 +6,7 @@ const developmentCredentials = import.meta.env.MODE === 'development'
   : (): undefined => undefined
 
 function apiBaseUrl() {
+  if (import.meta.env.MODE !== 'development') return ''
   const configured = import.meta.env.VITE_CACTIGROW_API_BASE_URL
   return typeof configured === 'string' ? configured.trim() : ''
 }

@@ -5,7 +5,7 @@ export type FarmWorldRoute = '/home' | '/nursery' | '/garden' | '/lab' | '/mail'
 export type TownWorldLocationId = 'shop' | 'market' | 'farm'
 export type TownInteriorLocationId = Exclude<TownWorldLocationId, 'farm'>
 export type TownWorldSpawnId = 'farm-arrival' | 'shop-exterior' | 'marketplace-exterior'
-export type TownWorldRoute = '/shop' | '/market' | '/'
+export type TownWorldRoute = '/shop' | '/market' | '/play'
 export type WorldLocationId = FarmWorldLocationId | TownWorldLocationId
 export type WorldRoute = FarmWorldRoute | TownWorldRoute
 

@@ -1,3 +1,4 @@
+import { CANONICAL_FARM_PATH } from '../../app/farmReturnNavigation'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useGameState } from '../../game/useGameState'
@@ -20,7 +21,7 @@ export function GameHeader() {
 
   const location = useLocation()
   const social = useSocialPanel()
-  const isWorldRoute = ['/', '/farm', '/world-preview', '/town'].includes(location.pathname)
+  const isWorldRoute = [CANONICAL_FARM_PATH, '/farm', '/world-preview', '/town'].includes(location.pathname)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -67,7 +68,7 @@ export function GameHeader() {
     <header className="game-header">
       <a className="skip-link" href="#main-content">Skip to game</a>
       <div className="game-header__inner">
-        <Link className="game-header__brand" to="/" aria-label="CactiGrow — Farm">
+        <Link className="game-header__brand" to={CANONICAL_FARM_PATH} aria-label="CactiGrow — Farm">
           <img src="/cactigrow-logo.png" alt="CactiGrow by CactiSwap" />
         </Link>
 
