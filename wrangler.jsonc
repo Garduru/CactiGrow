@@ -49,16 +49,16 @@
       "name": "cactigrow-api-production",
       "workers_dev": true,
       "preview_urls": false,
-      "routes": [],
+      "routes": [{"pattern":"cactigrow.com","custom_domain":true},{"pattern":"www.cactigrow.com","custom_domain":true}],
       "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "158393f7112548959359357702fe183f" }],
-      // Custom Domains are attached separately after saving the prior DNS targets.
+      // Preserve the existing live production Custom Domain attachments.
       // User-approved initial launch shares the existing cactigrow database with development.
       "durable_objects": { "bindings": [{ "name": "AREA_PRESENCE", "class_name": "AreaPresence" }] },
       "exports": { "AreaPresence": { "type": "durable-object", "storage": "sqlite" } },
       "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": true },
       "vars": {
         "CACTIGROW_ENVIRONMENT": "production",
-        "CACTIGROW_BASE44_APP_ID": "69ff2d4a5df1772fd16bd931",
+        "CACTIGROW_NEON_AUTH_URL": "https://ep-wild-pond-arf5s9do.neonauth.c-4.us-west-2.aws.neon.tech/cactigrow/auth",
         "CACTIGROW_VERSION": "0.0.0",
         "CACTIGROW_REALTIME_ENABLED": "true",
         "CACTIGROW_REALTIME_ORIGIN": "https://cactigrow.com"

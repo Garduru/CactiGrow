@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { PlayerLogout } from '../../features/authentication/PlayerLogout'
 
 type MenuSection = 'game' | 'social' | 'other'
 
@@ -30,6 +31,8 @@ export function GameMenuPanel({ id, onDismiss, onOpenChat, onOpenFriends }: Game
         <button type="button" onClick={onOpenFriends}>Friends</button>
         <button type="button" onClick={onOpenChat}>Chat</button>
       </MenuDisclosure>
+
+      <PlayerLogout />
 
       <button className="utility-menu__standalone" type="button" aria-disabled="true" title="Coming soon">Settings</button>
 

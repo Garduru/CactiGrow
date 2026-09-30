@@ -26,7 +26,7 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
     const input = await readJson(request)
     if (!isRealtimeCredentialsRequestV1(input)) throw ApiError.validation('Invalid realtime admission request.')
     const now = Date.now()
-    const sessionExpiry = player.authorizationExpiresAt === undefined && (['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT) || (env.CACTIGROW_ENVIRONMENT === 'production' && player.externalIdentity.provider === 'base44'))
+    const sessionExpiry = player.authorizationExpiresAt === undefined && ['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT)
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')
     if (!Number.isSafeInteger(sessionExpiry) || sessionExpiry <= now) throw ApiError.unauthenticated()
     const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(areaCoordinatorName(input.areaId)))

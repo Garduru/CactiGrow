@@ -1,6 +1,6 @@
 import { CactiGrowApiClient } from './CactiGrowApiClient'
 import { createDevelopmentCredentials } from './developmentCredentials'
-import { getPlayerCredentials } from '../auth/base44Authentication'
+import { getPlayerCredentials } from '../auth/neonAuthentication'
 
 const developmentCredentials = import.meta.env.MODE === 'development'
   ? (): HeadersInit | undefined => createDevelopmentCredentials(true, window.location.search)

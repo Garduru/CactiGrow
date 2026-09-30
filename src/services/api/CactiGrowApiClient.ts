@@ -47,7 +47,7 @@ export interface PlayerBootstrapResult {
 export interface CactiGrowApiClientOptions {
   baseUrl?: string
   fetch?: typeof fetch
-  getCredentials?: () => HeadersInit | undefined
+  getCredentials?: () => HeadersInit | undefined | Promise<HeadersInit | undefined>
 }
 
 function endpoint(baseUrl: string, path: string) {
@@ -71,7 +71,7 @@ function isEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 export class CactiGrowApiClient {
   private readonly baseUrl: string
   private readonly request: typeof fetch
-  private readonly getCredentials: () => HeadersInit | undefined
+  private readonly getCredentials: () => HeadersInit | undefined | Promise<HeadersInit | undefined>
 
   constructor(options: CactiGrowApiClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? ''
@@ -141,7 +141,7 @@ export class CactiGrowApiClient {
 
   private async fetchResponse(path: string, init: RequestInit, retryIdempotentPlant = false): Promise<Response> {
     const url = endpoint(this.baseUrl, path)
-    const requestInit: RequestInit = { ...init, credentials: 'include', redirect: 'manual', headers: { ...this.getCredentials(), ...init.headers } }
+    const requestInit: RequestInit = { ...init, credentials: 'include', redirect: 'manual', headers: { ...await this.getCredentials(), ...init.headers } }
     // Only the V3 planting methods opt in. Reuse the identical body and receipt
     // key after a transport failure: the first attempt may already have committed.
     const attempts = retryIdempotentPlant ? 2 : 1

@@ -3,7 +3,7 @@ import { PostgresPlayerIdentityRepository } from '../db/repositories/PostgresPla
 import { DevelopmentIdentityProvider } from '../identity/DevelopmentIdentityProvider.ts'
 import { CloudflareAccessIdentityProvider } from '../identity/CloudflareAccessIdentityProvider.ts'
 import { CloudflareAccessJwtVerifier } from '../identity/CloudflareAccessJwtVerifier.ts'
-import { Base44IdentityProvider, isBase44AppId } from '../identity/Base44IdentityProvider.ts'
+import { NeonIdentityProvider, isNeonAuthUrl } from '../identity/NeonIdentityProvider.ts'
 import type {
   IdentityProvider,
   IdentityVerificationRequest,
@@ -48,8 +48,8 @@ function createAuthenticationConfiguration(
 
   let identityProvider: IdentityProvider
   if (environment === 'production') {
-    if (!isBase44AppId(env.CACTIGROW_BASE44_APP_ID)) return null
-    identityProvider = new Base44IdentityProvider(env.CACTIGROW_BASE44_APP_ID)
+    if (!isNeonAuthUrl(env.CACTIGROW_NEON_AUTH_URL)) return null
+    identityProvider = new NeonIdentityProvider(env.CACTIGROW_NEON_AUTH_URL)
   } else if (environment === 'staging') {
     const teamDomain = env.CACTIGROW_ACCESS_TEAM_DOMAIN
     const audience = env.CACTIGROW_ACCESS_AUDIENCE

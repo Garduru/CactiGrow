@@ -15,6 +15,7 @@ import { GeneticsLabPage } from '../features/lab/GeneticsLabPage'
 import { HomePage } from '../features/home/HomePage'
 import { MailPage } from '../features/mail/MailPage'
 
+import { PlayerLogin } from '../features/authentication/PlayerLogin'
 import { GameSession } from './GameSession'
 import { OfficialHomePage } from '../features/website/OfficialHomePage'
 import { CANONICAL_FARM_PATH } from './farmReturnNavigation'
@@ -30,6 +31,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<OfficialHomePage />} />
+      <Route path="/auth/reset-password" element={<PlayerLogin />} />
       <Route element={<GameSession />}>
         <Route path={CANONICAL_FARM_PATH} element={<Suspense fallback={<p className="world-page__loading">Loading Farm…</p>}><FarmWorldPage /></Suspense>} />
         <Route path="/farm" element={<LegacyRedirect to={CANONICAL_FARM_PATH} />} />
