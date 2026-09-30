@@ -47,18 +47,20 @@
     },
     "production": {
       "name": "cactigrow-api-production",
-      "workers_dev": false,
+      "workers_dev": true,
       "preview_urls": false,
       "routes": [],
-      "hyperdrive": [],
-      // CUTOVER PENDING: after production prerequisites and explicit domain approval,
-      // replace routes with [{ "pattern": "cactigrow.com", "custom_domain": true }].
-      // Bind HYPERDRIVE only to a separately provisioned production database.
-      // See docs/OFFICIAL_WEBSITE_DEPLOYMENT.md; never copy staging bindings here.
+      "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "158393f7112548959359357702fe183f" }],
+      // Custom Domains are attached separately after saving the prior DNS targets.
+      // User-approved initial launch shares the existing cactigrow database with development.
+      "durable_objects": { "bindings": [{ "name": "AREA_PRESENCE", "class_name": "AreaPresence" }] },
+      "exports": { "AreaPresence": { "type": "durable-object", "storage": "sqlite" } },
+      "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": true },
       "vars": {
         "CACTIGROW_ENVIRONMENT": "production",
+        "CACTIGROW_BASE44_APP_ID": "69ff2d4a5df1772fd16bd931",
         "CACTIGROW_VERSION": "0.0.0",
-        "CACTIGROW_REALTIME_ENABLED": "false",
+        "CACTIGROW_REALTIME_ENABLED": "true",
         "CACTIGROW_REALTIME_ORIGIN": "https://cactigrow.com"
       }
     }

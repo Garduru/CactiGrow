@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { getDeploymentMode } from '../config/deploymentMode'
 import { usePlayerBootstrap } from './usePlayerBootstrap'
+import { PlayerLogin } from '../features/authentication/PlayerLogin'
 
 export function DeploymentAccessBoundary({ children }: { children: ReactNode }) {
   const bootstrap = usePlayerBootstrap()
@@ -10,6 +11,7 @@ export function DeploymentAccessBoundary({ children }: { children: ReactNode }) 
     return <main className="deployment-access-state" aria-live="polite"><h1>CactiGrow</h1><p>Establishing your secure session…</p></main>
   }
   if (bootstrap.status === 'unauthenticated') {
+    if (getDeploymentMode() === 'production') return <PlayerLogin />
     return <main className="deployment-access-state"><h1>Access required</h1><p>Please authenticate through the protected CactiGrow access page.</p></main>
   }
   if (bootstrap.status === 'error') {

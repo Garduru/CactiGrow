@@ -7,6 +7,7 @@ export type WorkerEnv = Omit<CloudflareEnv, 'CACTIGROW_ENVIRONMENT' | 'CACTIGROW
   CACTIGROW_VERSION: string
   CACTIGROW_ACCESS_TEAM_DOMAIN?: string
   CACTIGROW_ACCESS_AUDIENCE?: string
+  CACTIGROW_BASE44_APP_ID?: string
   HYPERDRIVE?: Hyperdrive
   AREA_PRESENCE?: DurableObjectNamespace
   CACTIGROW_REALTIME_ENABLED?: string

@@ -35,7 +35,7 @@ async function setup(t: test.TestContext) {
         const wrong = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName('area:v1:unconfigured-test-owner'))
         return wrong.fetch(new Request('https://area.internal/redeem', { headers: { Upgrade: 'websocket', 'X-CactiGrow-Area': 'town', 'X-CactiGrow-Ticket': request.headers.get('X-Test-Ticket') } }))
       }
-      return handleApiRequest(request, { ...env, CACTIGROW_ENVIRONMENT: request.headers.get('X-Test-Production') ? 'production' : 'test', CACTIGROW_VERSION: 'test', CACTIGROW_REALTIME_ENABLED: 'true', CACTIGROW_REALTIME_ORIGIN: 'https://test' }, undefined, {
+      return handleApiRequest(request, { ...env, CACTIGROW_ENVIRONMENT: request.headers.get('X-Test-Production') ? 'production' : 'test', CACTIGROW_VERSION: 'test', CACTIGROW_REALTIME_ENABLED: request.headers.get('X-Test-Production') ? 'false' : 'true', CACTIGROW_REALTIME_ORIGIN: 'https://test' }, undefined, {
         router, createRequestDatabaseContext: () => ({ getDatabase() { throw new Error('Unexpected database access') }, async dispose() {} })
       })
     } }

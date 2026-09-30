@@ -8,7 +8,7 @@ import type { TownWorldSpawnId } from './worldTypes'
 export function useTownPresence(entryPointId: TownWorldSpawnId) {
   const bootstrap = usePlayerBootstrap()
   const identity = bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
-  const enabled = import.meta.env.MODE !== 'production' && !(import.meta.env.DEV && new URLSearchParams(window.location.search).has('worldEdit'))
+  const enabled = (import.meta.env.MODE !== 'production' || import.meta.env.VITE_CACTIGROW_REALTIME_ENABLED === 'true') && !(import.meta.env.DEV && new URLSearchParams(window.location.search).has('worldEdit'))
   const connection = useMemo(() => new AreaConnection({ areaId: TOWN_AREA.areaId, entryPointId, origin: window.location.origin,
     admit: (request, signal) => browserRealtimeApiClient.requestRealtimeAdmission(request, signal) }), [entryPointId])
   const status = useSyncExternalStore(connection.subscribe, () => connection.getSnapshot().status)

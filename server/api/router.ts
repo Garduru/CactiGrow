@@ -122,7 +122,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
 
     if (url.pathname === '/api/v2/me/bootstrap') {
       if (request.method !== 'GET') throw ApiError.methodNotAllowed()
-      if (getRuntimeMetadata(env).environment !== 'staging') throw ApiError.notFound('API route not found.')
+      if (!['staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
       return withAuthenticatedPlayer(context, async ({ player }) => {
         const service = await (dependencies.createPlayerBootstrapService ?? createPlayerBootstrapService)(context)
         return successResponse(await service.getGrowerForPlayer(player.playerId), requestId)
@@ -130,7 +130,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
     }
 
     if (url.pathname === '/api/v1/me/garden') {
-      if (getRuntimeMetadata(env).environment !== 'staging') throw ApiError.notFound('API route not found.')
+      if (!['staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       const body = request.method === 'POST' ? await readJson(request) : null
       if (request.method === 'POST' && !isGardenCommandV1(body)) throw new ApiError('INVALID_COMMAND', 400, 'The Garden command is invalid.')
@@ -143,7 +143,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
     }
 
     if (url.pathname === '/api/v1/me/grower-alpha') {
-      if (getRuntimeMetadata(env).environment !== 'staging') throw ApiError.notFound('API route not found.')
+      if (!['staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       const body = request.method === 'POST' ? await readJson(request) : null
       if (request.method === 'POST' && !isGrowerAlphaCommandV1(body)) throw new ApiError('INVALID_COMMAND', 400, 'The Grower command is invalid.')

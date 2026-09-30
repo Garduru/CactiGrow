@@ -3,7 +3,7 @@ import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings, nurseryOccupancies, plantSpecimens, playerGrowerEvents, playerGrowerState, playerOnboarding, playerPlantLifecycleVersions, playerSeedStacks } from '../db/schema/index.ts'
 import { NURSERY_SLOT_IDS, PLANT_LIFECYCLE_PROJECTION_VERSION, type CollectPlantCommandV1, type CollectPlantResultV1, type NurserySlotV1, type PlantCommoditySeedCommandV1, type PlantCommoditySeedResultV1, type PlantLifecycleProjectionV1, type PlantSpecimenV1 } from '../../shared/api/plantLifecycleV1.ts'
 import { ApiError } from '../api/errors.ts'
-import { DEVELOPMENT_GROWTH_RULE_VERSION, GENETIC_ESTABLISHMENT_RULE_VERSION, GENETIC_REPRESENTATION_VERSION, VISUAL_DERIVATION_VERSION, establishCommoditySeedGenetics, resolveDevelopmentReadyAt, rollShiny, secureUint16, type SecureUint16 } from './plantLifecycleRules.ts'
+import { GENETIC_ESTABLISHMENT_RULE_VERSION, GENETIC_REPRESENTATION_VERSION, VISUAL_DERIVATION_VERSION, establishCommoditySeedGenetics, resolvePlantGrowth, rollShiny, secureUint16, type SecureUint16 } from './plantLifecycleRules.ts'
 import { createBredSeed } from '../../src/features/breeding/breedingModel.ts'
 import { getSpeciesById } from '../../src/data/species.ts'
 import type { Plant } from '../../src/types/plant.ts'
@@ -239,18 +239,18 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
           if (milestone.xpAwarded) await tx.update(playerOnboarding).set({ geneticsXp: sql`${playerOnboarding.geneticsXp} + ${milestone.xpAwarded}`, version: sql`${playerOnboarding.version} + 1` }).where(eq(playerOnboarding.playerId, playerId))
         }
       }
-      const plantedAt = this.now(); const readyAt = resolveDevelopmentReadyAt(plantedAt, this.options.environment)
+      const plantedAt = this.now(); const { readyAt, growthRuleVersion } = resolvePlantGrowth(plantedAt, this.options.environment, line.speciesId)
       const specimenId = this.createId()
       if (!UUID.test(specimenId) || specimenId === seed.id || specimenId === seed.cloneLineId) throw new Error('The server generated an invalid specimen identity.')
       await tx.insert(plantSpecimens).values({ id: specimenId, ownerPlayerId: playerId, cloneLineId: seed.cloneLineId, sourceType: 'bred-seed', lifecycleStatus: 'growing', plantedAt, collectedAt: null, visualDerivationVersion: line.visualDerivationVersion, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
-      await tx.insert(nurseryOccupancies).values({ playerId, slotId: command.slotId, specimenId, plantedAt, readyAt, growthRuleVersion: DEVELOPMENT_GROWTH_RULE_VERSION, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
+      await tx.insert(nurseryOccupancies).values({ playerId, slotId: command.slotId, specimenId, plantedAt, readyAt, growthRuleVersion, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
       await tx.update(bredSeeds).set({ status: 'planted', plantedAt, plantedSpecimenId: specimenId }).where(eq(bredSeeds.id, seed.id))
       const version = await this.incrementVersion(tx, playerId, plantedAt)
       await this.awardXp(tx, playerId, 'cultivation', 15)
       await this.recordProgress(tx, playerId, idempotencyKey, 'plantBredSeed', line.speciesId, seed.cloneLineId, variants.some((variant) => variant.variantId === 'shiny'), plantedAt)
       const base = this.projectSpecimen({ id: specimenId, ownerPlayerId: playerId, cloneLineId: seed.cloneLineId, sourceType: 'bred-seed', lifecycleStatus: 'growing', plantedAt, collectedAt: null, visualDerivationVersion: line.visualDerivationVersion, version: 1, createdAt: plantedAt, updatedAt: plantedAt }, line, effectiveProfile, variants)
       const specimen: PlantSpecimenV2 = { ...base, geneticFeatures: seed.geneticFeatures, parentPlantIds: [seed.parent1SpecimenId, seed.parent2SpecimenId], parentSpeciesIds: [seed.parent1SpeciesId, seed.parent2SpeciesId], isHybrid: seed.isHybrid, sourceBredSeedId: seed.id }
-      return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seedId: seed.id, slot: { slotId: command.slotId, occupancy: { specimen, plantedAt: plantedAt.toISOString(), readyAt: readyAt.toISOString(), growthRuleVersion: DEVELOPMENT_GROWTH_RULE_VERSION, version: 1 } } }
+      return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seedId: seed.id, slot: { slotId: command.slotId, occupancy: { specimen, plantedAt: plantedAt.toISOString(), readyAt: readyAt.toISOString(), growthRuleVersion, version: 1 } } }
     })
   }
 
@@ -264,7 +264,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       if (stack.quantity < 1) throw safeConflict('SEED_UNAVAILABLE', 'No seeds remain in this stack.')
       const [occupied] = await tx.select({ specimenId: nurseryOccupancies.specimenId }).from(nurseryOccupancies).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.slotId, command.slotId))).limit(1)
       if (occupied) throw safeConflict('SLOT_OCCUPIED', 'That Nursery position is already occupied.')
-      const plantedAt = this.now(); const readyAt = resolveDevelopmentReadyAt(plantedAt, this.options.environment)
+      const plantedAt = this.now(); const { readyAt, growthRuleVersion } = resolvePlantGrowth(plantedAt, this.options.environment, command.speciesId)
       const cloneLineId = this.createId(); const specimenId = this.createId()
       if (!UUID.test(cloneLineId) || !UUID.test(specimenId) || cloneLineId === specimenId) throw new Error('The server generated an invalid entity identity.')
       const shiny = rollShiny(this.randomUint16)
@@ -273,12 +273,12 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       await tx.insert(geneticProfiles).values({ cloneLineId, ...genetics, establishmentRuleVersion: GENETIC_ESTABLISHMENT_RULE_VERSION, createdAt: plantedAt })
       if (shiny) await tx.insert(cloneLineVariants).values({ cloneLineId, variantId: 'shiny', origin: 'random', establishedAt: plantedAt })
       await tx.insert(plantSpecimens).values({ id: specimenId, ownerPlayerId: playerId, cloneLineId, sourceType: 'commodity-seed', lifecycleStatus: 'growing', plantedAt, collectedAt: null, visualDerivationVersion: VISUAL_DERIVATION_VERSION, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
-      await tx.insert(nurseryOccupancies).values({ playerId, slotId: command.slotId, specimenId, plantedAt, readyAt, growthRuleVersion: DEVELOPMENT_GROWTH_RULE_VERSION, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
+      await tx.insert(nurseryOccupancies).values({ playerId, slotId: command.slotId, specimenId, plantedAt, readyAt, growthRuleVersion, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
       const version = await this.incrementVersion(tx, playerId, plantedAt)
       await this.awardXp(tx, playerId, 'cultivation', 10)
       await this.recordProgress(tx, playerId, idempotencyKey, 'plantSeed', command.speciesId, cloneLineId, shiny, plantedAt)
       const specimen: PlantSpecimenV1 = { specimenId, cloneLineId, speciesId: command.speciesId, lifecycleStatus: 'growing', plantedAt: plantedAt.toISOString(), collectedAt: null, genetics, geneticFeatures: [], specialVariants: shiny ? [{ variantId: 'shiny', origin: 'random', establishedAt: plantedAt.toISOString() }] : [], geneticRepresentationVersion: GENETIC_REPRESENTATION_VERSION, visualDerivationVersion: VISUAL_DERIVATION_VERSION, version: 1 }
-      return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seedStack: { speciesId: command.speciesId, quantity: stack.quantity - 1, version: stack.version + 1 }, slot: { slotId: command.slotId, occupancy: { specimen, plantedAt: plantedAt.toISOString(), readyAt: readyAt.toISOString(), growthRuleVersion: DEVELOPMENT_GROWTH_RULE_VERSION, version: 1 } } }
+      return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seedStack: { speciesId: command.speciesId, quantity: stack.quantity - 1, version: stack.version + 1 }, slot: { slotId: command.slotId, occupancy: { specimen, plantedAt: plantedAt.toISOString(), readyAt: readyAt.toISOString(), growthRuleVersion, version: 1 } } }
     })
   }
 

@@ -1,9 +1,10 @@
 import { CactiGrowApiClient } from './CactiGrowApiClient'
 import { createDevelopmentCredentials } from './developmentCredentials'
+import { getPlayerCredentials } from '../auth/base44Authentication'
 
 const developmentCredentials = import.meta.env.MODE === 'development'
   ? (): HeadersInit | undefined => createDevelopmentCredentials(true, window.location.search)
-  : (): undefined => undefined
+  : getPlayerCredentials
 
 function apiBaseUrl() {
   if (import.meta.env.MODE !== 'development') return ''
@@ -20,4 +21,4 @@ export const browserApiClient = new CactiGrowApiClient({
 // Realtime must use the page's own origin; L3 deliberately rejects cross-origin admission.
 const realtimeDevelopmentCredentials = import.meta.env.MODE === 'development'
   ? createDevelopmentCredentials(true, window.location.search) : undefined
-export const browserRealtimeApiClient = new CactiGrowApiClient({ getCredentials: () => realtimeDevelopmentCredentials })
+export const browserRealtimeApiClient = new CactiGrowApiClient({ getCredentials: import.meta.env.MODE === 'development' ? () => realtimeDevelopmentCredentials : getPlayerCredentials })

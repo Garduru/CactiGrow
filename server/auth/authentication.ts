@@ -3,6 +3,7 @@ import { PostgresPlayerIdentityRepository } from '../db/repositories/PostgresPla
 import { DevelopmentIdentityProvider } from '../identity/DevelopmentIdentityProvider.ts'
 import { CloudflareAccessIdentityProvider } from '../identity/CloudflareAccessIdentityProvider.ts'
 import { CloudflareAccessJwtVerifier } from '../identity/CloudflareAccessJwtVerifier.ts'
+import { Base44IdentityProvider, isBase44AppId } from '../identity/Base44IdentityProvider.ts'
 import type {
   IdentityProvider,
   IdentityVerificationRequest,
@@ -45,10 +46,11 @@ function createAuthenticationConfiguration(
   const { env, database } = context
   const { environment } = getRuntimeMetadata(env)
 
-  if (environment === 'production') return null
-
   let identityProvider: IdentityProvider
-  if (environment === 'staging') {
+  if (environment === 'production') {
+    if (!isBase44AppId(env.CACTIGROW_BASE44_APP_ID)) return null
+    identityProvider = new Base44IdentityProvider(env.CACTIGROW_BASE44_APP_ID)
+  } else if (environment === 'staging') {
     const teamDomain = env.CACTIGROW_ACCESS_TEAM_DOMAIN
     const audience = env.CACTIGROW_ACCESS_AUDIENCE
     if (!teamDomain || !audience) return null
@@ -86,9 +88,9 @@ export async function authenticateRequest(
   const playerIdentity = await playerIdentityResolver.resolve(externalIdentity)
   if (!playerIdentity) throw ApiError.unauthenticated()
 
-  // Staging onboarding applies only after a signed Access identity resolves to
-  // its own internal player. A durable marker prevents all repeat grants.
-  if (getRuntimeMetadata(context.env).environment === 'staging') {
+  // Onboarding follows verified provider identity and internal player resolution.
+  // The existing durable marker prevents repeat grants.
+  if (['staging', 'production'].includes(getRuntimeMetadata(context.env).environment)) {
     await initializeStagingGrower(await context.database.getDatabase(), playerIdentity.playerId)
   }
 

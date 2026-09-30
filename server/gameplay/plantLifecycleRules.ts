@@ -19,6 +19,14 @@ export function resolveDevelopmentReadyAt(plantedAt: Date, environment: string):
   return new Date(plantedAt.getTime() + DEVELOPMENT_GROWTH_DURATION_MS)
 }
 
+// Production uses the existing species catalog rather than the accelerated test clock.
+export function resolvePlantGrowth(plantedAt: Date, environment: string, speciesId: string) {
+  if (environment !== 'production') return { readyAt: resolveDevelopmentReadyAt(plantedAt, environment), growthRuleVersion: DEVELOPMENT_GROWTH_RULE_VERSION }
+  const species = getSharedSpeciesById(speciesId)
+  if (!species) throw new Error('Unknown species growth schedule.')
+  return { readyAt: new Date(plantedAt.getTime() + species.growthTimeHours * 60 * 60 * 1000), growthRuleVersion: 2 }
+}
+
 export type SecureUint16 = () => number
 export function rollShiny(randomUint16: SecureUint16): boolean {
   const value = randomUint16()

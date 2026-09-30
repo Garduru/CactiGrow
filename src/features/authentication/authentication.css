@@ -1,0 +1,5 @@
+.player-login { max-width: 28rem; margin-inline: auto; }
+.player-login form, .player-login label { display: grid; gap: .65rem; }
+.player-login form { gap: 1rem; margin-block: 1.5rem; }
+.player-login input { width: 100%; box-sizing: border-box; padding: .75rem; font: inherit; }
+.player-login > .cg-button { margin: .25rem; }

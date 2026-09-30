@@ -13,7 +13,7 @@ export function PlayerBootstrapProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const controller = new AbortController()
 
-    loadPlayerBootstrapState(browserApiClient, controller.signal, getDeploymentMode() === 'staging').then(
+    loadPlayerBootstrapState(browserApiClient, controller.signal, getDeploymentMode() !== 'development').then(
       setState,
       (error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return

@@ -14,7 +14,7 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
   authenticationFactory?: AuthenticationConfigurationFactory): Promise<Response> {
   const { request, env, requestId } = context
   const url = new URL(request.url)
-  if (env.CACTIGROW_ENVIRONMENT === 'production' || env.CACTIGROW_REALTIME_ENABLED !== 'true' || !env.AREA_PRESENCE) throw ApiError.notFound()
+  if (env.CACTIGROW_REALTIME_ENABLED !== 'true' || !env.AREA_PRESENCE) throw ApiError.notFound()
   const origin = request.headers.get('Origin')
   if (!origin || origin !== env.CACTIGROW_REALTIME_ORIGIN || origin !== url.origin || url.search) throw ApiError.forbidden()
   if (url.protocol !== 'https:' && !(['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT)
@@ -26,7 +26,7 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
     const input = await readJson(request)
     if (!isRealtimeCredentialsRequestV1(input)) throw ApiError.validation('Invalid realtime admission request.')
     const now = Date.now()
-    const sessionExpiry = player.authorizationExpiresAt === undefined && ['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT)
+    const sessionExpiry = player.authorizationExpiresAt === undefined && (['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT) || (env.CACTIGROW_ENVIRONMENT === 'production' && player.externalIdentity.provider === 'base44'))
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')
     if (!Number.isSafeInteger(sessionExpiry) || sessionExpiry <= now) throw ApiError.unauthenticated()
     const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(areaCoordinatorName(input.areaId)))

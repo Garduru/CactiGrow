@@ -499,22 +499,22 @@ test('production cannot activate staging Access identity or starter provisioning
   assert.equal(body.error.code, 'UNAUTHENTICATED')
 })
 
-test('Grower onboarding projection is staging-only and cannot be reached with a spoofed identity header', async () => {
+test('Grower onboarding projection requires verified identity and cannot be reached with a spoofed identity header', async () => {
   const path = 'http://localhost/api/v2/me/bootstrap'
   const spoofed = await handleApiRequest(new Request(path, { headers: { 'cf-access-authenticated-user-email': 'tester@example.invalid' } }), stagingEnv, undefined, testOptions)
   assert.equal(spoofed.status, 401)
   const production = await handleApiRequest(new Request(path, { headers: { 'cf-access-jwt-assertion': 'fake' } }), productionEnv, undefined, testOptions)
-  assert.equal(production.status, 404)
+  assert.equal(production.status, 401)
 })
 
-test('consolidated Grower and Garden projections are staging-only and reject spoofed identity headers', async () => {
+test('consolidated Grower and Garden projections require verified identity and reject spoofed identity headers', async () => {
   for (const path of ['/api/v1/me/grower-alpha', '/api/v1/me/garden']) {
     const spoofed = await handleApiRequest(new Request(`http://localhost${path}`, { headers: { 'cf-access-authenticated-user-email': 'tester@example.invalid' } }), stagingEnv, undefined, testOptions)
     const spoofedBody = await spoofed.json() as ApiFailure
     assert.equal(spoofed.status, 401)
     assert.equal(spoofedBody.error.code, 'UNAUTHENTICATED')
     const production = await handleApiRequest(new Request(`http://localhost${path}`, { headers: { 'cf-access-jwt-assertion': 'fake' } }), productionEnv, undefined, testOptions)
-    assert.equal(production.status, 404)
+    assert.equal(production.status, 401)
   }
 })
 
