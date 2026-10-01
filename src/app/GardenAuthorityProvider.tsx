@@ -8,13 +8,14 @@ import { GARDEN_AUTHORITY_CHANGED_EVENT } from './authorityEvents.ts'
 export function GardenAuthorityProvider({ children }: { children: ReactNode }) {
   const enabled = usesServerLifecycle()
   const [projection, setProjection] = useState<GardenProjectionV1 | null>(null)
+  const [error, setError] = useState(false)
   const readGeneration = useRef(0)
   const mutationTail = useRef<Promise<unknown>>(Promise.resolve())
   const refresh = useCallback(async (signal?: AbortSignal) => {
     const generation = ++readGeneration.current
     await browserApiClient.getGarden(signal).then((next) => {
-      if (generation === readGeneration.current && !signal?.aborted) setProjection(next)
-    }, () => { /* Keep the last authoritative projection on a failed refresh. */ })
+      if (generation === readGeneration.current && !signal?.aborted) { setProjection(next); setError(false) }
+    }, () => { if (generation === readGeneration.current && !signal?.aborted) setError(true) })
   }, [])
   useEffect(() => {
     if (!enabled) return
@@ -43,6 +44,6 @@ export function GardenAuthorityProvider({ children }: { children: ReactNode }) {
     mutationTail.current = task
     return task
   }, [enabled, refresh])
-  const value = useMemo(() => ({ projection, loading: enabled && !projection, mutate }), [enabled, mutate, projection])
+  const value = useMemo(() => ({ projection, error, loading: enabled && !projection, mutate }), [enabled, error, mutate, projection])
   return <GardenAuthorityContext.Provider value={value}>{children}</GardenAuthorityContext.Provider>
 }

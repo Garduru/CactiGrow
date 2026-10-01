@@ -19,13 +19,15 @@ import { canSellPlantToNpc, getNpcSaleValue } from '../features/marketplace/sell
 import { getPropertyUpgradeStatus } from '../features/property/propertyModel'
 import { addGardenTag as addGardenTagForState, removeGardenTag as removeGardenTagForState, setGardenFavorite as setGardenFavoriteForState } from '../features/garden/gardenOrganizationModel'
 import { assignGardenDisplay as assignGardenDisplayForState } from '../features/garden/gardenDisplayModel'
-import { getDeploymentMode } from '../config/deploymentMode'
+import { usesServerLifecycle } from '../config/deploymentMode'
 import { useGrowerAuthority } from '../app/useGrowerAuthority'
 import { usePlantLifecycle } from '../app/usePlantLifecycle'
 import { useGardenAuthority } from '../app/useGardenAuthority'
+import { restoreServerGameState } from './restoreServerGameState'
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(gameStateReducer, undefined, () => createInitialGameState(Date.now(), getDeploymentMode() === 'staging'))
+  const serverBacked = usesServerLifecycle()
+  const [state, dispatch] = useReducer(gameStateReducer, undefined, () => createInitialGameState(Date.now(), serverBacked))
   const grower = useGrowerAuthority()
   const lifecycle = usePlantLifecycle()
   const garden = useGardenAuthority()
@@ -33,43 +35,48 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const serverPlants = lifecycle.state.authority === 'server' && lifecycle.state.status === 'ready' ? lifecycle.state.projection : null
   const effectiveState = useMemo(() => {
     if (!server) return state
-    const ownedPlants = serverPlants?.ownedSpecimens.map((plant) => ({ id: plant.specimenId, ownerId: server.player.playerId, speciesId: plant.speciesId, cloneLineId: plant.cloneLineId, stage: 'mature' as const, plantedAt: plant.plantedAt, lastUpdatedAt: plant.collectedAt ?? plant.plantedAt, collectedAt: plant.collectedAt ?? plant.plantedAt, genetics: plant.genetics, geneticFeatures: plant.geneticFeatures, specialVariants: plant.specialVariants, isHarvestable: false, isListedForSale: server.marketplaceListings.some((listing) => listing.plantId === plant.specimenId && listing.status === 'active'), isHybrid: plant.isHybrid })) ?? []
-    const bredSeeds = serverPlants?.bredSeeds.map((seed) => ({ id: seed.seedId, speciesId: seed.speciesId, cloneLineId: seed.cloneLineId, createdAt: seed.createdAt, genetics: seed.genetics, parentPlantIds: seed.parentPlantIds, parentSpeciesIds: seed.parentSpeciesIds, isHybrid: seed.isHybrid, geneticFeatures: seed.geneticFeatures, specialVariants: seed.specialVariants, ...(server.seedTreatments[seed.seedId] ? { quantitativeTreatments: [server.seedTreatments[seed.seedId]] } : {}) })) ?? []
-    return { ...state, player: { id: server.player.playerId, username: 'Grower', tokens: server.player.tokenBalance, skills: { cultivation: { xp: server.player.skills.cultivationXp }, breeding: { xp: server.player.skills.breedingXp }, genetics: { xp: server.player.skills.geneticsXp } } }, ownedPlants, bredSeeds, marketplaceListings: server.marketplaceListings, achievements: server.achievements, speciesDiscoveries: server.discoveries, journalStats: server.journalStats, geneticsResearch: server.research, geneticsLab: server.lab, property: server.property, gardenOrganization: garden.projection?.organization ?? {}, gardenDisplayAssignments: garden.projection?.displayAssignments ?? state.gardenDisplayAssignments }
+    if (!serverPlants || !garden.projection) return state
+    return restoreServerGameState(state, server, serverPlants, garden.projection)
   }, [garden.projection, server, serverPlants, state])
 
   const value = useMemo<GameStateContextValue>(() => ({
     state: effectiveState,
     plantSeed(slotId, speciesId) {
+      if (serverBacked) return false
       if (!canPlantSeed(state, slotId, speciesId)) return false
       dispatch({ type: 'seed/planted', slotId, speciesId, now: Date.now() })
       return true
     },
     collectPlant(slotId) {
+      if (serverBacked) return false
       const now = Date.now()
       if (!canCollectPlant(state, slotId, now)) return false
       dispatch({ type: 'plant/collected', slotId, now })
       return true
     },
     addInventoryItem(item: InventoryItem) {
+      if (serverBacked) return
       dispatch({ type: 'inventory/added', item, now: Date.now() })
     },
     removeInventoryItem(itemId, quantity) {
+      if (serverBacked) return false
       const item = state.inventory.find((entry) => entry.id === itemId)
       if (!item || !Number.isFinite(quantity) || quantity <= 0 || item.quantity < quantity) return false
       dispatch({ type: 'inventory/removed', itemId, quantity })
       return true
     },
     getSeedQuantity(speciesId) {
-      return getSeedQuantity(state, speciesId)
+      return getSeedQuantity(effectiveState, speciesId)
     },
     breedPlants(parent1Id, parent2Id) {
+      if (serverBacked) return null
       const seed = createBredSeedForState(state, parent1Id, parent2Id, Date.now())
       if (!seed) return null
       dispatch({ type: 'offspring/created', seed })
       return seed
     },
     plantBredSeed(slotId, seedId) {
+      if (serverBacked) return false
       if (!canPlantBredSeed(state, slotId, seedId)) return false
       dispatch({ type: 'bred-seed/planted', slotId, seedId, now: Date.now(), treatmentRolls: [Math.random(), Math.random()] })
       return true
@@ -190,7 +197,15 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     dismissLevelUp(noticeId) {
       dispatch({ type: 'progression/notice-dismissed', noticeId })
     },
-  }), [effectiveState, garden, grower, server, state])
+  }), [effectiveState, garden, grower, server, state, serverBacked])
 
+  if (serverBacked && (!server || !serverPlants || !garden.projection)) {
+    const failed = (grower.state.authority === 'server' && grower.state.status === 'error')
+      || (lifecycle.state.authority === 'server' && lifecycle.state.status === 'error') || garden.error
+    return <main className="deployment-access-state" role={failed ? 'alert' : 'status'}>
+      <h1>{failed ? 'Unable to load your saved game' : 'Loading your saved game...'}</h1>
+      {failed && <><p>Your saved progress has not been replaced. Reload to try again.</p><button type="button" onClick={() => window.location.reload()}>Reload saved game</button></>}
+    </main>
+  }
   return <GameStateContext.Provider value={value}>{children}</GameStateContext.Provider>
 }

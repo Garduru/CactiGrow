@@ -3,7 +3,7 @@ import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings, nurseryOccupancies, plantSpecimens, playerGrowerEvents, playerGrowerState, playerOnboarding, playerPlantLifecycleVersions, playerSeedStacks } from '../db/schema/index.ts'
 import { NURSERY_SLOT_IDS, PLANT_LIFECYCLE_PROJECTION_VERSION, type CollectPlantCommandV1, type CollectPlantResultV1, type NurserySlotV1, type PlantCommoditySeedCommandV1, type PlantCommoditySeedResultV1, type PlantLifecycleProjectionV1, type PlantSpecimenV1 } from '../../shared/api/plantLifecycleV1.ts'
 import { ApiError } from '../api/errors.ts'
-import { GENETIC_ESTABLISHMENT_RULE_VERSION, GENETIC_REPRESENTATION_VERSION, VISUAL_DERIVATION_VERSION, establishCommoditySeedGenetics, resolvePlantGrowth, rollShiny, secureUint16, type SecureUint16 } from './plantLifecycleRules.ts'
+import { ALPHA_GROWTH, shortenLegacyGrowth, GENETIC_ESTABLISHMENT_RULE_VERSION, GENETIC_REPRESENTATION_VERSION, VISUAL_DERIVATION_VERSION, establishCommoditySeedGenetics, resolvePlantGrowth, rollShiny, secureUint16, type SecureUint16 } from './plantLifecycleRules.ts'
 import { createBredSeed } from '../../src/features/breeding/breedingModel.ts'
 import { getSpeciesById } from '../../src/data/species.ts'
 import type { Plant } from '../../src/types/plant.ts'
@@ -65,7 +65,31 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     this.randomUint16 = options.randomUint16 ?? secureUint16
   }
 
+  // Lazy, owner-scoped data upgrade: existing production rule 2 only. The
+  // original planting time, specimen, genetics and already faster dates survive.
+  private async upgradeAlphaSchedules(playerId: string): Promise<void> {
+    if (this.options.environment !== 'production') return
+    await this.database.transaction(async tx => {
+      const candidates = await tx.select({ occupancy: nurseryOccupancies, speciesId: cloneLines.speciesId })
+        .from(nurseryOccupancies)
+        .innerJoin(plantSpecimens, and(eq(plantSpecimens.id, nurseryOccupancies.specimenId), eq(plantSpecimens.ownerPlayerId, playerId)))
+        .innerJoin(cloneLines, eq(cloneLines.id, plantSpecimens.cloneLineId))
+        .where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.growthRuleVersion, 2)))
+        .orderBy(nurseryOccupancies.slotId).for('update', { of: nurseryOccupancies })
+      if (!candidates.length) return
+      const updatedAt = this.now()
+      for (const { occupancy, speciesId } of candidates) {
+        await tx.update(nurseryOccupancies).set({
+          readyAt: shortenLegacyGrowth(occupancy.plantedAt, occupancy.readyAt, speciesId),
+          growthRuleVersion: ALPHA_GROWTH.version, version: occupancy.version + 1, updatedAt,
+        }).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.slotId, occupancy.slotId)))
+      }
+      await this.incrementVersion(tx, playerId, updatedAt)
+    })
+  }
+
   async getProjection(playerId: string): Promise<PlantLifecycleProjectionV1> {
+    await this.upgradeAlphaSchedules(playerId)
     const stacks = await this.database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, playerId))
     const occupancies = await this.database.select().from(nurseryOccupancies).where(eq(nurseryOccupancies.playerId, playerId))
     const specimens = await this.database.select().from(plantSpecimens).where(eq(plantSpecimens.ownerPlayerId, playerId))
@@ -283,6 +307,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
   }
 
   async collectPlant(playerId: string, idempotencyKey: string, command: CollectPlantCommandV1): Promise<CollectPlantResultV1> {
+    await this.upgradeAlphaSchedules(playerId)
     return this.runIdempotent(playerId, idempotencyKey, 'collect-plant', command, async (tx) => {
       const [occupancy] = await tx.select().from(nurseryOccupancies).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.slotId, command.slotId))).for('update').limit(1)
       if (!occupancy) throw new ApiError('OCCUPANCY_NOT_FOUND', 404, 'The Nursery position is empty.')

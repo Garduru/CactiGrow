@@ -97,7 +97,7 @@ export function createInitialGameState(now = Date.now(), serverBacked = false): 
     { id: 'seed-echinopsis-pachanoi', itemType: 'seed', itemKey: 'echinopsis-pachanoi', quantity: 4 },
     { id: 'seed-lophophora-williamsii', itemType: 'seed', itemKey: 'lophophora-williamsii', quantity: 2 },
   ]
-  const nurserySlots = createInitialNurserySlots(now)
+  const nurserySlots = createInitialNurserySlots(now).map(slot => serverBacked ? { ...slot, plant: null } : slot)
   const progressionEvents: ProgressionEventCounts = {
     plantSeed: 0,
     plantBredSeed: 0,

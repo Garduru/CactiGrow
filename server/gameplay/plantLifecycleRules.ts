@@ -19,12 +19,26 @@ export function resolveDevelopmentReadyAt(plantedAt: Date, environment: string):
   return new Date(plantedAt.getTime() + DEVELOPMENT_GROWTH_DURATION_MS)
 }
 
-// Production uses the existing species catalog rather than the accelerated test clock.
+// Temporary alpha schedule. Catalog hours are mapped linearly to this range;
+// a 48-hour species receives 10 minutes without adding species categories.
+export const ALPHA_GROWTH = { version: 3, minHours: 24, maxHours: 72, minMinutes: 5, maxMinutes: 15 } as const
+
+export function alphaGrowthDurationMs(catalogHours: number): number {
+  if (!Number.isFinite(catalogHours) || catalogHours <= 0) throw new Error('Invalid species growth schedule.')
+  const ratio = Math.max(0, Math.min(1, (catalogHours - ALPHA_GROWTH.minHours) / (ALPHA_GROWTH.maxHours - ALPHA_GROWTH.minHours)))
+  return Math.round((ALPHA_GROWTH.minMinutes + ratio * (ALPHA_GROWTH.maxMinutes - ALPHA_GROWTH.minMinutes)) * 60_000)
+}
+
 export function resolvePlantGrowth(plantedAt: Date, environment: string, speciesId: string) {
   if (environment !== 'production') return { readyAt: resolveDevelopmentReadyAt(plantedAt, environment), growthRuleVersion: DEVELOPMENT_GROWTH_RULE_VERSION }
   const species = getSharedSpeciesById(speciesId)
   if (!species) throw new Error('Unknown species growth schedule.')
-  return { readyAt: new Date(plantedAt.getTime() + species.growthTimeHours * 60 * 60 * 1000), growthRuleVersion: 2 }
+  return { readyAt: new Date(plantedAt.getTime() + alphaGrowthDurationMs(species.growthTimeHours)), growthRuleVersion: ALPHA_GROWTH.version }
+}
+
+export function shortenLegacyGrowth(plantedAt: Date, readyAt: Date, speciesId: string): Date {
+  const alpha = resolvePlantGrowth(plantedAt, 'production', speciesId).readyAt
+  return new Date(Math.min(readyAt.getTime(), alpha.getTime()))
 }
 
 export type SecureUint16 = () => number
