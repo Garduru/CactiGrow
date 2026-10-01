@@ -25,6 +25,6 @@ Retain existing narrow grants on player, onboarding, specimen, and bred-seed tab
 
 ## Rollout Gate
 
-The Social V1 migration and Worker rollout are not yet applied. In the current workspace, `TEST_DATABASE_URL`, `DATABASE_URL`, and the database-test enable flag are absent; `.env.production` contains only frontend build settings. `npm run test:db` therefore skipped the disposable PostgreSQL suite. Do not deploy the Worker until the isolated integration passes, the migration and grants are applied and verified, and the post-migration projection checks pass.
+The user reports migration `0005_majestic_fenris.sql` was applied successfully to production. The agent execution shell cannot see the owner/test database URLs, so it has not independently verified the migration or grants; its `npm run test:db` invocation skipped. Runtime grants and Worker rollout remain pending. Do not deploy until the isolated integration passes, each listed grant is verified, and the post-migration projection checks pass.
 
 Once those gates pass, deploy only through `npm run deploy:production` with `CACTIGROW_DEPLOY_CONFIRM=production`. This deploys to the already-live Worker and does not require or authorize DNS changes. Verify `/api/health`, authenticated bootstrap, name persistence, social relationships, and two-account Town chat/block behavior afterward. Application rollback must not reverse the additive migration or erase player data.
