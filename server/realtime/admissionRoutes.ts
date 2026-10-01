@@ -8,10 +8,43 @@ import { getAreaDefinition } from '../../shared/realtime/areas.ts'
 import { isCanonicalUuid } from '../../shared/realtime/identifiers.ts'
 import { areaCoordinatorName } from './runtimeContracts.ts'
 import { CONNECTION_TTL_MS } from './admissionTickets.ts'
+import { eq } from 'drizzle-orm'
+import { playerBlocks, playerProfiles } from '../db/schema/index.ts'
+
+export interface RealtimePlayerSocialProjection {
+  displayName: string
+  publicId: string
+  blockedPublicIds: readonly string[]
+}
+
+async function resolveRealtimePlayerSocial(context: ApiRequestContext, playerId: string): Promise<RealtimePlayerSocialProjection | null> {
+  const database = await context.database.getDatabase()
+  const [profile] = await database.select({ displayName: playerProfiles.displayName, publicId: playerProfiles.publicId }).from(playerProfiles)
+    .where(eq(playerProfiles.playerId, playerId)).limit(1)
+  if (!profile) return null
+  const blocks = await database.select({ publicId: playerProfiles.publicId }).from(playerBlocks)
+    .innerJoin(playerProfiles, eq(playerBlocks.blockedPlayerId, playerProfiles.playerId))
+    .where(eq(playerBlocks.blockerPlayerId, playerId))
+  return { ...profile, blockedPublicIds: blocks.map((block) => block.publicId) }
+}
+
+export async function syncRealtimeSocial(context: ApiRequestContext, playerId: string,
+  projection?: RealtimePlayerSocialProjection,
+  resolveSocial: (context: ApiRequestContext, playerId: string) => Promise<RealtimePlayerSocialProjection | null> = resolveRealtimePlayerSocial): Promise<void> {
+  const { env } = context
+  if (env.CACTIGROW_REALTIME_ENABLED !== 'true' || !env.AREA_PRESENCE) return
+  const profile = projection ?? await resolveSocial(context, playerId)
+  if (!profile) throw ApiError.conflict('Choose a character name before entering Town.')
+  const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(areaCoordinatorName('town')))
+  const response = await stub.fetch(new Request('https://area.internal/social-sync', { method: 'POST',
+    headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId, ...profile }) }))
+  if (!response.ok) throw ApiError.conflict('Realtime social state is temporarily unavailable.')
+}
 
 /** Browser requests never reach the binding unchanged; only these explicit fields cross it. */
 export async function routeRealtime(context: ApiRequestContext, readJson: (request: Request) => Promise<unknown>,
-  authenticationFactory?: AuthenticationConfigurationFactory): Promise<Response> {
+  authenticationFactory?: AuthenticationConfigurationFactory,
+  resolveSocial: (context: ApiRequestContext, playerId: string) => Promise<RealtimePlayerSocialProjection | null> = resolveRealtimePlayerSocial): Promise<Response> {
   const { request, env, requestId } = context
   const url = new URL(request.url)
   if (env.CACTIGROW_REALTIME_ENABLED !== 'true' || !env.AREA_PRESENCE) throw ApiError.notFound()
@@ -23,6 +56,8 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
     if (request.method !== 'POST') throw ApiError.methodNotAllowed()
     const player = await authenticateRequest(context, authenticationFactory)
     if (!isCanonicalUuid(player.playerId)) throw ApiError.unauthenticated()
+    const profile = await resolveSocial(context, player.playerId)
+    if (!profile) throw ApiError.conflict('Choose a character name before entering Town.')
     const input = await readJson(request)
     if (!isRealtimeCredentialsRequestV1(input)) throw ApiError.validation('Invalid realtime admission request.')
     const now = Date.now()
@@ -30,9 +65,11 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')
     if (!Number.isSafeInteger(sessionExpiry) || sessionExpiry <= now) throw ApiError.unauthenticated()
     const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(areaCoordinatorName(input.areaId)))
+    await syncRealtimeSocial(context, player.playerId, profile)
     const response = await stub.fetch(new Request('https://area.internal/tickets', { method: 'POST', headers: {
       'X-CactiGrow-Trusted-Scope': JSON.stringify({ areaId: input.areaId, entryPointId: input.entryPointId,
-        playerId: player.playerId, authorizationExpiresAt: Math.min(sessionExpiry, now + CONNECTION_TTL_MS),
+        playerId: player.playerId, publicId: profile.publicId, displayName: profile.displayName,
+        authorizationExpiresAt: Math.min(sessionExpiry, now + CONNECTION_TTL_MS),
         ...(input.reconnectToken ? { reconnectToken: input.reconnectToken } : {}) }),
     } }))
     if (response.status === 403) throw ApiError.forbidden()

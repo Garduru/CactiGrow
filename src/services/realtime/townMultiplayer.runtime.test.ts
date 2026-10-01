@@ -16,6 +16,8 @@ test('Two actual clients use L3 admission, share a Layer, exchange movement, rem
     const router = createApiRouter({ authenticationConfigurationFactory: () => ({
       identityProvider: new DevelopmentIdentityProvider('test'),
       createPlayerIdentityResolver: async () => ({ resolve: async identity => ({ playerId: '00000000-0000-4000-8000-' + (identity.subject === 'account-a' ? '000000000001' : '000000000002') }) })
+    }), resolveRealtimePlayerSocial: async (_context, playerId) => ({
+      publicId: playerId, displayName: playerId.endsWith('1') ? 'Saguaro One' : 'Saguaro Two', blockedPublicIds: [],
     }) })
     export default { fetch(request, env) { return handleApiRequest(request, { ...env, CACTIGROW_ENVIRONMENT: 'test', CACTIGROW_VERSION: 'test',
       CACTIGROW_REALTIME_ENABLED: 'true', CACTIGROW_REALTIME_ORIGIN: 'https://test' }, undefined, { router,

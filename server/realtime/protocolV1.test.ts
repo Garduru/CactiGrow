@@ -6,7 +6,7 @@ import { isClientMessageV1, isPublicPresenceV1, isServerMessageV1, MAX_CLIENT_FR
 
 const id = presenceId('00000000-0000-4000-8000-000000000001')
 const sample = { sequence: 1, position: { x: 1100, y: 1280 }, facing: 'south' as const, movement: 'stopped' as const }
-const player: PublicPresenceV1 = { ...sample, presenceId: id, generation: connectionGeneration(1), label: 'Grower', appearance: 'placeholder' }
+const player: PublicPresenceV1 = { ...sample, presenceId: id, publicId: '00000000-0000-4000-8000-000000000003', generation: connectionGeneration(1), label: 'Saguaro_7', appearance: 'placeholder' }
 const welcome: ServerMessageV1 = {
   v: 1, type: 'welcome', eventSequence: 0, areaId: TOWN_AREA.areaId, coordinateVersion: 1,
   layerId: layerId('00000000-0000-4000-8000-000000000002'), selfPresenceId: id, players: [player],
@@ -14,6 +14,8 @@ const welcome: ServerMessageV1 = {
 }
 const clients: readonly ClientMessageV1[] = [
   { v: 1, type: 'hello', ticket: 'test-ticket' }, { v: 1, type: 'move', ...sample },
+  { v: 1, type: 'chat', channel: 'world', text: 'Hello Town' },
+  { v: 1, type: 'chat', channel: 'direct', recipientPublicId: '00000000-0000-4000-8000-000000000004', text: 'Hi' },
   { v: 1, type: 'ping', sequence: 0 }, { v: 1, type: 'leave' },
 ]
 const servers: readonly ServerMessageV1[] = [
@@ -22,6 +24,7 @@ const servers: readonly ServerMessageV1[] = [
   { v: 1, type: 'left', eventSequence: 3, presenceId: id, generation: connectionGeneration(1), reason: 'leave' },
   { v: 1, type: 'pong', eventSequence: 4, sequence: 1, serverTime: 100 },
   { v: 1, type: 'error', eventSequence: 5, code: 'AREA_FULL', retryable: true },
+  { v: 1, type: 'chat', eventSequence: 6, message: { id: '00000000-0000-4000-8000-000000000005', channel: 'world', senderPublicId: player.publicId, senderDisplayName: player.label, text: 'Hello Town', sentAt: 100 } },
 ]
 
 test('All V1 client families validate and round-trip through bounded text parsing', () => {

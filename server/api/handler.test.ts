@@ -16,6 +16,7 @@ import type { Client } from 'pg'
 import { ApiError } from './errors.ts'
 import { CloudflareAccessIdentityProvider } from '../identity/CloudflareAccessIdentityProvider.ts'
 import { MAX_MUTATION_BODY_BYTES } from './router.ts'
+import type { SocialCommandV1, SocialOverviewV1, PublicPlayerProfileV1 } from '../../shared/api/socialV1.ts'
 
 const env = {
   CACTIGROW_ENVIRONMENT: 'development',
@@ -96,6 +97,24 @@ const testAuthenticatedRouter = createApiRouter({
       return { commandId: idempotencyKey, lifecycleVersion: '2', slot: { slotId: command.slotId, occupancy: null }, specimen: { specimenId: command.specimenId, cloneLineId: '10000000-0000-4000-8000-000000000001', speciesId: 'echinopsis-pachanoi', lifecycleStatus: 'owned', plantedAt: '2026-09-20T10:00:00.000Z', collectedAt: '2026-09-20T10:02:00.000Z', genetics: { vigor: 50, growthSpeed: 50, size: 50, flowering: 50, mutationChance: 1 }, geneticFeatures: [], specialVariants: [], geneticRepresentationVersion: 1, visualDerivationVersion: 1, version: 2 } }
     },
   }),
+  createSocialService: async () => ({
+    async overview(playerId): Promise<SocialOverviewV1> {
+      const profile = { publicId: playerId.endsWith('a') ? '00000000-0000-4000-8000-00000000000c' : '00000000-0000-4000-8000-00000000000d',
+        displayName: playerId.endsWith('a') ? 'Account A' : 'Account B', joinedAt: '2026-09-20T10:00:00.000Z', collectionCount: 0, breedingCount: 0 }
+      return { projectionVersion: 1, ownProfile: profile, friends: [], incomingRequests: [], outgoingRequests: [], blockedPlayers: [] }
+    },
+    async execute(playerId, command: SocialCommandV1): Promise<SocialOverviewV1> {
+      assert.equal(command.type, 'set-display-name')
+      const displayName = command.type === 'set-display-name' ? command.displayName.trim() : 'Unknown'
+      return { projectionVersion: 1, ownProfile: { publicId: '00000000-0000-4000-8000-00000000000c', displayName,
+        joinedAt: '2026-09-20T10:00:00.000Z', collectionCount: 0, breedingCount: 0 }, friends: [], incomingRequests: [], outgoingRequests: [], blockedPlayers: [] }
+    },
+    async publicProfile(viewerId, publicId): Promise<PublicPlayerProfileV1> {
+      assert.ok(viewerId.endsWith('a') || viewerId.endsWith('b'))
+      return { projectionVersion: 1, profile: { publicId, displayName: 'Public Player', joinedAt: '2026-09-20T10:00:00.000Z', collectionCount: 2, breedingCount: 1 },
+        relationship: { isSelf: false, areFriends: false, request: null, blockedByMe: false, blocksMe: false } }
+    },
+  }),
 })
 
 function authenticatedTestOptions(requestId: string) {
@@ -120,6 +139,40 @@ function developmentIdentityRequest(subject?: string, path = '/api/me') {
   if (subject) headers.set(DEVELOPMENT_IDENTITY_HEADER, subject)
   return new Request(`http://localhost${path}`, { headers })
 }
+
+test('social profile and own-profile routes derive actor identity and expose only public projection fields', async () => {
+  const load = async (subject: string) => {
+    const response = await handleApiRequest(developmentIdentityRequest(subject, '/api/v1/me/social'), env, undefined, authenticatedTestOptions(`social-${subject}`))
+    assert.equal(response.status, 200)
+    return (await response.json() as ApiSuccess<SocialOverviewV1>).data
+  }
+  const accountA = await load('account-a'), accountB = await load('account-b')
+  assert.equal(accountA.ownProfile?.displayName, 'Account A')
+  assert.equal(accountB.ownProfile?.displayName, 'Account B')
+  assert.equal(Object.hasOwn(accountA.ownProfile!, 'playerId'), false)
+
+  const command = await handleApiRequest(new Request('http://localhost/api/v1/me/social', { method: 'POST',
+    headers: { [DEVELOPMENT_IDENTITY_HEADER]: 'account-a', 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'set-display-name', displayName: '  Garduru  ' }) }), env, undefined, authenticatedTestOptions('social-name'))
+  assert.equal(command.status, 200)
+  assert.equal(((await command.json()) as ApiSuccess<SocialOverviewV1>).data.ownProfile?.displayName, 'Garduru')
+
+  const forgedSelf = await handleApiRequest(new Request('http://localhost/api/v1/me/social', { method: 'POST',
+    headers: { [DEVELOPMENT_IDENTITY_HEADER]: 'account-a', 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'set-display-name', displayName: 'Garduru', playerId: 'account-b' }) }), env, undefined, authenticatedTestOptions('social-forged-self'))
+  assert.equal(forgedSelf.status, 400)
+
+  const publicId = '00000000-0000-4000-8000-00000000000e'
+  const profile = await handleApiRequest(developmentIdentityRequest('account-a', `/api/v1/players/${publicId}`), env, undefined, authenticatedTestOptions('social-public-profile'))
+  assert.equal(profile.status, 200)
+  const projected = (await profile.json() as ApiSuccess<PublicPlayerProfileV1>).data
+  assert.equal(projected.profile.publicId, publicId)
+  assert.equal(Object.hasOwn(projected.profile, 'playerId'), false)
+  assert.equal(Object.hasOwn(projected.profile, 'email'), false)
+
+  const anonymous = await handleApiRequest(developmentIdentityRequest(undefined, '/api/v1/me/social'), env, undefined, authenticatedTestOptions('social-anonymous'))
+  assert.equal(anonymous.status, 401)
+})
 
 async function getMe(subject: string, requestId: string) {
   const response = await handleApiRequest(

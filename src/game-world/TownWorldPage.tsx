@@ -9,6 +9,7 @@ import { PhaserWorldHost } from './PhaserWorldHost'
 import { townWorldProjection } from './townWorldProjection'
 import type { WorldIntent } from './worldTypes'
 import { useTownPresence } from './useTownPresence'
+import { useSocialState } from '../features/social/useSocialState'
 
 export function TownWorldPage() {
   const navigate = useNavigate()
@@ -16,12 +17,18 @@ export function TownWorldPage() {
   const spawnId = resolveTownSpawnId(location.state)
   const { connection, status, enabled } = useTownPresence(spawnId)
   const social = useSocialPanel()
+  const socialState = useSocialState()
+  const openProfile = socialState.openProfile
   const handleIntent = useCallback((intent: WorldIntent) => {
+    if (intent.type === 'OPEN_PLAYER_PROFILE') {
+      openProfile(intent.publicId)
+      return
+    }
     const destination = townWorldProjection.locations.find((location) => location.id === intent.locationId)
     if (!destination) return
     if (destination.id === 'farm') navigate(CANONICAL_FARM_PATH, { state: createFarmTownRoadEntryState() })
     else navigate(destination.route, { state: createTownReturnState(destination.id) })
-  }, [navigate])
+  }, [navigate, openProfile])
   const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1], editor?: Parameters<typeof createTownWorldGame>[2]['editor']) => createTownWorldGame(parent, bridge, { spawnId, editor, connection }), [spawnId, connection])
 
   return (

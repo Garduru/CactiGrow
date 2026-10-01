@@ -280,6 +280,30 @@ test('lifecycle client validates the six-slot projection', async () => {
   assert.deepEqual(await client.getPlantLifecycle(), lifecycle)
 })
 
+test('social client uses authenticated versioned routes and rejects private profile fields', async () => {
+  const publicProfile = { publicId: '00000000-0000-4000-8000-000000000001', displayName: 'Garduru',
+    joinedAt: '2026-09-20T10:00:00.000Z', cultivationLevel: 8, cultivationXp: 2500, collectionCount: 4, breedingCount: 2 }
+  const overview = { projectionVersion: 1, ownProfile: publicProfile, friends: [], incomingRequests: [], outgoingRequests: [], blockedPlayers: [] }
+  const calls: { url: string; init: RequestInit }[] = []
+  const client = new CactiGrowApiClient({ fetch: async (url, init) => {
+    calls.push({ url: String(url), init: init! })
+    const data = String(url).includes('/players/')
+      ? { projectionVersion: 1, profile: publicProfile, relationship: { isSelf: false, areFriends: true, request: null, blockedByMe: false, blocksMe: false } }
+      : overview
+    return Response.json({ ok: true, data, meta: { requestId: 'social-client' } })
+  } })
+  assert.deepEqual(await client.getSocial(), overview)
+  assert.deepEqual(await client.mutateSocial({ type: 'add-friend', publicId: publicProfile.publicId }), overview)
+  assert.equal((await client.getPublicPlayerProfile(publicProfile.publicId)).profile.displayName, 'Garduru')
+  assert.deepEqual(calls.map(({ url, init }) => [url, init.method]), [
+    ['/api/v1/me/social', 'GET'], ['/api/v1/me/social', 'POST'], [`/api/v1/players/${publicProfile.publicId}`, 'GET'],
+  ])
+  const unsafe = new CactiGrowApiClient({ fetch: async () => Response.json({ ok: true,
+    data: { projectionVersion: 1, profile: { ...publicProfile, playerId: 'private' }, relationship: { isSelf: false, areFriends: false, request: null, blockedByMe: false, blocksMe: false } },
+    meta: { requestId: 'social-private' } }) })
+  await assert.rejects(unsafe.getPublicPlayerProfile(publicProfile.publicId), /player profile is invalid/)
+})
+
 test('plant command sends intent and idempotency headers without generated outcome fields', async () => {
   let captured: RequestInit | undefined
   const client = new CactiGrowApiClient({ fetch: async (_input, init) => { captured = init; return response({ ok: true, data: { commandId: '30000000-0000-4000-8000-000000000003', lifecycleVersion: '1', seedStack: { speciesId: 'echinopsis-pachanoi', quantity: 3, version: 2 }, slot: { slotId: 'slot-1', occupancy: null } }, meta: { requestId: 'plant' } }) } })

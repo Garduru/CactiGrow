@@ -36,6 +36,13 @@
       "when": 1790115557766,
       "tag": "0004_massive_angel",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790835227031,
+      "tag": "0005_majestic_fenris",
+      "breakpoints": true
     }
   ]
 }

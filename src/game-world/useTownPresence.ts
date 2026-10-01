@@ -4,8 +4,10 @@ import { browserRealtimeApiClient } from '../services/api/browserApiClient'
 import { AreaConnection } from '../services/realtime/AreaConnection'
 import { TOWN_AREA } from '../../shared/realtime/areas'
 import type { TownWorldSpawnId } from './worldTypes'
+import { useSocialState } from '../features/social/useSocialState'
 
 export function useTownPresence(entryPointId: TownWorldSpawnId) {
+  const { bindTownConnection } = useSocialState()
   const bootstrap = usePlayerBootstrap()
   const identity = bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
   const enabled = (import.meta.env.MODE !== 'production' || import.meta.env.VITE_CACTIGROW_REALTIME_ENABLED === 'true') && !(import.meta.env.DEV && new URLSearchParams(window.location.search).has('worldEdit'))
@@ -16,6 +18,10 @@ export function useTownPresence(entryPointId: TownWorldSpawnId) {
     if (enabled && identity) connection.start()
     return () => connection.stop()
   }, [connection, enabled, identity])
+  useEffect(() => {
+    bindTownConnection(connection)
+    return () => bindTownConnection(null)
+  }, [connection, bindTownConnection])
   return { connection, status: !identity ? 'Sign in for multiplayer' : ({ idle: 'Multiplayer unavailable', connecting: 'Connecting…',
     connected: 'Connected', reconnecting: 'Reconnecting…', unavailable: 'Multiplayer unavailable — re-enter Town to retry' } as const)[status], enabled }
 }

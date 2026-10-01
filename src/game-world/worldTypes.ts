@@ -40,7 +40,6 @@ export type TownWorldLocationProjection = WorldLocationProjection & { id: TownWo
 export interface FarmWorldProjection extends WorldProjection { locations: readonly FarmWorldLocationProjection[]; gardenDisplays: readonly GardenDisplayProjection[] }
 export interface TownWorldProjection extends WorldProjection { locations: readonly TownWorldLocationProjection[] }
 
-export type WorldIntent = {
-  type: 'ENTER_LOCATION'
-  locationId: WorldLocationId
-}
+export type WorldIntent =
+  | { type: 'ENTER_LOCATION'; locationId: WorldLocationId }
+  | { type: 'OPEN_PLAYER_PROFILE'; publicId: string }

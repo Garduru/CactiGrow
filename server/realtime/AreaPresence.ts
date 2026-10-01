@@ -1,12 +1,20 @@
 import { DurableObject } from 'cloudflare:workers'
 import { getAreaDefinition } from '../../shared/realtime/areas.ts'
 import { isRecord } from '../../shared/realtime/protocolV1.ts'
+import { isCanonicalUuid } from '../../shared/realtime/identifiers.ts'
 import { AreaCoordinator, type PresenceSocket } from './AreaCoordinator.ts'
 import { areaCoordinatorName, CHECKPOINT_KEY, isTrustedAdmission, membershipKey, sameOwner, type TrustedAdmission } from './runtimeContracts.ts'
 import { CONNECTION_TTL_MS, TICKET_TTL_MS, TICKETS_KEY, MAX_CREDENTIAL_RECORDS, credentialHash, newCredential, pruneTickets, isTicketState, type TicketState } from './admissionTickets.ts'
 import { isRealtimeCredential, REALTIME_SUBPROTOCOL } from '../../shared/api/realtimeCredentialsV1.ts'
 
 export interface RealtimeEnv { AREA_PRESENCE: DurableObjectNamespace<AreaPresence> }
+const SOCIAL_KEY = 'area-social-v1'
+interface AreaSocialProfile { playerId: string; publicId: string; displayName: string; blockedPublicIds: readonly string[] }
+function isAreaSocialProfile(value: unknown): value is AreaSocialProfile {
+  return isRecord(value) && Object.keys(value).length === 4 && isCanonicalUuid(value.playerId) && isCanonicalUuid(value.publicId)
+    && typeof value.displayName === 'string' && value.displayName.length >= 3 && value.displayName.length <= 20
+    && Array.isArray(value.blockedPublicIds) && value.blockedPublicIds.every(isCanonicalUuid)
+}
 
 /** L3 obtains this stub ONLY after validating configured Area and authenticated scope. */
 export function getAreaCoordinator(namespace: RealtimeEnv['AREA_PRESENCE'], areaId: unknown): DurableObjectStub<AreaPresence> {
@@ -22,10 +30,16 @@ export function admitToArea(namespace: RealtimeEnv['AREA_PRESENCE'], scope: Trus
 
 export class AreaPresence extends DurableObject<RealtimeEnv> {
   #runtime?: AreaCoordinator
+  #socialProfiles = new Map<string, AreaSocialProfile>()
 
   constructor(ctx: DurableObjectState, env: RealtimeEnv) {
     super(ctx, env)
     ctx.blockConcurrencyWhile(async () => {
+      const savedSocial: unknown = ctx.storage.kv.get(SOCIAL_KEY)
+      if (savedSocial !== undefined) {
+        if (!Array.isArray(savedSocial) || !savedSocial.every(isAreaSocialProfile)) throw new Error('Invalid realtime social cache.')
+        this.#socialProfiles = new Map(savedSocial.map((profile) => [profile.playerId, profile]))
+      }
       const saved: unknown = ctx.storage.kv.get(CHECKPOINT_KEY)
       if (saved !== undefined) {
         if (!isRecord(saved) || !this.#isOwner(saved.areaId)) {
@@ -49,6 +63,8 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
       now: () => Date.now(), uuid: () => crypto.randomUUID(),
       accept: (socket: PresenceSocket) => this.ctx.acceptWebSocket(socket as WebSocket),
       save: (value) => this.ctx.storage.kv.put(CHECKPOINT_KEY, value),
+      isBlocked: (blockerPlayerId, blockedPublicId) => this.#socialProfiles.get(blockerPlayerId)?.blockedPublicIds.includes(blockedPublicId) ?? false,
+      removeSocial: (playerId) => { this.#socialProfiles.delete(playerId); this.#saveSocialProfiles() },
       diagnostic: (event, fields) => console.info(JSON.stringify({ service: 'area-presence', event, ...fields })),
     }, saved, this.ctx.getWebSockets())
   }
@@ -66,6 +82,7 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
    */
   fetch(request: Request): Promise<Response> | Response {
     const path = new URL(request.url).pathname
+    if (path === '/social-sync' && request.method === 'POST') return this.#syncSocial(request)
     if (path === '/tickets' && request.method === 'POST') return this.#issue(request)
     if (path === '/redeem' && request.method === 'GET' && request.headers.get('Upgrade')?.toLowerCase() === 'websocket') return this.#redeem(request)
     if (request.method !== 'GET' || new URL(request.url).pathname !== '/connect'
@@ -76,6 +93,20 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
     try { input = JSON.parse(scope) } catch { return new Response('Invalid scope', { status: 403 }) }
     return this.#admit(input)
   }
+  async #syncSocial(request: Request): Promise<Response> {
+    const text = await request.text()
+    if (new TextEncoder().encode(text).byteLength > 1_000_000) return new Response('Invalid social profile', { status: 413 })
+    let input: unknown
+    try { input = JSON.parse(text) } catch { return new Response('Invalid social profile', { status: 400 }) }
+    if (!isAreaSocialProfile(input)) return new Response('Invalid social profile', { status: 400 })
+    return this.ctx.blockConcurrencyWhile(async () => {
+      if (!this.#isOwner('town')) return new Response('Invalid Area', { status: 403 })
+      this.#socialProfiles.set(input.playerId, input)
+      this.#saveSocialProfiles()
+      return new Response(null, { status: 204 })
+    })
+  }
+  #saveSocialProfiles(): void { this.ctx.storage.kv.put(SOCIAL_KEY, [...this.#socialProfiles.values()]) }
   #admit(input: unknown): Promise<Response> {
     return this.ctx.blockConcurrencyWhile(async () => {
       if (!isRecord(input) || !this.#isOwner(input.areaId)) return new Response('Invalid scope', { status: 403 })

@@ -34,5 +34,9 @@ export class RemotePlayers {
   update(now: number) {
     for (const remote of this.players.values()) { const position = this.position(remote, now); remote.avatar.setPosition(position.x, position.y) }
   }
+  getAtPosition(position: Position, radius = 42): PublicPresenceV1 | undefined {
+    return [...this.players.values()].find((remote) => Math.hypot(position.x - remote.presence.position.x,
+      position.y - remote.presence.position.y) <= radius)?.presence
+  }
   clear() { for (const remote of this.players.values()) remote.avatar.destroy(); this.players.clear() }
 }

@@ -18,6 +18,8 @@ export interface CoordinatorPorts {
   uuid(): string
   accept(socket: PresenceSocket): void
   save(checkpoint: Checkpoint): void // Synchronous owner-local storage; never external I/O.
+  isBlocked?(blockerPlayerId: string, blockedPublicId: string): boolean
+  removeSocial?(playerId: string): void
   diagnostic(event: string, fields: { areaId: string; population: number; reason?: string; layerId?: string }): void
 }
 type Delta = ServerMessageV1 extends infer M ? M extends ServerMessageV1 ? Omit<M, 'v' | 'eventSequence'> : never : never
@@ -126,8 +128,10 @@ export class AreaCoordinator {
     if (!isTrustedAdmission(input, this.state.area, now)) { this.log('admission_rejected', 'scope'); return { ok: false, code: 'INVALID_SCOPE' } }
     const previous = input.replace && [...this.connections].find(([, value]) => sameOwner(value.member, input.replace!))
     const result = input.replace
-      ? replaceAuthorizedConnection(this.state, input.replace, now)
-      : joinPresence(this.state, { playerId: input.playerId, entryPointId: input.entryPointId,
+      ? replaceAuthorizedConnection(this.state, input.replace, now, { publicId: input.publicId ?? input.replace.presenceId,
+        displayName: input.displayName ?? 'Grower' })
+      : joinPresence(this.state, { playerId: input.playerId, publicId: input.publicId, displayName: input.displayName,
+        entryPointId: input.entryPointId,
         presenceId: presenceId(this.ports.uuid()), newLayerId: layerId(this.ports.uuid()), recentLayerId: input.recentLayerId }, now)
     if (!result.ok) { this.log('admission_rejected', result.code); return { ok: false, code: result.code } }
     if (input.replace && !previous) { this.log('admission_rejected', 'STALE_CONNECTION'); return { ok: false, code: 'STALE_CONNECTION' } }
@@ -184,10 +188,37 @@ export class AreaCoordinator {
       this.save()
       this.broadcast(connection.member.layerId, { type: 'moved', presenceId: connection.member.presenceId,
         generation: connection.member.generation, sample: connection.member.sample, acceptedAt: now }, socket)
-    } else {
+    } else if (message.type === 'ping') {
       connection.lastSeen = now
       this.send(socket, { type: 'pong', sequence: message.sequence, serverTime: now })
+    } else {
+      connection.lastSeen = now
+      this.sendChat(socket, message.channel, message.text, message.recipientPublicId)
     }
+  }
+  private sendChat(socket: PresenceSocket, channel: 'world' | 'direct', text: string, recipientPublicId?: string): void {
+    const connection = this.own(socket)
+    if (!connection) return
+    const sender = connection.member
+    let recipients: PresenceSocket[]
+    if (channel === 'world') recipients = [...this.connections]
+      .filter(([, candidate]) => candidate.member.layerId === sender.layerId
+        && !this.ports.isBlocked?.(candidate.member.playerId, sender.publicId)).map(([candidate]) => candidate)
+    else {
+      if (!recipientPublicId || recipientPublicId === sender.publicId) {
+        this.send(socket, { type: 'error', code: 'CHAT_UNAVAILABLE', retryable: false })
+        return
+      }
+      const [recipientEntry] = [...this.connections].filter(([, candidate]) => candidate.member.publicId === recipientPublicId)
+      if (!recipientEntry || this.ports.isBlocked?.(sender.playerId, recipientPublicId)
+        || this.ports.isBlocked?.(recipientEntry[1].member.playerId, sender.publicId)) {
+        this.send(socket, { type: 'error', code: 'CHAT_UNAVAILABLE', retryable: false }); return
+      }
+      recipients = [socket, recipientEntry[0]]
+    }
+    const message = { id: this.ports.uuid(), channel, senderPublicId: sender.publicId,
+      senderDisplayName: sender.displayName ?? 'Grower', ...(recipientPublicId ? { recipientPublicId } : {}), text, sentAt: this.now() } as const
+    for (const recipient of recipients) this.send(recipient, { type: 'chat', message })
   }
   private violation(socket: PresenceSocket, connection: SocketAttachment, code: 'INVALID_MESSAGE' | 'UNSUPPORTED_VERSION'): void {
     this.log('protocol_violation', code)
@@ -201,6 +232,7 @@ export class AreaCoordinator {
     const result = leavePresence(this.state, connection.member, this.now())
     if (!result.ok) { this.quarantine(socket); return }
     this.state = result.state; this.save()
+    this.ports.removeSocial?.(connection.member.playerId)
     this.quarantine(socket)
     this.log('connection_closed', reason, connection.member.layerId); this.log('population_changed')
     this.broadcast(connection.member.layerId, { type: 'left', presenceId: connection.member.presenceId, generation: connection.member.generation, reason })

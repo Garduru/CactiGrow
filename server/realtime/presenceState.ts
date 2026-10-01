@@ -11,6 +11,8 @@ export interface MembershipKey {
   readonly generation: ConnectionGeneration
 }
 export interface Membership extends MembershipKey {
+  readonly publicId: string
+  readonly displayName: string
   readonly joinedAt: number
   readonly updatedAt: number
   readonly sample: MovementSample
@@ -33,6 +35,8 @@ export type PresenceTransition = { readonly ok: true; readonly state: AreaPresen
   | { readonly ok: false; readonly code: PresenceFailure; readonly state: AreaPresenceState }
 export interface JoinPresence {
   readonly playerId: PlayerId
+  readonly publicId?: string
+  readonly displayName?: string
   readonly presenceId: PresenceId
   readonly newLayerId: LayerId
   readonly entryPointId: string
@@ -84,6 +88,7 @@ export function joinPresence(state: AreaPresenceState, input: JoinPresence, now:
   const layerId = assignment.kind === 'existing' ? assignment.layerId : input.newLayerId
   const membership: Membership = {
     areaId: state.area.areaId, layerId, playerId: input.playerId, presenceId: input.presenceId,
+    publicId: input.publicId ?? input.presenceId, displayName: input.displayName ?? 'Grower',
     generation: connectionGeneration(state.nextGeneration), joinedAt: now, updatedAt: now,
     sample: { sequence: 0, position: { ...state.area.entryPoints[input.entryPointId] }, facing: 'south', movement: 'stopped' },
   }
@@ -97,12 +102,13 @@ export function joinPresence(state: AreaPresenceState, input: JoinPresence, now:
 /** Trusted server-only transition: the adapter MUST verify reconnect authorization first.
  * A client UUID, generation, or boolean does not authorize calling this function.
  */
-export function replaceAuthorizedConnection(state: AreaPresenceState, previous: MembershipKey, now: number): PresenceTransition {
+export function replaceAuthorizedConnection(state: AreaPresenceState, previous: MembershipKey, now: number,
+  social?: Pick<Membership, 'publicId' | 'displayName'>): PresenceTransition {
   assertTime(state, now)
   const member = currentMember(state, previous)
   if (!member) return fail(state, 'STALE_CONNECTION')
   if (!canAllocateGeneration(state)) return fail(state, 'GENERATION_EXHAUSTED')
-  const membership = { ...member, generation: connectionGeneration(state.nextGeneration), updatedAt: now,
+  const membership = { ...member, ...social, generation: connectionGeneration(state.nextGeneration), updatedAt: now,
     sample: { ...member.sample, position: { ...member.sample.position }, sequence: 0, movement: 'stopped' as const } }
   return { ok: true, membership, state: { ...state, members: state.members.map((item) => item === member ? membership : item), nextGeneration: state.nextGeneration + 1, updatedAt: now } }
 }
@@ -137,7 +143,7 @@ export function retireEmptyLayers(state: AreaPresenceState, now: number): AreaPr
 /** Explicit whitelist: never spread a membership, account, or gameplay object onto the wire. */
 export function toPublicPresence(member: Membership): PublicPresenceV1 {
   return {
-    presenceId: member.presenceId, generation: member.generation, label: 'Grower', appearance: 'placeholder',
+    presenceId: member.presenceId, publicId: member.publicId ?? member.presenceId, generation: member.generation, label: member.displayName ?? 'Grower', appearance: 'placeholder',
     sequence: member.sample.sequence, position: { x: member.sample.position.x, y: member.sample.position.y },
     facing: member.sample.facing, movement: member.sample.movement,
   }

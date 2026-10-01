@@ -141,7 +141,7 @@ test('Public snapshots isolate Layers and explicitly exclude private fields', ()
   const contaminated = { ...first.membership, email: 'private', tokenBalance: 123, externalIdentity: { subject: 'secret' } }
   const dto = toPublicPresence(contaminated)
   assert.equal(isPublicPresenceV1(dto), true)
-  assert.deepEqual(Object.keys(dto).sort(), ['appearance', 'facing', 'generation', 'label', 'movement', 'position', 'presenceId', 'sequence'].sort())
+  assert.deepEqual(Object.keys(dto).sort(), ['appearance', 'facing', 'generation', 'label', 'movement', 'position', 'presenceId', 'publicId', 'sequence'].sort())
   assert.notEqual(dto.position, first.membership.sample.position)
 })
 test('Invalid time and generation exhaustion fail without wrapping generations', () => {

@@ -1,0 +1,2126 @@
+{
+  "id": "3d18947b-13d3-4187-bc38-a9a95f745bf1",
+  "prevId": "32a123b4-af34-4d80-ab74-876524b412cf",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.player_external_identities": {
+      "name": "player_external_identities",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "player_external_identities_provider_subject_unique": {
+          "name": "player_external_identities_provider_subject_unique",
+          "columns": [
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "player_external_identities_player_id_index": {
+          "name": "player_external_identities_player_id_index",
+          "columns": [
+            {
+              "expression": "player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "player_external_identities_player_id_players_id_fk": {
+          "name": "player_external_identities_player_id_players_id_fk",
+          "tableFrom": "player_external_identities",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.players": {
+      "name": "players",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.bred_seeds": {
+      "name": "bred_seeds",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_player_id": {
+          "name": "owner_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clone_line_id": {
+          "name": "clone_line_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_1_specimen_id": {
+          "name": "parent_1_specimen_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_2_specimen_id": {
+          "name": "parent_2_specimen_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_1_species_id": {
+          "name": "parent_1_species_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_2_species_id": {
+          "name": "parent_2_species_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_hybrid": {
+          "name": "is_hybrid",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "genetic_features": {
+          "name": "genetic_features",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'available'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "planted_at": {
+          "name": "planted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "planted_specimen_id": {
+          "name": "planted_specimen_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bred_seeds_owner_player_id_players_id_fk": {
+          "name": "bred_seeds_owner_player_id_players_id_fk",
+          "tableFrom": "bred_seeds",
+          "tableTo": "players",
+          "columnsFrom": [
+            "owner_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bred_seeds_clone_line_id_clone_lines_id_fk": {
+          "name": "bred_seeds_clone_line_id_clone_lines_id_fk",
+          "tableFrom": "bred_seeds",
+          "tableTo": "clone_lines",
+          "columnsFrom": [
+            "clone_line_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bred_seeds_parent_1_specimen_id_plant_specimens_id_fk": {
+          "name": "bred_seeds_parent_1_specimen_id_plant_specimens_id_fk",
+          "tableFrom": "bred_seeds",
+          "tableTo": "plant_specimens",
+          "columnsFrom": [
+            "parent_1_specimen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bred_seeds_parent_2_specimen_id_plant_specimens_id_fk": {
+          "name": "bred_seeds_parent_2_specimen_id_plant_specimens_id_fk",
+          "tableFrom": "bred_seeds",
+          "tableTo": "plant_specimens",
+          "columnsFrom": [
+            "parent_2_specimen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bred_seeds_planted_specimen_id_plant_specimens_id_fk": {
+          "name": "bred_seeds_planted_specimen_id_plant_specimens_id_fk",
+          "tableFrom": "bred_seeds",
+          "tableTo": "plant_specimens",
+          "columnsFrom": [
+            "planted_specimen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "bred_seeds_clone_line_id_unique": {
+          "name": "bred_seeds_clone_line_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "clone_line_id"
+          ]
+        },
+        "bred_seeds_planted_specimen_id_unique": {
+          "name": "bred_seeds_planted_specimen_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "planted_specimen_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "bred_seeds_distinct_parents": {
+          "name": "bred_seeds_distinct_parents",
+          "value": "\"bred_seeds\".\"parent_1_specimen_id\" <> \"bred_seeds\".\"parent_2_specimen_id\""
+        },
+        "bred_seeds_status_valid": {
+          "name": "bred_seeds_status_valid",
+          "value": "(\"bred_seeds\".\"status\" = 'available' AND \"bred_seeds\".\"planted_at\" IS NULL AND \"bred_seeds\".\"planted_specimen_id\" IS NULL) OR (\"bred_seeds\".\"status\" = 'planted' AND \"bred_seeds\".\"planted_at\" IS NOT NULL AND \"bred_seeds\".\"planted_specimen_id\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.clone_line_variants": {
+      "name": "clone_line_variants",
+      "schema": "",
+      "columns": {
+        "clone_line_id": {
+          "name": "clone_line_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variant_id": {
+          "name": "variant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "established_at": {
+          "name": "established_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "clone_line_variants_clone_line_id_clone_lines_id_fk": {
+          "name": "clone_line_variants_clone_line_id_clone_lines_id_fk",
+          "tableFrom": "clone_line_variants",
+          "tableTo": "clone_lines",
+          "columnsFrom": [
+            "clone_line_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "clone_line_variants_clone_line_id_variant_id_pk": {
+          "name": "clone_line_variants_clone_line_id_variant_id_pk",
+          "columns": [
+            "clone_line_id",
+            "variant_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.clone_lines": {
+      "name": "clone_lines",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "species_id": {
+          "name": "species_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin_type": {
+          "name": "origin_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin_player_id": {
+          "name": "origin_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "established_at": {
+          "name": "established_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "genetic_representation_version": {
+          "name": "genetic_representation_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "visual_derivation_version": {
+          "name": "visual_derivation_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "clone_lines_origin_player_id_players_id_fk": {
+          "name": "clone_lines_origin_player_id_players_id_fk",
+          "tableFrom": "clone_lines",
+          "tableTo": "players",
+          "columnsFrom": [
+            "origin_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "clone_lines_versions_positive": {
+          "name": "clone_lines_versions_positive",
+          "value": "\"clone_lines\".\"genetic_representation_version\" >= 1 AND \"clone_lines\".\"visual_derivation_version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.gameplay_command_receipts": {
+      "name": "gameplay_command_receipts",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "command_type": {
+          "name": "command_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "request_fingerprint": {
+          "name": "request_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "response_payload": {
+          "name": "response_payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "gameplay_command_receipts_player_id_players_id_fk": {
+          "name": "gameplay_command_receipts_player_id_players_id_fk",
+          "tableFrom": "gameplay_command_receipts",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "gameplay_command_receipts_player_id_idempotency_key_pk": {
+          "name": "gameplay_command_receipts_player_id_idempotency_key_pk",
+          "columns": [
+            "player_id",
+            "idempotency_key"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "gameplay_command_receipts_status_valid": {
+          "name": "gameplay_command_receipts_status_valid",
+          "value": "\"gameplay_command_receipts\".\"status\" IN ('processing','completed')"
+        },
+        "gameplay_command_receipts_completed_shape": {
+          "name": "gameplay_command_receipts_completed_shape",
+          "value": "\"gameplay_command_receipts\".\"status\" <> 'completed' OR (\"gameplay_command_receipts\".\"response_payload\" IS NOT NULL AND \"gameplay_command_receipts\".\"completed_at\" IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.genetic_profiles": {
+      "name": "genetic_profiles",
+      "schema": "",
+      "columns": {
+        "clone_line_id": {
+          "name": "clone_line_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "vigor": {
+          "name": "vigor",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "growth_speed": {
+          "name": "growth_speed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size": {
+          "name": "size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "flowering": {
+          "name": "flowering",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mutation_chance": {
+          "name": "mutation_chance",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "establishment_rule_version": {
+          "name": "establishment_rule_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "genetic_profiles_clone_line_id_clone_lines_id_fk": {
+          "name": "genetic_profiles_clone_line_id_clone_lines_id_fk",
+          "tableFrom": "genetic_profiles",
+          "tableTo": "clone_lines",
+          "columnsFrom": [
+            "clone_line_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "genetic_profiles_ratings_bounded": {
+          "name": "genetic_profiles_ratings_bounded",
+          "value": "\"genetic_profiles\".\"vigor\" BETWEEN 0 AND 100 AND \"genetic_profiles\".\"growth_speed\" BETWEEN 0 AND 100 AND \"genetic_profiles\".\"size\" BETWEEN 0 AND 100 AND \"genetic_profiles\".\"flowering\" BETWEEN 0 AND 100 AND \"genetic_profiles\".\"mutation_chance\" BETWEEN 0 AND 100"
+        },
+        "genetic_profiles_rule_positive": {
+          "name": "genetic_profiles_rule_positive",
+          "value": "\"genetic_profiles\".\"establishment_rule_version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.nursery_occupancies": {
+      "name": "nursery_occupancies",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "specimen_id": {
+          "name": "specimen_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "planted_at": {
+          "name": "planted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ready_at": {
+          "name": "ready_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "growth_rule_version": {
+          "name": "growth_rule_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "nursery_occupancies_player_id_players_id_fk": {
+          "name": "nursery_occupancies_player_id_players_id_fk",
+          "tableFrom": "nursery_occupancies",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "nursery_occupancies_owned_specimen_fk": {
+          "name": "nursery_occupancies_owned_specimen_fk",
+          "tableFrom": "nursery_occupancies",
+          "tableTo": "plant_specimens",
+          "columnsFrom": [
+            "player_id",
+            "specimen_id"
+          ],
+          "columnsTo": [
+            "owner_player_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "nursery_occupancies_player_id_slot_id_pk": {
+          "name": "nursery_occupancies_player_id_slot_id_pk",
+          "columns": [
+            "player_id",
+            "slot_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "nursery_occupancies_specimen_unique": {
+          "name": "nursery_occupancies_specimen_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "specimen_id"
+          ]
+        },
+        "nursery_occupancies_owner_specimen_unique": {
+          "name": "nursery_occupancies_owner_specimen_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "player_id",
+            "specimen_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "nursery_occupancies_slot_valid": {
+          "name": "nursery_occupancies_slot_valid",
+          "value": "\"nursery_occupancies\".\"slot_id\" IN ('slot-1','slot-2','slot-3','slot-4','slot-5','slot-6','slot-7','slot-8')"
+        },
+        "nursery_occupancies_schedule_valid": {
+          "name": "nursery_occupancies_schedule_valid",
+          "value": "\"nursery_occupancies\".\"ready_at\" > \"nursery_occupancies\".\"planted_at\""
+        },
+        "nursery_occupancies_versions_positive": {
+          "name": "nursery_occupancies_versions_positive",
+          "value": "\"nursery_occupancies\".\"growth_rule_version\" >= 1 AND \"nursery_occupancies\".\"version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.plant_specimens": {
+      "name": "plant_specimens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_player_id": {
+          "name": "owner_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "clone_line_id": {
+          "name": "clone_line_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lifecycle_status": {
+          "name": "lifecycle_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "planted_at": {
+          "name": "planted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "collected_at": {
+          "name": "collected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "visual_derivation_version": {
+          "name": "visual_derivation_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "plant_specimens_owner_player_id_players_id_fk": {
+          "name": "plant_specimens_owner_player_id_players_id_fk",
+          "tableFrom": "plant_specimens",
+          "tableTo": "players",
+          "columnsFrom": [
+            "owner_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "plant_specimens_clone_line_id_clone_lines_id_fk": {
+          "name": "plant_specimens_clone_line_id_clone_lines_id_fk",
+          "tableFrom": "plant_specimens",
+          "tableTo": "clone_lines",
+          "columnsFrom": [
+            "clone_line_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "plant_specimens_owner_id_unique": {
+          "name": "plant_specimens_owner_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "owner_player_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "plant_specimens_lifecycle_valid": {
+          "name": "plant_specimens_lifecycle_valid",
+          "value": "(\"plant_specimens\".\"lifecycle_status\" = 'growing' AND \"plant_specimens\".\"collected_at\" IS NULL) OR (\"plant_specimens\".\"lifecycle_status\" IN ('owned','sold') AND \"plant_specimens\".\"collected_at\" IS NOT NULL)"
+        },
+        "plant_specimens_versions_positive": {
+          "name": "plant_specimens_versions_positive",
+          "value": "\"plant_specimens\".\"visual_derivation_version\" >= 1 AND \"plant_specimens\".\"version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player_plant_lifecycle_versions": {
+      "name": "player_plant_lifecycle_versions",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_plant_lifecycle_versions_player_id_players_id_fk": {
+          "name": "player_plant_lifecycle_versions_player_id_players_id_fk",
+          "tableFrom": "player_plant_lifecycle_versions",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "player_plant_lifecycle_versions_nonnegative": {
+          "name": "player_plant_lifecycle_versions_nonnegative",
+          "value": "\"player_plant_lifecycle_versions\".\"version\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player_seed_stacks": {
+      "name": "player_seed_stacks",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "species_id": {
+          "name": "species_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_seed_stacks_player_id_players_id_fk": {
+          "name": "player_seed_stacks_player_id_players_id_fk",
+          "tableFrom": "player_seed_stacks",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "player_seed_stacks_player_id_species_id_pk": {
+          "name": "player_seed_stacks_player_id_species_id_pk",
+          "columns": [
+            "player_id",
+            "species_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "player_seed_stacks_quantity_nonnegative": {
+          "name": "player_seed_stacks_quantity_nonnegative",
+          "value": "\"player_seed_stacks\".\"quantity\" >= 0"
+        },
+        "player_seed_stacks_version_positive": {
+          "name": "player_seed_stacks_version_positive",
+          "value": "\"player_seed_stacks\".\"version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player_onboarding": {
+      "name": "player_onboarding",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "profile_id": {
+          "name": "profile_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "initialized_at": {
+          "name": "initialized_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "starter_granted_at": {
+          "name": "starter_granted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tutorial_started_at": {
+          "name": "tutorial_started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tutorial_completed_at": {
+          "name": "tutorial_completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cultivation_xp": {
+          "name": "cultivation_xp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "breeding_xp": {
+          "name": "breeding_xp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "genetics_xp": {
+          "name": "genetics_xp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "token_balance": {
+          "name": "token_balance",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_onboarding_player_id_players_id_fk": {
+          "name": "player_onboarding_player_id_players_id_fk",
+          "tableFrom": "player_onboarding",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "player_onboarding_cultivation_xp_nonnegative": {
+          "name": "player_onboarding_cultivation_xp_nonnegative",
+          "value": "\"player_onboarding\".\"cultivation_xp\" >= 0"
+        },
+        "player_onboarding_breeding_xp_nonnegative": {
+          "name": "player_onboarding_breeding_xp_nonnegative",
+          "value": "\"player_onboarding\".\"breeding_xp\" >= 0"
+        },
+        "player_onboarding_genetics_xp_nonnegative": {
+          "name": "player_onboarding_genetics_xp_nonnegative",
+          "value": "\"player_onboarding\".\"genetics_xp\" >= 0"
+        },
+        "player_onboarding_token_balance_nonnegative": {
+          "name": "player_onboarding_token_balance_nonnegative",
+          "value": "\"player_onboarding\".\"token_balance\" >= 0"
+        },
+        "player_onboarding_version_positive": {
+          "name": "player_onboarding_version_positive",
+          "value": "\"player_onboarding\".\"version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.bred_seed_treatments": {
+      "name": "bred_seed_treatments",
+      "schema": "",
+      "columns": {
+        "seed_id": {
+          "name": "seed_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "owner_player_id": {
+          "name": "owner_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "treatment": {
+          "name": "treatment",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "bred_seed_treatments_seed_id_bred_seeds_id_fk": {
+          "name": "bred_seed_treatments_seed_id_bred_seeds_id_fk",
+          "tableFrom": "bred_seed_treatments",
+          "tableTo": "bred_seeds",
+          "columnsFrom": [
+            "seed_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "bred_seed_treatments_owner_player_id_players_id_fk": {
+          "name": "bred_seed_treatments_owner_player_id_players_id_fk",
+          "tableFrom": "bred_seed_treatments",
+          "tableTo": "players",
+          "columnsFrom": [
+            "owner_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.marketplace_listings": {
+      "name": "marketplace_listings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "seller_player_id": {
+          "name": "seller_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "specimen_id": {
+          "name": "specimen_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asking_price": {
+          "name": "asking_price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "buyer_player_id": {
+          "name": "buyer_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "marketplace_listings_active_specimen_unique": {
+          "name": "marketplace_listings_active_specimen_unique",
+          "columns": [
+            {
+              "expression": "specimen_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"marketplace_listings\".\"status\" = 'active'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "marketplace_listings_seller_player_id_players_id_fk": {
+          "name": "marketplace_listings_seller_player_id_players_id_fk",
+          "tableFrom": "marketplace_listings",
+          "tableTo": "players",
+          "columnsFrom": [
+            "seller_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "marketplace_listings_specimen_id_plant_specimens_id_fk": {
+          "name": "marketplace_listings_specimen_id_plant_specimens_id_fk",
+          "tableFrom": "marketplace_listings",
+          "tableTo": "plant_specimens",
+          "columnsFrom": [
+            "specimen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "marketplace_listings_buyer_player_id_players_id_fk": {
+          "name": "marketplace_listings_buyer_player_id_players_id_fk",
+          "tableFrom": "marketplace_listings",
+          "tableTo": "players",
+          "columnsFrom": [
+            "buyer_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "marketplace_listings_price_valid": {
+          "name": "marketplace_listings_price_valid",
+          "value": "\"marketplace_listings\".\"asking_price\" BETWEEN 1 AND 1000000"
+        },
+        "marketplace_listings_status_valid": {
+          "name": "marketplace_listings_status_valid",
+          "value": "\"marketplace_listings\".\"status\" IN ('active','cancelled','sold')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player_garden_displays": {
+      "name": "player_garden_displays",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slot_id": {
+          "name": "slot_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "specimen_id": {
+          "name": "specimen_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_garden_displays_player_id_players_id_fk": {
+          "name": "player_garden_displays_player_id_players_id_fk",
+          "tableFrom": "player_garden_displays",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "player_garden_displays_specimen_id_plant_specimens_id_fk": {
+          "name": "player_garden_displays_specimen_id_plant_specimens_id_fk",
+          "tableFrom": "player_garden_displays",
+          "tableTo": "plant_specimens",
+          "columnsFrom": [
+            "specimen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "player_garden_displays_player_id_slot_id_pk": {
+          "name": "player_garden_displays_player_id_slot_id_pk",
+          "columns": [
+            "player_id",
+            "slot_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "player_garden_displays_specimen_unique": {
+          "name": "player_garden_displays_specimen_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "player_id",
+            "specimen_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "player_garden_displays_slot_valid": {
+          "name": "player_garden_displays_slot_valid",
+          "value": "\"player_garden_displays\".\"slot_id\" IN ('garden-display-back-left','garden-display-back-center','garden-display-back-right','garden-display-front-left','garden-display-front-center','garden-display-front-right')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player_garden_specimens": {
+      "name": "player_garden_specimens",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "specimen_id": {
+          "name": "specimen_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "favorite": {
+          "name": "favorite",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_garden_specimens_player_id_players_id_fk": {
+          "name": "player_garden_specimens_player_id_players_id_fk",
+          "tableFrom": "player_garden_specimens",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "player_garden_specimens_specimen_id_plant_specimens_id_fk": {
+          "name": "player_garden_specimens_specimen_id_plant_specimens_id_fk",
+          "tableFrom": "player_garden_specimens",
+          "tableTo": "plant_specimens",
+          "columnsFrom": [
+            "specimen_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "player_garden_specimens_player_id_specimen_id_pk": {
+          "name": "player_garden_specimens_player_id_specimen_id_pk",
+          "columns": [
+            "player_id",
+            "specimen_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.player_grower_events": {
+      "name": "player_grower_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_command_id": {
+          "name": "source_command_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_grower_events_player_id_players_id_fk": {
+          "name": "player_grower_events_player_id_players_id_fk",
+          "tableFrom": "player_grower_events",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "player_grower_events_source_unique": {
+          "name": "player_grower_events_source_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "player_id",
+            "source_command_id",
+            "event_type"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.player_grower_state": {
+      "name": "player_grower_state",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "achievements": {
+          "name": "achievements",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "discoveries": {
+          "name": "discoveries",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "journal_stats": {
+          "name": "journal_stats",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"shinyCloneLineIds\":[]}'::jsonb"
+        },
+        "research": {
+          "name": "research",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{\"records\":{},\"completedDiscoveryMilestoneIds\":[]}'::jsonb"
+        },
+        "lab": {
+          "name": "lab",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "property": {
+          "name": "property",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_grower_state_player_id_players_id_fk": {
+          "name": "player_grower_state_player_id_players_id_fk",
+          "tableFrom": "player_grower_state",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "player_grower_state_version_positive": {
+          "name": "player_grower_state_version_positive",
+          "value": "\"player_grower_state\".\"version\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.friend_requests": {
+      "name": "friend_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "from_player_id": {
+          "name": "from_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to_player_id": {
+          "name": "to_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "varchar(16)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "friend_requests_pending_pair_unique": {
+          "name": "friend_requests_pending_pair_unique",
+          "columns": [
+            {
+              "expression": "LEAST(\"from_player_id\", \"to_player_id\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "GREATEST(\"from_player_id\", \"to_player_id\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"friend_requests\".\"status\" = 'pending'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "friend_requests_to_status_index": {
+          "name": "friend_requests_to_status_index",
+          "columns": [
+            {
+              "expression": "to_player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "friend_requests_from_status_index": {
+          "name": "friend_requests_from_status_index",
+          "columns": [
+            {
+              "expression": "from_player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "friend_requests_from_player_id_players_id_fk": {
+          "name": "friend_requests_from_player_id_players_id_fk",
+          "tableFrom": "friend_requests",
+          "tableTo": "players",
+          "columnsFrom": [
+            "from_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "friend_requests_to_player_id_players_id_fk": {
+          "name": "friend_requests_to_player_id_players_id_fk",
+          "tableFrom": "friend_requests",
+          "tableTo": "players",
+          "columnsFrom": [
+            "to_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "friend_requests_distinct_players": {
+          "name": "friend_requests_distinct_players",
+          "value": "\"friend_requests\".\"from_player_id\" <> \"friend_requests\".\"to_player_id\""
+        },
+        "friend_requests_status_valid": {
+          "name": "friend_requests_status_valid",
+          "value": "\"friend_requests\".\"status\" IN ('pending', 'accepted', 'declined', 'cancelled')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.friendships": {
+      "name": "friendships",
+      "schema": "",
+      "columns": {
+        "player_low_id": {
+          "name": "player_low_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "player_high_id": {
+          "name": "player_high_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "friendships_high_player_index": {
+          "name": "friendships_high_player_index",
+          "columns": [
+            {
+              "expression": "player_high_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "friendships_player_low_id_players_id_fk": {
+          "name": "friendships_player_low_id_players_id_fk",
+          "tableFrom": "friendships",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_low_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "friendships_player_high_id_players_id_fk": {
+          "name": "friendships_player_high_id_players_id_fk",
+          "tableFrom": "friendships",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_high_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "friendships_player_low_id_player_high_id_pk": {
+          "name": "friendships_player_low_id_player_high_id_pk",
+          "columns": [
+            "player_low_id",
+            "player_high_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "friendships_ordered_distinct_players": {
+          "name": "friendships_ordered_distinct_players",
+          "value": "\"friendships\".\"player_low_id\" < \"friendships\".\"player_high_id\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player_blocks": {
+      "name": "player_blocks",
+      "schema": "",
+      "columns": {
+        "blocker_player_id": {
+          "name": "blocker_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "blocked_player_id": {
+          "name": "blocked_player_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "player_blocks_blocked_player_index": {
+          "name": "player_blocks_blocked_player_index",
+          "columns": [
+            {
+              "expression": "blocked_player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "player_blocks_blocker_player_id_players_id_fk": {
+          "name": "player_blocks_blocker_player_id_players_id_fk",
+          "tableFrom": "player_blocks",
+          "tableTo": "players",
+          "columnsFrom": [
+            "blocker_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "player_blocks_blocked_player_id_players_id_fk": {
+          "name": "player_blocks_blocked_player_id_players_id_fk",
+          "tableFrom": "player_blocks",
+          "tableTo": "players",
+          "columnsFrom": [
+            "blocked_player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "player_blocks_blocker_player_id_blocked_player_id_pk": {
+          "name": "player_blocks_blocker_player_id_blocked_player_id_pk",
+          "columns": [
+            "blocker_player_id",
+            "blocked_player_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "player_blocks_distinct_players": {
+          "name": "player_blocks_distinct_players",
+          "value": "\"player_blocks\".\"blocker_player_id\" <> \"player_blocks\".\"blocked_player_id\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.player_profiles": {
+      "name": "player_profiles",
+      "schema": "",
+      "columns": {
+        "player_id": {
+          "name": "player_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "public_id": {
+          "name": "public_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "player_profiles_public_id_unique": {
+          "name": "player_profiles_public_id_unique",
+          "columns": [
+            {
+              "expression": "public_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "player_profiles_display_name_lower_unique": {
+          "name": "player_profiles_display_name_lower_unique",
+          "columns": [
+            {
+              "expression": "lower(\"display_name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "player_profiles_player_id_players_id_fk": {
+          "name": "player_profiles_player_id_players_id_fk",
+          "tableFrom": "player_profiles",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "player_profiles_display_name_valid": {
+          "name": "player_profiles_display_name_valid",
+          "value": "\"player_profiles\".\"display_name\" = btrim(\"player_profiles\".\"display_name\") AND \"player_profiles\".\"display_name\" ~ '^[[:alnum:] _-]{3,20}$'"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

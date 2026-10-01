@@ -10,6 +10,7 @@ import { isCollectPlantResultV1, isPlantCommoditySeedResultV1, isPlantLifecycleP
 import { isBreedSpecimensResultV2, isPlantBredSeedResultV2, isPlantLifecycleProjectionV2, type BreedSpecimensCommandV2, type BreedSpecimensResultV2, type PlantBredSeedCommandV2, type PlantBredSeedResultV2, type PlantLifecycleProjectionV2 } from '../../../shared/api/plantLifecycleV2.ts'
 import { isGrowerAlphaProjectionV1, type GrowerAlphaCommandV1, type GrowerAlphaProjectionV1 } from '../../../shared/api/growerAlphaV1.ts'
 import { isCollectPlantResultV3, isPlantBredSeedResultV3, isPlantCommoditySeedResultV3, isPlantLifecycleProjectionV3, type CollectPlantCommandV3, type CollectPlantResultV3, type PlantBredSeedCommandV3, type PlantBredSeedResultV3, type PlantCommoditySeedCommandV3, type PlantCommoditySeedResultV3, type PlantLifecycleProjectionV3 } from '../../../shared/api/plantLifecycleV3.ts'
+import { isPublicPlayerProfileV1, isSocialOverviewV1, type PublicPlayerProfileV1, type SocialCommandV1, type SocialOverviewV1 } from '../../../shared/api/socialV1.ts'
 
 export type CactiGrowApiErrorKind =
   | 'unauthenticated'
@@ -114,6 +115,11 @@ export class CactiGrowApiClient {
   async mutateGarden(command: GardenCommandV1): Promise<GardenProjectionV1> { return this.execute('/api/v1/me/garden', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isGardenProjectionV1, 'Garden projection') }
   async getGrowerAlpha(signal?: AbortSignal): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'GET', signal }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
   async mutateGrowerAlpha(command: GrowerAlphaCommandV1): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
+  async getSocial(signal?: AbortSignal): Promise<SocialOverviewV1> { return this.execute('/api/v1/me/social', { method: 'GET', signal }, isSocialOverviewV1, 'social projection') }
+  async mutateSocial(command: SocialCommandV1): Promise<SocialOverviewV1> { return this.execute('/api/v1/me/social', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isSocialOverviewV1, 'social projection') }
+  async getPublicPlayerProfile(publicId: string, signal?: AbortSignal): Promise<PublicPlayerProfileV1> {
+    return this.execute(`/api/v1/players/${encodeURIComponent(publicId)}`, { method: 'GET', signal }, isPublicPlayerProfileV1, 'player profile')
+  }
   async getPlantLifecycleV3(signal?: AbortSignal): Promise<PlantLifecycleProjectionV3> { return this.execute('/api/v3/me/plant-lifecycle', { method: 'GET', signal }, isPlantLifecycleProjectionV3, 'plant lifecycle V3 projection') }
   async plantCommoditySeedV3(command: PlantCommoditySeedCommandV3, idempotencyKey: string): Promise<PlantCommoditySeedResultV3> { return this.execute('/api/v3/me/plant-lifecycle/commands/plant-commodity-seed', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isPlantCommoditySeedResultV3, 'planting result', true) }
   async plantBredSeedV3(command: PlantBredSeedCommandV3, idempotencyKey: string): Promise<PlantBredSeedResultV3> { return this.execute('/api/v3/me/plant-lifecycle/commands/plant-bred-seed', { method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': idempotencyKey }, body: JSON.stringify(command) }, isPlantBredSeedResultV3, 'bred-seed planting result', true) }

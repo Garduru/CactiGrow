@@ -11,6 +11,21 @@
 - Database: `cactigrow` at `ep-wild-pond-arf5s9do.c-4.us-west-2.aws.neon.tech`. The user explicitly approved sharing this database with development for initial launch. Development writes therefore affect this same database. Staging's separate database/binding and Worker were not changed.
 - SQLite `AreaPresence` Durable Object created by Wrangler's existing declarative exports reconciliation. No new SQL migration or replacement multiplayer runtime was introduced.
 
+## Player Profiles/Social V1 rollout
+
+Additive migration `0005_majestic_fenris.sql` creates `player_profiles`, `friend_requests`, `friendships`, and `player_blocks`. It does not backfill names or alter existing player rows; existing accounts choose a character name on their next authenticated session. Apply it with the direct production owner/migration connection only after the focused PostgreSQL integration test is available and passes. Verify the target database is `cactigrow` and preserve all existing rows.
+
+After the migration, grant the production runtime role only these additional table privileges:
+
+- `player_profiles`: `SELECT`, `INSERT`, `UPDATE`.
+- `friend_requests`: `SELECT`, `INSERT`, `UPDATE`.
+- `friendships`: `SELECT`, `INSERT`, `DELETE`.
+- `player_blocks`: `SELECT`, `INSERT`, `DELETE`.
+
+Retain the existing narrow grants for `players`, onboarding, specimens, and bred seeds; do not grant schema creation, migration-table access, or elevated role privileges. Verify each privilege before deploying the Worker. Chat reuses the existing AreaPresence Durable Object and socket. Its private block projection is cached in that object; no additional database chat store, binding, or CactiSwap/Neon Auth change is required.
+
+The migration and Worker rollout are currently pending. `npm run test:db` was skipped because this workspace has no `TEST_DATABASE_URL`/`CACTIGROW_DATABASE_TESTS` configuration, and `.env.production` contains only frontend build variables. Do not deploy code that queries these tables until the production migration and runtime grants are applied and verified.
+
 The existing migration command completed successfully. All five checked-in migration hashes (0000–0004) are present in the database journal; all 18 public tables exist. Narrow runtime grants were added for the existing breeding/onboarding/Grower/Garden/treatment tables, starter seed insertion and genetic-profile updates. No reset, drop, truncation or manual deletion occurred. Existing migrations may perform their defined data backfills. The migration owner credential was loaded only into short-lived child processes, never stored in repository files, Worker vars, build configuration or logs. It is not a runtime binding.
 
 Production reuses the existing once-only starter initialization and V2 Grower bootstrap. Garden/Grower endpoints now accept authenticated production requests. New plantings use the existing species catalog growth times (San Pedro 24 hours, Peyote 72 hours), recorded as growth rule 2. Existing stored schedules are untouched; development/staging keep their two-minute test clock. No economy constants or Marketplace behavior were redesigned.

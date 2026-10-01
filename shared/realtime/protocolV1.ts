@@ -14,9 +14,19 @@ export interface MovementSample {
 }
 export interface PublicPresenceV1 extends MovementSample {
   readonly presenceId: PresenceId
+  readonly publicId: string
   readonly generation: ConnectionGeneration
   readonly label: string
   readonly appearance: 'placeholder'
+}
+export interface PublicChatMessageV1 {
+  readonly id: string
+  readonly channel: 'world' | 'direct'
+  readonly senderPublicId: string
+  readonly senderDisplayName: string
+  readonly recipientPublicId?: string
+  readonly text: string
+  readonly sentAt: number
 }
 export interface ConnectionLimitsV1 {
   readonly maxClientFrameBytes: number
@@ -27,6 +37,7 @@ export interface ConnectionLimitsV1 {
 export type ClientMessageV1 =
   | { readonly v: 1; readonly type: 'hello'; readonly ticket: string }
   | ({ readonly v: 1; readonly type: 'move' } & MovementSample)
+  | { readonly v: 1; readonly type: 'chat'; readonly channel: 'world' | 'direct'; readonly recipientPublicId?: string; readonly text: string }
   | { readonly v: 1; readonly type: 'ping'; readonly sequence: number }
   | { readonly v: 1; readonly type: 'leave' }
 
@@ -35,9 +46,10 @@ export type ServerMessageV1 = ServerEnvelope & (
   | { readonly type: 'welcome'; readonly areaId: AreaId; readonly layerId: LayerId; readonly coordinateVersion: number; readonly selfPresenceId: PresenceId; readonly players: readonly PublicPresenceV1[]; readonly limits: ConnectionLimitsV1 }
   | { readonly type: 'joined'; readonly player: PublicPresenceV1 }
   | { readonly type: 'moved'; readonly presenceId: PresenceId; readonly generation: ConnectionGeneration; readonly sample: MovementSample; readonly acceptedAt: number }
+  | { readonly type: 'chat'; readonly message: PublicChatMessageV1 }
   | { readonly type: 'left'; readonly presenceId: PresenceId; readonly generation: ConnectionGeneration; readonly reason: 'leave' | 'disconnect' | 'replaced' | 'expired' }
   | { readonly type: 'pong'; readonly sequence: number; readonly serverTime: number }
-  | { readonly type: 'error'; readonly code: 'INVALID_MESSAGE' | 'UNSUPPORTED_VERSION' | 'UNAUTHENTICATED' | 'AREA_FULL' | 'DUPLICATE_PRESENCE' | 'UNAVAILABLE'; readonly retryable: boolean }
+  | { readonly type: 'error'; readonly code: 'INVALID_MESSAGE' | 'UNSUPPORTED_VERSION' | 'UNAUTHENTICATED' | 'AREA_FULL' | 'DUPLICATE_PRESENCE' | 'UNAVAILABLE' | 'CHAT_UNAVAILABLE'; readonly retryable: boolean }
 )
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -60,8 +72,8 @@ function validMovementFields(value: Record<string, unknown>): boolean {
     && ['moving', 'stopped'].includes(value.movement as string)
 }
 export function isPublicPresenceV1(value: unknown): value is PublicPresenceV1 {
-  return isRecord(value) && hasExactKeys(value, ['presenceId', 'generation', 'label', 'appearance', 'sequence', 'position', 'facing', 'movement'])
-    && isCanonicalUuid(value.presenceId) && isGeneration(value.generation) && isBoundedText(value.label, 48)
+  return isRecord(value) && hasExactKeys(value, ['presenceId', 'publicId', 'generation', 'label', 'appearance', 'sequence', 'position', 'facing', 'movement'])
+    && isCanonicalUuid(value.presenceId) && isCanonicalUuid(value.publicId) && isGeneration(value.generation) && isBoundedText(value.label, 20)
     && value.appearance === 'placeholder' && validMovementFields(value)
 }
 export function isClientMessageV1(value: unknown): value is ClientMessageV1 {
@@ -69,6 +81,9 @@ export function isClientMessageV1(value: unknown): value is ClientMessageV1 {
   switch (value.type) {
     case 'hello': return hasExactKeys(value, ['v', 'type', 'ticket']) && isBoundedText(value.ticket, 256)
     case 'move': return hasExactKeys(value, ['v', 'type', 'sequence', 'position', 'facing', 'movement']) && validMovementFields(value)
+    case 'chat': return (value.channel === 'world' && hasExactKeys(value, ['v', 'type', 'channel', 'text'])
+      || value.channel === 'direct' && hasExactKeys(value, ['v', 'type', 'channel', 'recipientPublicId', 'text'])
+        && isCanonicalUuid(value.recipientPublicId)) && isBoundedText(value.text, 500)
     case 'ping': return hasExactKeys(value, ['v', 'type', 'sequence']) && isSequence(value.sequence)
     case 'leave': return hasExactKeys(value, ['v', 'type'])
     default: return false
@@ -79,6 +94,16 @@ function isLimits(value: unknown): value is ConnectionLimitsV1 {
     && Object.values(value).every((item) => isSequence(item) && item > 0)
     && (value.maxClientFrameBytes as number) <= MAX_CLIENT_FRAME_BYTES
     && (value.staleAfterMs as number) > (value.heartbeatIntervalMs as number)
+}
+function isPublicChatMessage(value: unknown): value is PublicChatMessageV1 {
+  if (!isRecord(value) || !['world', 'direct'].includes(value.channel as string)) return false
+  const keys = value.channel === 'world'
+    ? ['id', 'channel', 'senderPublicId', 'senderDisplayName', 'text', 'sentAt']
+    : ['id', 'channel', 'senderPublicId', 'senderDisplayName', 'recipientPublicId', 'text', 'sentAt']
+  return hasExactKeys(value, keys) && isCanonicalUuid(value.id) && isCanonicalUuid(value.senderPublicId)
+    && (value.channel === 'world' || isCanonicalUuid(value.recipientPublicId))
+    && isBoundedText(value.senderDisplayName, 20) && isBoundedText(value.text, 500)
+    && isSequence(value.sentAt)
 }
 export function isServerMessageV1(value: unknown): value is ServerMessageV1 {
   if (!isRecord(value) || value.v !== 1 || !isSequence(value.eventSequence)) return false
@@ -97,11 +122,12 @@ export function isServerMessageV1(value: unknown): value is ServerMessageV1 {
     case 'joined': return keys(['player']) && isPublicPresenceV1(value.player)
     case 'moved': return keys(['presenceId', 'generation', 'sample', 'acceptedAt']) && isCanonicalUuid(value.presenceId)
       && isGeneration(value.generation) && isMovementSample(value.sample) && isSequence(value.acceptedAt)
+    case 'chat': return keys(['message']) && isPublicChatMessage(value.message)
     case 'left': return keys(['presenceId', 'generation', 'reason']) && isCanonicalUuid(value.presenceId) && isGeneration(value.generation)
       && ['leave', 'disconnect', 'replaced', 'expired'].includes(value.reason as string)
     case 'pong': return keys(['sequence', 'serverTime']) && isSequence(value.sequence) && isSequence(value.serverTime)
     case 'error': return keys(['code', 'retryable']) && typeof value.retryable === 'boolean'
-      && ['INVALID_MESSAGE', 'UNSUPPORTED_VERSION', 'UNAUTHENTICATED', 'AREA_FULL', 'DUPLICATE_PRESENCE', 'UNAVAILABLE'].includes(value.code as string)
+      && ['INVALID_MESSAGE', 'UNSUPPORTED_VERSION', 'UNAUTHENTICATED', 'AREA_FULL', 'DUPLICATE_PRESENCE', 'UNAVAILABLE', 'CHAT_UNAVAILABLE'].includes(value.code as string)
     default: return false
   }
 }

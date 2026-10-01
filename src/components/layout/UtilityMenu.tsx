@@ -9,9 +9,10 @@ interface GameMenuPanelProps {
   onDismiss: () => void
   onOpenChat: () => void
   onOpenFriends: () => void
+  onOpenProfile: () => void
 }
 
-export function GameMenuPanel({ id, onDismiss, onOpenChat, onOpenFriends }: GameMenuPanelProps) {
+export function GameMenuPanel({ id, onDismiss, onOpenChat, onOpenFriends, onOpenProfile }: GameMenuPanelProps) {
   const [openSection, setOpenSection] = useState<MenuSection | null>('game')
 
   function toggleSection(section: MenuSection) {
@@ -28,6 +29,7 @@ export function GameMenuPanel({ id, onDismiss, onOpenChat, onOpenFriends }: Game
       </MenuDisclosure>
 
       <MenuDisclosure label="Social" section="social" openSection={openSection} onToggle={toggleSection}>
+        <button type="button" onClick={onOpenProfile}>My Profile</button>
         <button type="button" onClick={onOpenFriends}>Friends</button>
         <button type="button" onClick={onOpenChat}>Chat</button>
       </MenuDisclosure>

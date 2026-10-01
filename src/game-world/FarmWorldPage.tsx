@@ -31,6 +31,7 @@ export function FarmWorldPage() {
     return { ...live, gardenDisplays: [...live.gardenDisplays.filter((display) => display.slotId !== testGardenDisplay.slotId), testGardenDisplay] }
   }, [garden.projection, lifecycle.state, state.geneticsLab, state.property, state.ownedPlants, state.gardenDisplayAssignments, testEnabled, testGardenDisplay])
   const handleIntent = useCallback((intent: WorldIntent) => {
+    if (intent.type !== 'ENTER_LOCATION') return
     const destination = projection.locations.find((location) => location.id === intent.locationId)
     if (!destination) return
     if (destination.id === 'town') navigate('/town', { state: createTownFarmArrivalState() })

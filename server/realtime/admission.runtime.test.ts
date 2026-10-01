@@ -25,7 +25,8 @@ async function setup(t: test.TestContext) {
     const router = createApiRouter({ authenticationConfigurationFactory: () => ({
       identityProvider: new CloudflareAccessIdentityProvider(new CloudflareAccessJwtVerifier('${issuer}', '${audience}', async () => Response.json({ keys: [${JSON.stringify(jwk)}] }))),
       createPlayerIdentityResolver: async () => ({ resolve: async identity => ({ playerId: identity.subject === 'bad' ? 'invalid' : '00000000-0000-4000-8000-' + (identity.subject === 'a' ? '000000000001' : '000000000002') }) })
-    }) })
+    }), resolveRealtimePlayerSocial: async (_context, playerId) => ({ publicId: playerId, displayName: playerId.endsWith('1') ? 'Saguaro One' : 'Saguaro Two',
+      blockedPublicIds: playerId.endsWith('2') ? ['00000000-0000-4000-8000-000000000001'] : [] }) })
     export default { async fetch(request, env) {
       const url = new URL(request.url)
       const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName('area:v1:town'))
@@ -102,6 +103,28 @@ test('L3 actual Worker/DO: signed identity, one-use concurrent upgrade, automati
   assert.equal(second.players.length, 2)
   const saved = await (await h.mf.dispatchFetch('https://test/probe')).text()
   for (const secret of [credentials.ticket, credentials.reconnectToken, jwt]) assert.equal(saved.includes(secret), false)
+  a.socket.close(); b.socket.close()
+})
+
+test('Existing AreaPresence delivers named chat on its socket and suppresses blocked messages server-side', { timeout: 15_000 }, async (t) => {
+  const h = await setup(t)
+  const publicIdA = '00000000-0000-4000-8000-000000000001'
+  const a = client(await h.upgrade(await h.credentials(await h.token('a'))))
+  const b = client(await h.upgrade(await h.credentials(await h.token('b'))))
+  await a.until(() => a.messages.some((message) => message.type === 'welcome'))
+  await b.until(() => b.messages.some((message) => message.type === 'welcome'))
+  const townWelcome = b.messages.find((message) => message.type === 'welcome')!
+  assert.ok(townWelcome.type === 'welcome')
+  assert.equal(townWelcome.players.find((player) => player.publicId === publicIdA)?.label, 'Saguaro One')
+
+  a.socket.send(JSON.stringify({ v: 1, type: 'chat', channel: 'world', text: 'private test phrase' }))
+  await a.until(() => a.messages.some((message) => message.type === 'chat' && message.message.text === 'private test phrase'))
+  assert.equal(a.messages.find((message) => message.type === 'chat')?.type, 'chat')
+  assert.equal(b.messages.some((message) => message.type === 'chat' && message.message.text === 'private test phrase'), false)
+
+  b.socket.send(JSON.stringify({ v: 1, type: 'chat', channel: 'direct', recipientPublicId: publicIdA, text: 'blocked direct' }))
+  await b.until(() => b.messages.some((message) => message.type === 'error' && message.code === 'CHAT_UNAVAILABLE'))
+  assert.equal(a.messages.some((message) => message.type === 'chat' && message.message.text === 'blocked direct'), false)
   a.socket.close(); b.socket.close()
 })
 

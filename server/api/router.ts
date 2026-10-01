@@ -16,7 +16,10 @@ import { GardenService } from '../gameplay/GardenService.ts'
 import { isGrowerAlphaCommandV1 } from '../../shared/api/growerAlphaV1.ts'
 import { GrowerAlphaService } from '../gameplay/GrowerAlphaService.ts'
 import { isCollectPlantCommandV3, isPlantBredSeedCommandV3, isPlantCommoditySeedCommandV3 } from '../../shared/api/plantLifecycleV3.ts'
-import { routeRealtime } from '../realtime/admissionRoutes.ts'
+import { routeRealtime, syncRealtimeSocial, type RealtimePlayerSocialProjection } from '../realtime/admissionRoutes.ts'
+import { SocialService } from '../player/SocialService.ts'
+import { isSocialCommandV1, type SocialCommandV1 } from '../../shared/api/socialV1.ts'
+import { isCanonicalUuid } from '../../shared/realtime/identifiers.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -32,6 +35,8 @@ export interface ApiRouterDependencies {
   authenticationConfigurationFactory?: AuthenticationConfigurationFactory
   createPlayerBootstrapService?: (context: ApiRequestContext) => Promise<PlayerBootstrapService>
   createPlantLifecycleService?: (context: ApiRequestContext) => Promise<PlantLifecycleApplication>
+  createSocialService?: (context: ApiRequestContext) => Promise<Pick<SocialService, 'overview' | 'execute' | 'publicProfile'>>
+  resolveRealtimePlayerSocial?: (context: ApiRequestContext, playerId: string) => Promise<RealtimePlayerSocialProjection | null>
 }
 
 async function createPlayerBootstrapService(context: ApiRequestContext) {
@@ -42,6 +47,10 @@ async function createPlayerBootstrapService(context: ApiRequestContext) {
 async function createPlantLifecycleService(context: ApiRequestContext) {
   const database = await context.database.getDatabase()
   return new PlantLifecycleService(database, { environment: getRuntimeMetadata(context.env).environment })
+}
+
+async function createSocialService(context: ApiRequestContext) {
+  return new SocialService(await context.database.getDatabase())
 }
 
 export const MAX_MUTATION_BODY_BYTES = 24 * 1024
@@ -86,7 +95,8 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
   return async (context) => {
     const { request, env, requestId } = context
     const url = new URL(request.url)
-    if (url.pathname.startsWith('/api/v1/realtime/')) return routeRealtime(context, readJson, dependencies.authenticationConfigurationFactory)
+    if (url.pathname.startsWith('/api/v1/realtime/')) return routeRealtime(context, readJson,
+      dependencies.authenticationConfigurationFactory, dependencies.resolveRealtimePlayerSocial)
 
     if (url.pathname === '/api/health') {
       if (request.method !== 'GET') throw ApiError.methodNotAllowed()
@@ -126,6 +136,32 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       return withAuthenticatedPlayer(context, async ({ player }) => {
         const service = await (dependencies.createPlayerBootstrapService ?? createPlayerBootstrapService)(context)
         return successResponse(await service.getGrowerForPlayer(player.playerId), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
+
+    if (url.pathname === '/api/v1/me/social') {
+      if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+      const body = request.method === 'POST' ? await readJson(request) : null
+      if (request.method === 'POST' && !isSocialCommandV1(body)) throw new ApiError('INVALID_COMMAND', 400, 'The social command is invalid.')
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = await (dependencies.createSocialService ?? createSocialService)(context)
+        if (request.method === 'POST') {
+          const command = body as SocialCommandV1
+          const projection = await service.execute(player.playerId, command)
+          if (['set-display-name', 'block-player', 'unblock-player'].includes(command.type)) await syncRealtimeSocial(context, player.playerId)
+          return successResponse(projection, requestId)
+        }
+        return successResponse(await service.overview(player.playerId), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
+
+    const publicProfileMatch = /^\/api\/v1\/players\/([0-9a-f-]{36})$/.exec(url.pathname)
+    if (publicProfileMatch) {
+      if (request.method !== 'GET') throw ApiError.methodNotAllowed()
+      if (!isCanonicalUuid(publicProfileMatch[1])) throw ApiError.notFound('Player profile not found.')
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = await (dependencies.createSocialService ?? createSocialService)(context)
+        return successResponse(await service.publicProfile(player.playerId, publicProfileMatch[1]), requestId)
       }, dependencies.authenticationConfigurationFactory)
     }
 

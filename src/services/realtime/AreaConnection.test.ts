@@ -9,7 +9,7 @@ import type { PublicPresenceV1, ServerMessageV1 } from '../../../shared/realtime
 import type { RealtimeCredentialsRequestV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
-const player = (n: number, sequence = 0): PublicPresenceV1 => ({ presenceId: presenceId(uuid(n)), generation: connectionGeneration(n), label: 'Grower', appearance: 'placeholder',
+const player = (n: number, sequence = 0): PublicPresenceV1 => ({ presenceId: presenceId(uuid(n)), publicId: uuid(n + 300), generation: connectionGeneration(n), label: `Saguaro ${n}`, appearance: 'placeholder',
   sequence, position: { x: 1100, y: 1280 }, facing: 'south', movement: 'stopped' })
 const welcome = (remote = player(2)): ServerMessageV1 => ({ v: 1, type: 'welcome', eventSequence: 0, areaId: TOWN_AREA.areaId, layerId: layerId(uuid(9)), coordinateVersion: 1,
   selfPresenceId: player(1).presenceId, players: [player(1), remote], limits: { maxClientFrameBytes: 1024, maxMovementUpdatesPerSecond: 10, heartbeatIntervalMs: 20_000, staleAfterMs: 60_000 } })
@@ -35,7 +35,7 @@ class Socket extends EventTarget {
   close() { this.readyState = 3; this.dispatchEvent(new Event('close')) }
   receive(message: ServerMessageV1) { this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(message) })) }
 }
-const settle = async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve() }
+const settle = async () => { await new Promise<void>((resolve) => setImmediate(resolve)) }
 const credential = { v: 1 as const, areaId: TOWN_AREA.areaId, socketPath: '/api/v1/realtime/areas/town', ticket: 'a'.repeat(64), reconnectToken: 'b'.repeat(64),
   expiresAt: new Date(100_000).toISOString(), authorizationExpiresAt: new Date(200_000).toISOString() }
 function harness(admit?: (input: RealtimeCredentialsRequestV1, signal: AbortSignal) => Promise<typeof credential>) {
@@ -79,6 +79,19 @@ test('Welcome and deltas exclude self, deduplicate joins, reject stale movement/
   assert.equal(h.connection.getSnapshot().remotes.length, 0)
   socket.receive({ v: 1, type: 'joined', eventSequence: 7, player: player(3) }); socket.close()
   assert.equal(h.connection.getSnapshot().remotes.length, 0)
+  h.connection.stop()
+})
+
+test('World and Direct Chat use the existing socket and expose sender public identity', async () => {
+  const h = harness(); await h.begin(); const socket = h.sockets[0]
+  assert.equal(h.connection.sendWorldMessage('  Hello Town  '), true)
+  assert.deepEqual(socket.sent.at(-1), { v: 1, type: 'chat', channel: 'world', text: 'Hello Town' })
+  assert.equal(h.connection.sendDirectMessage(player(2).publicId, 'Hi friend'), true)
+  assert.deepEqual(socket.sent.at(-1), { v: 1, type: 'chat', channel: 'direct', recipientPublicId: player(2).publicId, text: 'Hi friend' })
+  const message = { id: uuid(400), channel: 'world' as const, senderPublicId: player(2).publicId,
+    senderDisplayName: player(2).label, text: 'Hello Town', sentAt: 1100 }
+  socket.receive({ v: 1, type: 'chat', eventSequence: 1, message })
+  assert.deepEqual(h.connection.getSnapshot().chatMessages, [message])
   h.connection.stop()
 })
 

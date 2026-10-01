@@ -24,6 +24,11 @@ interface PendingWorldTap {
   pointerId: number
   worldX: number
   worldY: number
+  screenX: number
+  screenY: number
+  startedAt: number
+  isTouch: boolean
+  profilePublicId?: string
 }
 
 export class TownTestScene extends Phaser.Scene {
@@ -94,6 +99,7 @@ export class TownTestScene extends Phaser.Scene {
 
   update() {
     this.remotePlayers?.update(performance.now())
+    this.updateRemoteProfileHold()
     const body = this.player.body as Phaser.Physics.Arcade.Body
     this.updateCameraZoom()
     if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.movementTarget = null; return }
@@ -275,9 +281,15 @@ export class TownTestScene extends Phaser.Scene {
       }
       this.game.canvas.focus()
       if (this.getActiveTouchPointers().length >= 2) return this.beginPinch()
-      this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY }
+      const remote = this.remotePlayers?.getAtPosition({ x: pointer.worldX, y: pointer.worldY })
+      this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY,
+        screenX: pointer.x, screenY: pointer.y, startedAt: performance.now(), isTouch: pointer.wasTouch, profilePublicId: remote?.publicId }
     })
-    this.input.on('pointermove', () => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.updatePinch() })
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.pendingWorldTap?.pointerId === pointer.pointerId
+        && Math.hypot(pointer.x - this.pendingWorldTap.screenX, pointer.y - this.pendingWorldTap.screenY) > 12) this.pendingWorldTap = null
+      if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.updatePinch()
+    })
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
     this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _over: Phaser.GameObjects.GameObject[], _dx: number, deltaY: number) => this.setUserZoom(this.targetCameraZoom * Math.exp(-deltaY * 0.0012)))
@@ -372,7 +384,22 @@ export class TownTestScene extends Phaser.Scene {
     if (!this.pendingWorldTap || this.pendingWorldTap.pointerId !== pointer.pointerId) return
     const tap = this.pendingWorldTap
     this.pendingWorldTap = null
+    const remote = this.remotePlayers?.getAtPosition({ x: tap.worldX, y: tap.worldY })
+    if (remote && !tap.isTouch) {
+      this.bridge.emitIntent({ type: 'OPEN_PLAYER_PROFILE', publicId: remote.publicId })
+      return
+    }
     this.handleWorldTap(tap.worldX, tap.worldY)
+  }
+
+  private updateRemoteProfileHold() {
+    const tap = this.pendingWorldTap
+    if (!tap?.isTouch || !tap.profilePublicId || performance.now() - tap.startedAt < 550) return
+    const pointer = this.input.manager.pointers.find((item) => item.pointerId === tap.pointerId)
+    if (!pointer?.isDown) return
+    this.pendingWorldTap = null
+    this.suppressWorldTap = true
+    this.bridge.emitIntent({ type: 'OPEN_PLAYER_PROFILE', publicId: tap.profilePublicId })
   }
 
   private handleWorldTap(worldX: number, worldY: number) {

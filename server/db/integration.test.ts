@@ -14,7 +14,7 @@ import type { ApiFailure, ApiSuccess } from '../api/response.ts'
 import { PostgresPlayerIdentityRepository } from './repositories/PostgresPlayerIdentityRepository.ts'
 import { playerExternalIdentities, players } from './schema/index.ts'
 import * as schema from './schema/index.ts'
-import { bredSeeds, cloneLines, geneticProfiles, plantSpecimens, playerGrowerState, playerOnboarding, playerSeedStacks } from './schema/index.ts'
+import { bredSeeds, cloneLines, friendRequests, friendships, geneticProfiles, plantSpecimens, playerBlocks, playerGrowerState, playerOnboarding, playerSeedStacks } from './schema/index.ts'
 import { PlantLifecycleService } from '../gameplay/PlantLifecycleService.ts'
 import { initializeStagingGrower } from '../staging/initializeGrower.ts'
 import { PostgresPlayerBootstrapRepository } from './repositories/PostgresPlayerBootstrapRepository.ts'
@@ -26,6 +26,8 @@ import { GardenService } from '../gameplay/GardenService.ts'
 import { GrowerAlphaService } from '../gameplay/GrowerAlphaService.ts'
 import { XP_THRESHOLDS } from '../../src/features/progression/progressionModel.ts'
 import { getNpcSaleValue } from '../../src/features/marketplace/sellModel.ts'
+import { SocialService } from '../player/SocialService.ts'
+import { ApiError } from '../api/errors.ts'
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL
 const databaseTestsEnabled = process.env.CACTIGROW_DATABASE_TESTS === '1'
@@ -100,6 +102,47 @@ test('PostgreSQL identity integration', {
 
     assert.equal(firstA.playerId, repeatedA.playerId)
     assert.notEqual(firstA.playerId, firstB.playerId)
+
+    const socialService = new SocialService(database)
+    const profileA = await socialService.execute(firstA.playerId, { type: 'set-display-name', displayName: '  Garduru  ' })
+    const profileB = await socialService.execute(firstB.playerId, { type: 'set-display-name', displayName: 'Cacti Friend' })
+    assert.equal(profileA.ownProfile?.displayName, 'Garduru')
+    assert.notEqual(profileA.ownProfile?.publicId, firstA.playerId)
+    assert.notEqual(profileA.ownProfile?.publicId, profileB.ownProfile?.publicId)
+    await assert.rejects(socialService.execute(firstB.playerId, { type: 'set-display-name', displayName: 'gARDURU' }),
+      (error: unknown) => error instanceof ApiError && error.status === 409)
+    await assert.rejects(socialService.execute(firstA.playerId, { type: 'add-friend', publicId: profileA.ownProfile!.publicId }),
+      (error: unknown) => error instanceof ApiError && error.status === 400)
+
+    const publicA = profileA.ownProfile!.publicId, publicB = profileB.ownProfile!.publicId
+    await socialService.execute(firstA.playerId, { type: 'add-friend', publicId: publicB })
+    await socialService.execute(firstA.playerId, { type: 'add-friend', publicId: publicB })
+    assert.equal((await database.select().from(friendRequests).where(eq(friendRequests.status, 'pending'))).length, 1)
+    assert.equal((await socialService.overview(firstA.playerId)).outgoingRequests.length, 1)
+    assert.equal((await socialService.overview(firstB.playerId)).incomingRequests.length, 1)
+    await socialService.execute(firstB.playerId, { type: 'accept-friend', publicId: publicA })
+    assert.equal((await socialService.overview(firstA.playerId)).friends.length, 1)
+    await socialService.execute(firstA.playerId, { type: 'remove-friend', publicId: publicB })
+    assert.equal((await database.select().from(friendships)).length, 0)
+
+    await socialService.execute(firstB.playerId, { type: 'add-friend', publicId: publicA })
+    await socialService.execute(firstA.playerId, { type: 'block-player', publicId: publicB })
+    assert.equal((await database.select().from(friendships)).length, 0)
+    assert.equal((await database.select().from(friendRequests).where(eq(friendRequests.status, 'pending'))).length, 0)
+    assert.equal((await database.select().from(playerBlocks)).length, 1)
+    assert.equal((await socialService.overview(firstA.playerId)).blockedPlayers.length, 1)
+    await assert.rejects(socialService.execute(firstB.playerId, { type: 'add-friend', publicId: publicA }),
+      (error: unknown) => error instanceof ApiError && error.status === 409)
+    await socialService.execute(firstA.playerId, { type: 'unblock-player', publicId: publicB })
+    await socialService.execute(firstB.playerId, { type: 'add-friend', publicId: publicA })
+    await socialService.execute(firstA.playerId, { type: 'decline-friend', publicId: publicB })
+    assert.equal((await socialService.overview(firstA.playerId)).incomingRequests.length, 0)
+
+    await Promise.all([
+      socialService.execute(firstA.playerId, { type: 'add-friend', publicId: publicB }),
+      socialService.execute(firstA.playerId, { type: 'add-friend', publicId: publicB }),
+    ])
+    assert.equal((await database.select().from(friendRequests).where(eq(friendRequests.status, 'pending'))).length, 1)
 
     await database.insert(playerOnboarding).values([firstA.playerId, firstB.playerId].map((playerId) => ({ playerId, profileId: 'grower-alpha-v1' })))
     await database.insert(playerGrowerState).values([firstA.playerId, firstB.playerId].map((playerId) => ({ playerId, achievements: createAchievementProgress(), lab: createGeneticsLabState(), property: createPropertyState(Date.now()) })))

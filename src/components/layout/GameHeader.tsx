@@ -10,6 +10,7 @@ import { getDeploymentMode } from '../../config/deploymentMode'
 import { getHeaderPlayerValues } from './headerPlayerModel'
 import { useSocialPanel } from '../../features/social/useSocialPanel'
 import { useGrowerAuthority } from '../../app/useGrowerAuthority'
+import { useSocialState } from '../../features/social/useSocialState'
 
 export function GameHeader() {
   const { state } = useGameState()
@@ -21,6 +22,7 @@ export function GameHeader() {
 
   const location = useLocation()
   const social = useSocialPanel()
+  const socialState = useSocialState()
   const isWorldRoute = [CANONICAL_FARM_PATH, '/farm', '/world-preview', '/town'].includes(location.pathname)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -64,6 +66,11 @@ export function GameHeader() {
     social.openPanel('friends')
   }
 
+  function openProfile() {
+    dismissMenu()
+    socialState.openProfile(null)
+  }
+
   return (
     <header className="game-header">
       <a className="skip-link" href="#main-content">Skip to game</a>
@@ -81,7 +88,7 @@ export function GameHeader() {
           <div className="game-header__level">
             <div className="game-header__level-title">
               <strong><span className="game-header__skill-name">Cultivation </span>{progression.isMaxLevel ? 'Lv. 99 MAX' : `Lv. ${progression.level}`}</strong>
-              <span>{player.username}</span>
+              <span>{socialState.state.status === 'ready' ? socialState.state.overview.ownProfile?.displayName ?? player.username : player.username}</span>
             </div>
 
             {progression.isMaxLevel ? (
@@ -135,6 +142,7 @@ export function GameHeader() {
               onDismiss={dismissMenu}
               onOpenChat={openChat}
               onOpenFriends={openFriends}
+              onOpenProfile={openProfile}
             />
           )}
         </div>

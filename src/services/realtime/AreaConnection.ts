@@ -1,11 +1,11 @@
 import { isRealtimeCredentialsResponseV1, realtimeSocketProtocols, type RealtimeCredentialsRequestV1, type RealtimeCredentialsResponseV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
 import { getAreaDefinition, isWithinArea, type Position } from '../../../shared/realtime/areas.ts'
 import type { AreaId, LayerId, PresenceId } from '../../../shared/realtime/identifiers.ts'
-import { parseServerMessageText, type ClientMessageV1, type ConnectionLimitsV1, type Facing, type MovementSample, type PublicPresenceV1, type ServerMessageV1 } from '../../../shared/realtime/protocolV1.ts'
+import { parseServerMessageText, type ClientMessageV1, type ConnectionLimitsV1, type Facing, type MovementSample, type PublicChatMessageV1, type PublicPresenceV1, type ServerMessageV1 } from '../../../shared/realtime/protocolV1.ts'
 import { CactiGrowApiError } from '../api/CactiGrowApiClient.ts'
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'unavailable'
-export interface AreaConnectionState { readonly status: ConnectionStatus; readonly remotes: readonly PublicPresenceV1[]; readonly layerId?: LayerId }
+export interface AreaConnectionState { readonly status: ConnectionStatus; readonly remotes: readonly PublicPresenceV1[]; readonly chatMessages: readonly PublicChatMessageV1[]; readonly chatError?: string; readonly layerId?: LayerId }
 export type RealtimeSocket = Pick<WebSocket, 'readyState' | 'bufferedAmount' | 'send' | 'close' | 'addEventListener'>
 interface ConnectionOptions {
   areaId: AreaId
@@ -24,8 +24,10 @@ export class AreaConnection {
   private readonly now: () => number
   private readonly schedule: NonNullable<ConnectionOptions['schedule']>
   private readonly listeners = new Set<() => void>()
-  private state: AreaConnectionState = { status: 'idle', remotes: [] }
+  private state: AreaConnectionState = { status: 'idle', remotes: [], chatMessages: [] }
   private readonly remotes = new Map<PresenceId, PublicPresenceV1>()
+  private chatMessages: PublicChatMessageV1[] = []
+  private chatError: string | null = null
   private active = false
   private epoch = 0
   private socket?: RealtimeSocket
@@ -54,7 +56,8 @@ export class AreaConnection {
   getSnapshot = (): AreaConnectionState => this.state
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   private publish(status = this.state.status, layerId = this.state.layerId) {
-    this.state = { status, remotes: [...this.remotes.values()], layerId }
+    this.state = { status, remotes: [...this.remotes.values()], chatMessages: this.chatMessages,
+      ...(this.chatError ? { chatError: this.chatError } : {}), layerId }
     this.listeners.forEach((listener) => listener())
   }
   start() {
@@ -69,6 +72,8 @@ export class AreaConnection {
     if (this.socket?.readyState === 1) { try { this.socket.send('{"v":1,"type":"leave"}') } catch { /* close still follows */ } }
     this.reset()
     this.reconnectTokens = []
+    this.chatMessages = []
+    this.chatError = null
     this.publish('idle')
   }
   private reset() {
@@ -78,7 +83,8 @@ export class AreaConnection {
     try { socket?.close(1000, 'Town presence ended') } catch { /* already closed */ }
     this.remotes.clear(); this.self = undefined; this.limits = undefined
     this.lastEvent = -1; this.sequence = 0; this.pingSequence = 0; this.lastSent = undefined; this.lastSentAt = -Infinity
-    this.state = { status: this.state.status, remotes: [] }
+    this.state = { status: this.state.status, remotes: [], chatMessages: this.chatMessages,
+      ...(this.chatError ? { chatError: this.chatError } : {}) }
   }
   private fail(retry = true) {
     if (!this.active) return
@@ -142,7 +148,16 @@ export class AreaConnection {
       this.publish('connected', message.layerId); this.heartbeat(); return
     }
     if (!this.self) { this.fail(false); return }
-    if (message.type === 'error') { this.fail(message.retryable); return }
+    if (message.type === 'error') {
+      if (message.code === 'CHAT_UNAVAILABLE') { this.chatError = 'That player is unavailable.'; this.publish(); return }
+      this.fail(message.retryable); return
+    }
+    if (message.type === 'chat') {
+      this.chatError = null
+      this.chatMessages = [...this.chatMessages.slice(-99), message.message]
+      this.publish()
+      return
+    }
     const area = getAreaDefinition(this.options.areaId)!
     if (message.type === 'joined' && message.player.presenceId !== this.self) {
       const old = this.remotes.get(message.player.presenceId)
@@ -182,5 +197,27 @@ export class AreaConnection {
     if (old && old.position.x === position.x && old.position.y === position.y && old.facing === facing && old.movement === movement) return
     const sample: MovementSample = { position: { ...position }, facing, movement, sequence: this.sequence + 1 }
     if (this.send({ v: 1, type: 'move', ...sample })) { this.sequence++; this.lastSent = sample; this.lastSentAt = now }
+  }
+
+  sendWorldMessage(text: string): boolean {
+    const cleaned = text.trim()
+    if (!cleaned) return false
+    this.chatError = null
+    return this.send({ v: 1, type: 'chat', channel: 'world', text: cleaned })
+  }
+
+  sendDirectMessage(recipientPublicId: string, text: string): boolean {
+    const cleaned = text.trim()
+    if (!cleaned) return false
+    this.chatError = null
+    return this.send({ v: 1, type: 'chat', channel: 'direct', recipientPublicId, text: cleaned })
+  }
+
+  refreshPresence(): void {
+    if (!this.active) return
+    this.failures = 0
+    this.reset()
+    this.publish('reconnecting')
+    this.cancelTask = this.schedule(() => { void this.connect() }, 0)
   }
 }
