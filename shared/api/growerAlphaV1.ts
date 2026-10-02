@@ -8,6 +8,7 @@ import type { QuantitativeSeedTreatment } from '../../src/types/treatment.ts'
 
 export interface GrowerAlphaProjectionV1 {
   projectionVersion: 1
+  commerceInventory?: { seedStacks: { speciesId: string; quantity: number; version: number }[]; ownedSpecimenIds: string[] }
   version: number
   player: {
     playerId: string
@@ -25,6 +26,8 @@ export interface GrowerAlphaProjectionV1 {
 }
 
 export type GrowerAlphaCommandV1 =
+  | { type: 'buy-shop-seeds'; commandId: string; itemId: string; quantity: number }
+  | { type: 'buy-marketplace-listing'; commandId: string; listingId: string }
   | { type: 'sell-specimen-to-npc'; commandId: string; specimenId: string }
   | { type: 'list-specimen'; commandId: string; specimenId: string; askingPrice: number }
   | { type: 'cancel-listing'; commandId: string; listingId: string }
@@ -50,6 +53,8 @@ export function isGrowerAlphaCommandV1(value: unknown): value is GrowerAlphaComm
   if (!value || typeof value !== 'object') return false
   const command = value as Record<string, unknown>
   if (typeof command.type !== 'string' || typeof command.commandId !== 'string' || !UUID.test(command.commandId)) return false
+  if (command.type === 'buy-shop-seeds') return Object.keys(command).length === 4 && typeof command.itemId === 'string' && command.itemId.length <= 80 && Number.isInteger(command.quantity) && Number(command.quantity) >= 1 && Number(command.quantity) <= 100
+  if (command.type === 'buy-marketplace-listing') return Object.keys(command).length === 3 && typeof command.listingId === 'string' && UUID.test(command.listingId)
   if (command.type === 'sell-specimen-to-npc' || command.type === 'list-specimen' || command.type === 'observe-specimen' || command.type === 'analyze-specimen' || command.type === 'collect-tissue-sample') {
     if (typeof command.specimenId !== 'string') return false
     return command.type !== 'list-specimen' || (Number.isSafeInteger(command.askingPrice) && Number(command.askingPrice) > 0 && Number(command.askingPrice) <= 1_000_000)
@@ -69,6 +74,12 @@ export function isGrowerAlphaProjectionV1(value: unknown): value is GrowerAlphaP
   if (projection.projectionVersion !== 1 || !Number.isInteger(projection.version)) return false
   const player = projection.player as Record<string, unknown> | undefined
   const skills = player?.skills as Record<string, unknown> | undefined
+  if (projection.commerceInventory !== undefined) {
+    const inventory = projection.commerceInventory as GrowerAlphaProjectionV1['commerceInventory']
+    if (!inventory || !Array.isArray(inventory.seedStacks) || !Array.isArray(inventory.ownedSpecimenIds)
+      || !inventory.ownedSpecimenIds.every((id) => typeof id === 'string')
+      || !inventory.seedStacks.every((stack) => stack && typeof stack.speciesId === 'string' && Number.isSafeInteger(stack.quantity) && stack.quantity >= 0 && Number.isInteger(stack.version))) return false
+  }
   return typeof player?.playerId === 'string'
     && Number.isInteger(player.tokenBalance)
     && Number.isInteger(skills?.cultivationXp)

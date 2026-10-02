@@ -1,3 +1,4 @@
+import { bindWorldKeyboardFocus, canUseWorldKeyboard } from './worldKeyboardFocus'
 import Phaser from 'phaser'
 import { FARM_WORLD_HEIGHT, FARM_WORLD_WIDTH, MAILBOX_APPROACH_POINTS, MAILBOX_V1_COLLIDERS, NURSERY_PATH_ENDPOINT, farmWorldLayout, farmWorldSpawns, type FarmLocationLayout } from './farmWorldLayout'
 import type { WorldBridge } from './WorldBridge'
@@ -335,6 +336,8 @@ export class FarmTestScene extends Phaser.Scene {
     if (!this.input.keyboard) throw new Error('Keyboard input is unavailable')
     this.cursors = this.input.keyboard.createCursorKeys()
     this.wasd = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D', interact: 'E' }) as typeof this.wasd
+    const releaseKeyboardFocus = bindWorldKeyboardFocus(this.game.canvas, this.input.keyboard)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, releaseKeyboardFocus)
     this.wasd.interact.on('down', () => {
       if (this.editor?.getSnapshot().mode !== 'edit' && this.canAcceptKeyboardInput()) this.activateNearestInteraction()
     })
@@ -346,6 +349,11 @@ export class FarmTestScene extends Phaser.Scene {
       this.game.canvas.focus()
       if (this.getActiveTouchPointers().length >= 2) {
         this.beginPinch()
+        return
+      }
+      if (!pointer.wasTouch) {
+        this.pendingWorldTap = null
+        this.handleWorldTap(pointer.worldX, pointer.worldY)
         return
       }
       this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY }
@@ -554,7 +562,7 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private canAcceptKeyboardInput() {
-    return this.game.canvas.contains(document.activeElement) || document.activeElement === document.body
+    return canUseWorldKeyboard(this.game.canvas)
   }
 
   private isInInteractionRange(target: InteractionTarget) {

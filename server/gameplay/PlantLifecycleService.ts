@@ -116,7 +116,10 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     const profiles = cloneIds.length ? await this.database.select().from(geneticProfiles).where(inArray(geneticProfiles.cloneLineId, cloneIds)) : []
     const variants = cloneIds.length ? await this.database.select().from(cloneLineVariants).where(inArray(cloneLineVariants.cloneLineId, cloneIds)) : []
     const profileByClone = new Map(profiles.map((profile) => [profile.cloneLineId, profile]))
-    const lineageByClone = new Map(seeds.map((seed) => [seed.cloneLineId, seed]))
+    // A purchased specimen retains its original bred-seed provenance, regardless of seed owner.
+    const specimenCloneIds = [...new Set([...base.ownedSpecimens.map((plant) => plant.cloneLineId), ...base.nursery.slots.flatMap((slot) => slot.occupancy ? [slot.occupancy.specimen.cloneLineId] : [])])]
+    const lineage = specimenCloneIds.length ? await this.database.select().from(bredSeeds).where(inArray(bredSeeds.cloneLineId, specimenCloneIds)) : []
+    const lineageByClone = new Map(lineage.map((seed) => [seed.cloneLineId, seed]))
     const enrich = (specimen: PlantSpecimenV1): PlantSpecimenV2 => {
       const lineage = lineageByClone.get(specimen.cloneLineId)
       return { ...specimen, geneticFeatures: lineage?.geneticFeatures ?? [], parentPlantIds: lineage ? [lineage.parent1SpecimenId, lineage.parent2SpecimenId] : null, parentSpeciesIds: lineage ? [lineage.parent1SpeciesId, lineage.parent2SpeciesId] : null, isHybrid: lineage?.isHybrid ?? false, sourceBredSeedId: lineage?.id ?? null }

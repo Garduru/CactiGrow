@@ -44,7 +44,7 @@ export function GrowerAuthorityProvider({ children }: { children: ReactNode }) {
     try {
       return await commandRunner.current(command)
     } catch (error) {
-      if (command.type === 'sell-specimen-to-npc') throw error
+      if (['sell-specimen-to-npc', 'buy-shop-seeds', 'buy-marketplace-listing', 'list-specimen', 'cancel-listing'].includes(command.type)) throw error
       return null
     }
   } }), [enabled, refresh, state])

@@ -19,6 +19,7 @@ import { PlayerLogin } from '../features/authentication/PlayerLogin'
 import { GameSession } from './GameSession'
 import { OfficialHomePage } from '../features/website/OfficialHomePage'
 import { CANONICAL_FARM_PATH } from './farmReturnNavigation'
+import { FeatureContent } from '../features/menu/FeatureContent'
 
 const FarmWorldPage = lazy(() => import('../game-world/FarmWorldPage').then((module) => ({ default: module.FarmWorldPage })))
 const TownWorldPage = lazy(() => import('../game-world/TownWorldPage').then((module) => ({ default: module.TownWorldPage })))
@@ -53,7 +54,10 @@ export function AppRoutes() {
           <Route path="/research" element={<ResearchLogPage />} />
           <Route path="/lab" element={<GeneticsLabPage />} />
           <Route path="/mail" element={<MailPage />} />
-          <Route path="/friends" element={<LegacyRedirect to={CANONICAL_FARM_PATH} />} />
+          <Route path="/friends" element={<FeatureContent feature="friends" />} />
+          <Route path="/profile" element={<FeatureContent feature="profile" />} />
+          <Route path="/help" element={<FeatureContent feature="help" />} />
+          <Route path="/settings" element={<FeatureContent feature="settings" />} />
           <Route path="/chat" element={<LegacyRedirect to={CANONICAL_FARM_PATH} />} />
           <Route path="*" element={<section><h1>Off the beaten path</h1><p>This location doesn’t exist yet.</p></section>} />
         </Route>

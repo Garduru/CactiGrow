@@ -1,9 +1,11 @@
+import { buyShopSeeds, buyMarketplaceListing } from './commerceTransactions.ts'
+import { assertSpecimenUnprotected } from './specimenCommerceEligibility.ts'
 import { and, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import {
   bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings,
   plantSpecimens, playerGardenDisplays, playerGardenSpecimens, playerGrowerEvents,
-  playerGrowerState, playerOnboarding,
+  playerGrowerState, playerOnboarding, playerSeedStacks,
 } from '../db/schema/index.ts'
 import type { GrowerAlphaCommandV1, GrowerAlphaProjectionV1 } from '../../shared/api/growerAlphaV1.ts'
 import { ApiError } from '../api/errors.ts'
@@ -95,6 +97,13 @@ export class GrowerAlphaService {
         await tx.insert(gameplayCommandReceipts).values({ playerId, idempotencyKey: command.commandId, commandType: type, requestFingerprint: fingerprint, status: 'processing' })
         await this.apply(tx, playerId, command)
         const result = await this.projectWith(tx, playerId)
+        if (command.type === 'buy-shop-seeds' || command.type === 'buy-marketplace-listing') {
+          const [stacks, specimens] = await Promise.all([
+            tx.select({ speciesId: playerSeedStacks.speciesId, quantity: playerSeedStacks.quantity, version: playerSeedStacks.version }).from(playerSeedStacks).where(eq(playerSeedStacks.playerId, playerId)),
+            tx.select({ id: plantSpecimens.id }).from(plantSpecimens).where(and(eq(plantSpecimens.ownerPlayerId, playerId), eq(plantSpecimens.lifecycleStatus, 'owned'))),
+          ])
+          result.commerceInventory = { seedStacks: stacks, ownedSpecimenIds: specimens.map((row) => row.id) }
+        }
         await tx.update(gameplayCommandReceipts).set({ status: 'completed', responsePayload: result, completedAt: this.now() }).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, command.commandId)))
         return result
       })
@@ -110,8 +119,19 @@ export class GrowerAlphaService {
 
   private async apply(tx: Transaction, playerId: string, command: GrowerAlphaCommandV1): Promise<void> {
     const now = this.now()
+    if (command.type === 'buy-shop-seeds') {
+      await buyShopSeeds(tx, playerId, command.itemId, command.quantity, now)
+      await this.recordEvent(tx, playerId, command.commandId, 'shop-purchase', now, { itemId: command.itemId, quantity: command.quantity })
+      return
+    }
+    if (command.type === 'buy-marketplace-listing') {
+      await buyMarketplaceListing(tx, playerId, command.listingId, now)
+      await this.recordEvent(tx, playerId, command.commandId, 'marketplace-purchase', now, { listingId: command.listingId })
+      return
+    }
     if (command.type === 'sell-specimen-to-npc') {
       const plant = await this.loadOwnedPlant(tx, playerId, command.specimenId)
+      await assertSpecimenUnprotected(tx, playerId, command.specimenId)
       const [active] = await tx.select().from(marketplaceListings).where(and(eq(marketplaceListings.specimenId, command.specimenId), eq(marketplaceListings.status, 'active'))).limit(1)
       if (active) throw conflict('CONFLICT', 'Cancel the Marketplace listing before selling this specimen.')
       const value = getNpcSaleValue(plant)
@@ -125,6 +145,7 @@ export class GrowerAlphaService {
     }
     if (command.type === 'list-specimen') {
       await this.loadOwnedPlant(tx, playerId, command.specimenId)
+      await assertSpecimenUnprotected(tx, playerId, command.specimenId)
       await tx.insert(marketplaceListings).values({ id: crypto.randomUUID(), sellerPlayerId: playerId, specimenId: command.specimenId, askingPrice: command.askingPrice, status: 'active', createdAt: now, version: 1 })
       await this.recordEvent(tx, playerId, command.commandId, 'marketplaceListing', now, { specimenId: command.specimenId })
       return

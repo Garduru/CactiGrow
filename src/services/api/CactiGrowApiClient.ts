@@ -1,3 +1,4 @@
+import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV1 } from '../../../shared/api/commerceV1.ts'
 import type { ApiEnvelope } from '../../../shared/api/envelope.ts'
 import { isRealtimeCredentialsResponseV1, type RealtimeCredentialsRequestV1, type RealtimeCredentialsResponseV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
 import {
@@ -10,7 +11,7 @@ import { isCollectPlantResultV1, isPlantCommoditySeedResultV1, isPlantLifecycleP
 import { isBreedSpecimensResultV2, isPlantBredSeedResultV2, isPlantLifecycleProjectionV2, type BreedSpecimensCommandV2, type BreedSpecimensResultV2, type PlantBredSeedCommandV2, type PlantBredSeedResultV2, type PlantLifecycleProjectionV2 } from '../../../shared/api/plantLifecycleV2.ts'
 import { isGrowerAlphaProjectionV1, type GrowerAlphaCommandV1, type GrowerAlphaProjectionV1 } from '../../../shared/api/growerAlphaV1.ts'
 import { isCollectPlantResultV3, isPlantBredSeedResultV3, isPlantCommoditySeedResultV3, isPlantLifecycleProjectionV3, type CollectPlantCommandV3, type CollectPlantResultV3, type PlantBredSeedCommandV3, type PlantBredSeedResultV3, type PlantCommoditySeedCommandV3, type PlantCommoditySeedResultV3, type PlantLifecycleProjectionV3 } from '../../../shared/api/plantLifecycleV3.ts'
-import { isPublicPlayerProfileV1, isSocialOverviewV1, type PublicPlayerProfileV1, type SocialCommandV1, type SocialOverviewV1 } from '../../../shared/api/socialV1.ts'
+import { isPlayerSearchV1, type PlayerSearchV1, isPublicPlayerProfileV1, isSocialOverviewV1, type PublicPlayerProfileV1, type SocialCommandV1, type SocialOverviewV1 } from '../../../shared/api/socialV1.ts'
 
 export type CactiGrowApiErrorKind =
   | 'unauthenticated'
@@ -111,10 +112,15 @@ export class CactiGrowApiClient {
   async getPlantLifecycle(signal?: AbortSignal): Promise<PlantLifecycleProjectionV1> {
     return this.execute('/api/v1/me/plant-lifecycle', { method: 'GET', signal }, isPlantLifecycleProjectionV1, 'plant lifecycle projection')
   }
+  async getShopCatalog(signal?: AbortSignal): Promise<ShopCatalogV1> { return this.execute('/api/v1/shop', { method: 'GET', signal }, isShopCatalogV1, 'shop catalog') }
+  async getMarketplace(mine = false, offset = 0, signal?: AbortSignal): Promise<MarketplaceV1> { return this.execute(`/api/v1/marketplace?mine=${mine}&offset=${offset}`, { method: 'GET', signal }, isMarketplaceV1, 'Marketplace') }
   async getGarden(signal?: AbortSignal): Promise<GardenProjectionV1> { return this.execute('/api/v1/me/garden', { method: 'GET', signal }, isGardenProjectionV1, 'Garden projection') }
   async mutateGarden(command: GardenCommandV1): Promise<GardenProjectionV1> { return this.execute('/api/v1/me/garden', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isGardenProjectionV1, 'Garden projection') }
   async getGrowerAlpha(signal?: AbortSignal): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'GET', signal }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
   async mutateGrowerAlpha(command: GrowerAlphaCommandV1): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
+  async searchPlayers(query: string, signal?: AbortSignal): Promise<PlayerSearchV1> {
+    return this.execute(`/api/v1/players/search?q=${encodeURIComponent(query.trim())}`, { method: 'GET', signal }, isPlayerSearchV1, 'player search')
+  }
   async getSocial(signal?: AbortSignal): Promise<SocialOverviewV1> { return this.execute('/api/v1/me/social', { method: 'GET', signal }, isSocialOverviewV1, 'social projection') }
   async mutateSocial(command: SocialCommandV1): Promise<SocialOverviewV1> { return this.execute('/api/v1/me/social', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isSocialOverviewV1, 'social projection') }
   async getPublicPlayerProfile(publicId: string, signal?: AbortSignal): Promise<PublicPlayerProfileV1> {

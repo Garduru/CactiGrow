@@ -1,3 +1,5 @@
+import { MarketplaceService } from '../gameplay/MarketplaceService.ts'
+import { SHOP_CATALOG, MAX_SHOP_QUANTITY } from '../gameplay/shopCatalog.ts'
 import { getRuntimeMetadata, type WorkerEnv } from '../env.ts'
 import {
   withAuthenticatedPlayer,
@@ -35,7 +37,7 @@ export interface ApiRouterDependencies {
   authenticationConfigurationFactory?: AuthenticationConfigurationFactory
   createPlayerBootstrapService?: (context: ApiRequestContext) => Promise<PlayerBootstrapService>
   createPlantLifecycleService?: (context: ApiRequestContext) => Promise<PlantLifecycleApplication>
-  createSocialService?: (context: ApiRequestContext) => Promise<Pick<SocialService, 'overview' | 'execute' | 'publicProfile'>>
+  createSocialService?: (context: ApiRequestContext) => Promise<Pick<SocialService, 'overview' | 'execute' | 'publicProfile' | 'search'>>
   resolveRealtimePlayerSocial?: (context: ApiRequestContext, playerId: string) => Promise<RealtimePlayerSocialProjection | null>
 }
 
@@ -132,7 +134,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
 
     if (url.pathname === '/api/v2/me/bootstrap') {
       if (request.method !== 'GET') throw ApiError.methodNotAllowed()
-      if (!['staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
+      if (!['development', 'staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
       return withAuthenticatedPlayer(context, async ({ player }) => {
         const service = await (dependencies.createPlayerBootstrapService ?? createPlayerBootstrapService)(context)
         return successResponse(await service.getGrowerForPlayer(player.playerId), requestId)
@@ -155,6 +157,14 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       }, dependencies.authenticationConfigurationFactory)
     }
 
+    if (url.pathname === '/api/v1/players/search') {
+      if (request.method !== 'GET') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = await (dependencies.createSocialService ?? createSocialService)(context)
+        return successResponse(await service.search(player.playerId, url.searchParams.get('q') ?? ''), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
+
     const publicProfileMatch = /^\/api\/v1\/players\/([0-9a-f-]{36})$/.exec(url.pathname)
     if (publicProfileMatch) {
       if (request.method !== 'GET') throw ApiError.methodNotAllowed()
@@ -166,7 +176,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
     }
 
     if (url.pathname === '/api/v1/me/garden') {
-      if (!['staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
+      if (!['development', 'staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       const body = request.method === 'POST' ? await readJson(request) : null
       if (request.method === 'POST' && !isGardenCommandV1(body)) throw new ApiError('INVALID_COMMAND', 400, 'The Garden command is invalid.')
@@ -178,8 +188,18 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       }, dependencies.authenticationConfigurationFactory)
     }
 
+    if (url.pathname === '/api/v1/shop' || url.pathname === '/api/v1/marketplace') {
+      if (request.method !== 'GET') throw ApiError.methodNotAllowed()
+      const offset = Number(url.searchParams.get('offset') ?? 0)
+      if (!Number.isInteger(offset) || offset < 0 || offset > 10000) throw ApiError.validation('Invalid Marketplace page.')
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        if (url.pathname === '/api/v1/shop') return successResponse({ projectionVersion: 1, items: SHOP_CATALOG, maxQuantity: MAX_SHOP_QUANTITY }, requestId)
+        return successResponse(await new MarketplaceService(await context.database.getDatabase()).browse(player.playerId, url.searchParams.get('mine') === 'true', offset), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
+
     if (url.pathname === '/api/v1/me/grower-alpha') {
-      if (!['staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
+      if (!['development', 'staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       const body = request.method === 'POST' ? await readJson(request) : null
       if (request.method === 'POST' && !isGrowerAlphaCommandV1(body)) throw new ApiError('INVALID_COMMAND', 400, 'The Grower command is invalid.')

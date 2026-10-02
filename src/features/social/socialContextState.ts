@@ -3,7 +3,7 @@ import type { SocialCommandV1, SocialOverviewV1 } from '../../../shared/api/soci
 import type { AreaConnection } from '../../services/realtime/AreaConnection'
 import type { PublicChatMessageV1 } from '../../../shared/realtime/protocolV1'
 
-export type SocialLoadState = { status: 'loading' } | { status: 'ready'; overview: SocialOverviewV1 } | { status: 'error'; message: string }
+export type SocialLoadState = { status: 'loading' } | { status: 'ready'; overview: SocialOverviewV1; refreshError?: string } | { status: 'error'; message: string }
 export type ProfileTarget = { open: false } | { open: true; publicId: string | null }
 
 export interface SocialContextValue {

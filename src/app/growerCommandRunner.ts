@@ -16,7 +16,7 @@ export function createGrowerCommandRunner(deps: Dependencies) {
   const pendingSales = new Map<string, string>()
   return (input: GrowerAlphaCommandInputV1): Promise<GrowerAlphaProjectionV1> => {
     const task = tail.then(async () => {
-      const specimenId = input.type === 'sell-specimen-to-npc' ? input.specimenId : null
+      const specimenId = input.type === 'sell-specimen-to-npc' ? input.specimenId : input.type === 'buy-shop-seeds' || input.type === 'buy-marketplace-listing' || input.type === 'list-specimen' || input.type === 'cancel-listing' ? JSON.stringify(input) : null
       const previousId = specimenId ? pendingSales.get(specimenId) : undefined
       const commandId = previousId ?? deps.createId()
       if (specimenId) pendingSales.set(specimenId, commandId)
@@ -30,6 +30,8 @@ export function createGrowerCommandRunner(deps: Dependencies) {
         if (specimenId) pendingSales.delete(specimenId)
         return projection
       } catch (error) {
+        // Definitive API rejections may be corrected and submitted as new commands.
+        if (specimenId && error && typeof error === 'object' && 'status' in error && typeof error.status === 'number' && error.status >= 400 && error.status < 500) pendingSales.delete(specimenId)
         await deps.reconcileFailure()
         throw error
       } finally {

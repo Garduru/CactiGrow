@@ -1,3 +1,4 @@
+import { bindWorldKeyboardFocus, canUseWorldKeyboard } from './worldKeyboardFocus'
 import Phaser from 'phaser'
 import type { WorldBridge } from './WorldBridge'
 import { TOWN_WORLD_HEIGHT, TOWN_WORLD_WIDTH, townWorldLayout, townWorldSpawns, type TownLocationLayout } from './townWorldLayout'
@@ -26,8 +27,6 @@ interface PendingWorldTap {
   worldY: number
   screenX: number
   screenY: number
-  startedAt: number
-  isTouch: boolean
   profilePublicId?: string
 }
 
@@ -99,7 +98,6 @@ export class TownTestScene extends Phaser.Scene {
 
   update() {
     this.remotePlayers?.update(performance.now())
-    this.updateRemoteProfileHold()
     const body = this.player.body as Phaser.Physics.Arcade.Body
     this.updateCameraZoom()
     if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.movementTarget = null; return }
@@ -273,6 +271,8 @@ export class TownTestScene extends Phaser.Scene {
     if (!this.input.keyboard) throw new Error('Keyboard input is unavailable')
     this.cursors = this.input.keyboard.createCursorKeys()
     this.wasd = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D', interact: 'E' }) as typeof this.wasd
+    const releaseKeyboardFocus = bindWorldKeyboardFocus(this.game.canvas, this.input.keyboard)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, releaseKeyboardFocus)
     this.wasd.interact.on('down', () => { if (this.editor?.getSnapshot().mode !== 'edit' && this.canAcceptKeyboardInput()) this.activateNearestInteraction() })
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.editor?.getSnapshot().mode === 'edit') {
@@ -282,8 +282,16 @@ export class TownTestScene extends Phaser.Scene {
       this.game.canvas.focus()
       if (this.getActiveTouchPointers().length >= 2) return this.beginPinch()
       const remote = this.remotePlayers?.getAtPosition({ x: pointer.worldX, y: pointer.worldY })
+      if (!pointer.wasTouch) {
+        this.pendingWorldTap = null
+        if (remote) {
+          this.movementTarget = null
+          this.bridge.emitIntent({ type: 'OPEN_PLAYER_PROFILE', publicId: remote.publicId })
+        } else this.handleWorldTap(pointer.worldX, pointer.worldY)
+        return
+      }
       this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY,
-        screenX: pointer.x, screenY: pointer.y, startedAt: performance.now(), isTouch: pointer.wasTouch, profilePublicId: remote?.publicId }
+        screenX: pointer.x, screenY: pointer.y, profilePublicId: remote?.publicId }
     })
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (this.pendingWorldTap?.pointerId === pointer.pointerId
@@ -291,7 +299,15 @@ export class TownTestScene extends Phaser.Scene {
       if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.updatePinch()
     })
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
-    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
+    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => { this.pendingWorldTap = null; this.finishPointerGesture(pointer) })
+    const cancelGesture = () => { this.pendingWorldTap = null; this.pinchActive = false; this.suppressWorldTap = false }
+    this.game.canvas.addEventListener('touchcancel', cancelGesture)
+    this.game.canvas.addEventListener('pointercancel', cancelGesture)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      cancelGesture()
+      this.game.canvas.removeEventListener('touchcancel', cancelGesture)
+      this.game.canvas.removeEventListener('pointercancel', cancelGesture)
+    })
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _over: Phaser.GameObjects.GameObject[], _dx: number, deltaY: number) => this.setUserZoom(this.targetCameraZoom * Math.exp(-deltaY * 0.0012)))
     this.game.canvas.tabIndex = 0
     this.game.canvas.setAttribute('aria-label', 'Interactive Town graybox. Use arrow keys or WASD to move and E to enter a nearby location.')
@@ -384,22 +400,14 @@ export class TownTestScene extends Phaser.Scene {
     if (!this.pendingWorldTap || this.pendingWorldTap.pointerId !== pointer.pointerId) return
     const tap = this.pendingWorldTap
     this.pendingWorldTap = null
+    if (Math.hypot(pointer.x - tap.screenX, pointer.y - tap.screenY) > 12) return
     const remote = this.remotePlayers?.getAtPosition({ x: tap.worldX, y: tap.worldY })
-    if (remote && !tap.isTouch) {
+    if (remote && remote.publicId === tap.profilePublicId) {
+      this.movementTarget = null
       this.bridge.emitIntent({ type: 'OPEN_PLAYER_PROFILE', publicId: remote.publicId })
       return
     }
     this.handleWorldTap(tap.worldX, tap.worldY)
-  }
-
-  private updateRemoteProfileHold() {
-    const tap = this.pendingWorldTap
-    if (!tap?.isTouch || !tap.profilePublicId || performance.now() - tap.startedAt < 550) return
-    const pointer = this.input.manager.pointers.find((item) => item.pointerId === tap.pointerId)
-    if (!pointer?.isDown) return
-    this.pendingWorldTap = null
-    this.suppressWorldTap = true
-    this.bridge.emitIntent({ type: 'OPEN_PLAYER_PROFILE', publicId: tap.profilePublicId })
   }
 
   private handleWorldTap(worldX: number, worldY: number) {
@@ -501,7 +509,7 @@ export class TownTestScene extends Phaser.Scene {
     if (target && object.approaches[0]) target.prompt.setPosition(object.approaches[0].x, object.approaches[0].y + 66)
   }
 
-  private canAcceptKeyboardInput() { return this.game.canvas.contains(document.activeElement) || document.activeElement === document.body }
+  private canAcceptKeyboardInput() { return canUseWorldKeyboard(this.game.canvas) }
   private getInteraction(layout: TownLocationLayout) { return this.editor?.getSnapshot().objects.find((object) => object.id === layout.id)?.interaction ?? { x: layout.interactionX, y: layout.interactionY, radius: layout.interactionRadius } }
   private isInInteractionRange(target: TownInteractionTarget) { const point = this.getInteraction(target.layout); return Phaser.Math.Distance.Between(this.player.x, this.player.y, point.x, point.y) <= point.radius }
   private getNearestInteraction() { return this.interactionTargets.filter((target) => this.isInInteractionRange(target)).sort((a, b) => { const first = this.getInteraction(a.layout); const second = this.getInteraction(b.layout); return Phaser.Math.Distance.Between(this.player.x, this.player.y, first.x, first.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, second.x, second.y) })[0] ?? null }

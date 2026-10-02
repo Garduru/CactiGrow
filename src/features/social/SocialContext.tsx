@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { usePlayerBootstrap } from '../../app/usePlayerBootstrap'
 import { browserApiClient } from '../../services/api/browserApiClient'
+import { CactiGrowApiError } from '../../services/api/CactiGrowApiClient'
 import type { SocialCommandV1 } from '../../../shared/api/socialV1'
 import type { AreaConnection, AreaConnectionState } from '../../services/realtime/AreaConnection'
 import { SocialContext, type SocialLoadState } from './socialContextState'
@@ -18,7 +19,8 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [townConnection, setTownConnection] = useState<AreaConnection | null>(null)
   const [directRecipientPublicId, setDirectRecipientPublicId] = useState<string | null>(null)
   const bindTownConnection = useCallback((connection: AreaConnection | null) => setTownConnection(connection), [])
-  const state: SocialLoadState = playerId && loadedSocial?.playerId === playerId && loadedSocial.revision === reload
+  // Refreshing relationships must not tear down the authenticated game subtree.
+  const state: SocialLoadState = playerId && loadedSocial?.playerId === playerId && (loadedSocial.state.status === 'ready' || loadedSocial.revision === reload)
     ? loadedSocial.state : { status: 'loading' }
   const townSubscribe = townConnection?.subscribe ?? subscribeWithoutTown
   const townSnapshot = townConnection?.getSnapshot ?? getEmptyTownSnapshot
@@ -33,16 +35,31 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     if (!playerId) return
     const controller = new AbortController()
     void browserApiClient.getSocial(controller.signal).then((overview) => {
-      setLoadedSocial({ playerId, revision: reload, state: { status: 'ready', overview } })
+      if (!controller.signal.aborted) setLoadedSocial({ playerId, revision: reload, state: { status: 'ready', overview } })
     }).catch((error: unknown) => {
-      if (!controller.signal.aborted) setLoadedSocial({ playerId, revision: reload,
-        state: { status: 'error', message: error instanceof Error ? error.message : 'Social services are unavailable.' } })
+      if (controller.signal.aborted) return
+      const message = error instanceof Error ? error.message : 'Social services are unavailable.'
+      const sessionDenied = error instanceof CactiGrowApiError && error.kind === 'unauthenticated'
+      setLoadedSocial((previous) => ({ playerId, revision: reload,
+        state: !sessionDenied && previous?.playerId === playerId && previous.state.status === 'ready'
+          ? { ...previous.state, refreshError: message } : { status: 'error', message } }))
     })
     return () => controller.abort()
   }, [playerId, reload])
 
   const mutate = useCallback(async (command: SocialCommandV1) => {
-    const overview = await browserApiClient.mutateSocial(command)
+    let overview
+    try { overview = await browserApiClient.mutateSocial(command) }
+    catch (error) {
+      if (error instanceof CactiGrowApiError && error.status === 409) {
+        // A relationship may have changed on the other account since this panel opened.
+        try {
+          const current = await browserApiClient.getSocial()
+          if (playerId) setLoadedSocial({ playerId, revision: reload, state: { status: 'ready', overview: current } })
+        } catch { /* Preserve the original, useful conflict response. */ }
+      }
+      throw error
+    }
     if (playerId) setLoadedSocial({ playerId, revision: reload, state: { status: 'ready', overview } })
     if (command.type === 'set-display-name' || command.type === 'block-player' || command.type === 'unblock-player') townConnection?.refreshPresence()
   }, [playerId, reload, townConnection])

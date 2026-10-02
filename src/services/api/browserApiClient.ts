@@ -2,8 +2,10 @@ import { CactiGrowApiClient } from './CactiGrowApiClient'
 import { createDevelopmentCredentials } from './developmentCredentials'
 import { getPlayerCredentials } from '../auth/neonAuthentication'
 
+const developmentSelection = import.meta.env.MODE === 'development'
+  ? createDevelopmentCredentials(true, window.location.search) : undefined
 const developmentCredentials = import.meta.env.MODE === 'development'
-  ? (): HeadersInit | undefined => createDevelopmentCredentials(true, window.location.search)
+  ? (): HeadersInit | undefined => developmentSelection
   : getPlayerCredentials
 
 function apiBaseUrl() {

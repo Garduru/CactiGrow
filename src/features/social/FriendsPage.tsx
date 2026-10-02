@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { PlayerSearch } from './PlayerSearch'
+import { useEffect, useState } from 'react'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { LocationHeader } from '../../components/ui/LocationHeader'
 import { useSocialState } from './useSocialState'
@@ -15,6 +16,8 @@ const categories: readonly { id: FriendCategory; label: string }[] = [
 export function FriendsPage() {
   const [category, setCategory] = useState<FriendCategory>('friends')
   const social = useSocialState()
+  const refresh = social.refresh
+  useEffect(() => { refresh() }, [refresh])
   const [error, setError] = useState('')
   const overview = social.state.status === 'ready' ? social.state.overview : null
 
@@ -36,6 +39,7 @@ export function FriendsPage() {
       titleId="friends-title"
       subtitle="Manage friend requests, relationships, and blocked players."
     />
+    <PlayerSearch />
     <nav className="social-switcher" aria-label="Friend categories">
       {categories.map((item) => <button key={item.id} type="button" aria-current={category === item.id ? 'page' : undefined} className={category === item.id ? 'social-switcher__item social-switcher__item--active' : 'social-switcher__item'} onClick={() => setCategory(item.id)}>{item.label}</button>)}
     </nav>
@@ -43,6 +47,7 @@ export function FriendsPage() {
       <h2 id="friends-category-title">{categories.find((item) => item.id === category)!.label}</h2>
       {social.state.status === 'loading' && <p role="status">Loading social relationships…</p>}
       {social.state.status === 'error' && <p role="alert">{social.state.message} <button type="button" onClick={social.refresh}>Retry</button></p>}
+      {social.state.status === 'ready' && social.state.refreshError && <p role="alert">Could not refresh friends: {social.state.refreshError} <button type="button" onClick={social.refresh}>Retry</button></p>}
       {category === 'friends' && (friends.length ? <ul className="social-player-list">{friends.map((profile) => <li key={profile.publicId}><ProfileLink profile={profile} onOpen={social.openProfile} /><button type="button" onClick={() => { void act({ type: 'remove-friend', publicId: profile.publicId }) }}>Remove</button></li>)}</ul> : <EmptyState title="No friends yet">Open a Town player's profile to send a friend request.</EmptyState>)}
       {category === 'requests' && <>
         <h3>Incoming</h3>

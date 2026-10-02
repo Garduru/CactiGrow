@@ -1,73 +1,29 @@
-import { useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import { PlayerLogout } from '../../features/authentication/PlayerLogout'
+import { useState } from 'react'
+import { useFeaturePanel, type FeatureId } from '../../features/menu/featurePanelState'
 
-type MenuSection = 'game' | 'social' | 'other'
-
-interface GameMenuPanelProps {
-  id: string
-  onDismiss: () => void
-  onOpenChat: () => void
-  onOpenFriends: () => void
-  onOpenProfile: () => void
-}
-
-export function GameMenuPanel({ id, onDismiss, onOpenChat, onOpenFriends, onOpenProfile }: GameMenuPanelProps) {
-  const [openSection, setOpenSection] = useState<MenuSection | null>('game')
-
-  function toggleSection(section: MenuSection) {
-    setOpenSection((current) => current === section ? null : section)
-  }
-
-  return (
-    <div className="utility-menu__panel" id={id} aria-label="Game menu">
-      <MenuDisclosure label="Game" section="game" openSection={openSection} onToggle={toggleSection}>
-        <Link to="/skills" onClick={onDismiss}>Skills</Link>
-        <Link to="/journal" onClick={onDismiss}>Field Journal</Link>
-        <Link to="/research" onClick={onDismiss}>Research Log</Link>
-        <Link to="/achievements" onClick={onDismiss}>Achievements</Link>
-      </MenuDisclosure>
-
-      <MenuDisclosure label="Social" section="social" openSection={openSection} onToggle={toggleSection}>
-        <button type="button" onClick={onOpenProfile}>My Profile</button>
-        <button type="button" onClick={onOpenFriends}>Friends</button>
-        <button type="button" onClick={onOpenChat}>Chat</button>
-      </MenuDisclosure>
-
-      <PlayerLogout />
-
-      <button className="utility-menu__standalone" type="button" aria-disabled="true" title="Coming soon">Settings</button>
-
-      <MenuDisclosure label="Other" section="other" openSection={openSection} onToggle={toggleSection}>
-        <button type="button" aria-disabled="true" title="Coming soon">Help</button>
-        <button type="button" aria-disabled="true" title="Coming soon">Visit CactiSwap</button>
-      </MenuDisclosure>
-    </div>
-  )
-}
-
-function MenuDisclosure({ label, section, openSection, onToggle, children }: {
-  label: string
-  section: MenuSection
-  openSection: MenuSection | null
-  onToggle: (section: MenuSection) => void
-  children: ReactNode
-}) {
-  const expanded = openSection === section
-  const panelId = `game-menu-${section}`
-
-  return (
-    <section className="utility-menu__section">
-      <button
-        className="utility-menu__section-toggle"
-        type="button"
-        aria-expanded={expanded}
-        aria-controls={panelId}
-        onClick={() => onToggle(section)}
-      >
-        <span>{label}</span><span aria-hidden="true">{expanded ? '▴' : '▾'}</span>
+export function MenuDropdown({ onDismiss }: { onDismiss(): void }) {
+  const [expanded, setExpanded] = useState<string[]>([])
+  const { openFeature } = useFeaturePanel()
+  function launch(feature: FeatureId) { onDismiss(); openFeature(feature) }
+  return <nav id="hud-menu-dropdown" className="menu-dropdown" aria-label="Menu">
+    {['Game', 'Social', 'Other'].map((category) => <section key={category}>
+      <button type="button" className="menu-dropdown__category" aria-expanded={expanded.includes(category)} aria-controls={`menu-category-${category}`}
+        onClick={() => setExpanded((current) => current.includes(category) ? current.filter((item) => item !== category) : [...current, category])}>
+        <span aria-hidden="true">{expanded.includes(category) ? '\u25be' : '\u25b8'}</span> {category}
       </button>
-      {expanded && <div className="utility-menu__section-items" id={panelId}>{children}</div>}
-    </section>
-  )
+      {expanded.includes(category) && <div id={`menu-category-${category}`} className="menu-dropdown__items">
+        {category === 'Game' && (['skills', 'journal', 'research', 'achievements'] as const).map((feature) => <button key={feature} type="button" onClick={() => launch(feature)}>{feature[0].toUpperCase() + feature.slice(1)}</button>)}
+        {category === 'Social' && <>
+          <button type="button" onClick={() => launch('friends')}>Friends</button>
+          <button type="button" onClick={() => launch('mail')}>Mail</button>
+        </>}
+        {category === 'Other' && <>
+          <button type="button" onClick={() => launch('help')}>Help</button>
+          <button type="button" onClick={() => launch('settings')}>Settings</button>
+          <a href="https://cactiswap.com" target="_blank" rel="noopener noreferrer" onClick={onDismiss}>Visit CactiSwap</a>
+          <button type="button" onClick={() => launch('signout')}>Sign Out</button>
+        </>}
+      </div>}
+    </section>)}
+  </nav>
 }

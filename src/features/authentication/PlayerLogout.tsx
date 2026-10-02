@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { neonAuth } from '../../services/auth/neonAuthentication'
 
-export function PlayerLogout() {
+export function PlayerLogout({ onCancel }: { onCancel(): void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
-  if (!neonAuth) return null
+  if (!neonAuth) return <p>Sign out is unavailable in local preview.</p>
   async function logout() {
     if (!neonAuth || busy) return
     setBusy(true)
@@ -16,8 +16,10 @@ export function PlayerLogout() {
       window.location.replace('/')
     } catch { setError(true); setBusy(false) }
   }
-  return <>
-    <button className="utility-menu__standalone" type="button" disabled={busy} onClick={logout}>{busy ? 'Signing out...' : 'Sign out'}</button>
+  return <section aria-label="Sign out confirmation">
+    <p>Sign out of CactiGrow?</p>
+    <button type="button" onClick={onCancel} disabled={busy}>Cancel</button>
+    <button type="button" disabled={busy} onClick={logout}>{busy ? 'Signing out...' : 'Sign Out'}</button>
     {error && <p role="alert">Unable to sign out. Please try again.</p>}
-  </>
+  </section>
 }

@@ -109,6 +109,7 @@ const testAuthenticatedRouter = createApiRouter({
       return { projectionVersion: 1, ownProfile: { publicId: '00000000-0000-4000-8000-00000000000c', displayName,
         joinedAt: '2026-09-20T10:00:00.000Z', collectionCount: 0, breedingCount: 0 }, friends: [], incomingRequests: [], outgoingRequests: [], blockedPlayers: [] }
     },
+    async search() { return { projectionVersion: 1 as const, results: [] } },
     async publicProfile(viewerId, publicId): Promise<PublicPlayerProfileV1> {
       assert.ok(viewerId.endsWith('a') || viewerId.endsWith('b'))
       return { projectionVersion: 1, profile: { publicId, displayName: 'Public Player', joinedAt: '2026-09-20T10:00:00.000Z', collectionCount: 2, breedingCount: 1 },
@@ -691,4 +692,16 @@ test('PostgreSQL request context connects once, reuses Drizzle, and ends once', 
   assert.equal(connectCount, 1)
   assert.equal(endCount, 1)
   await assert.rejects(database.getDatabase(), /already been disposed/)
+})
+
+
+test('player search uses authenticated identity and rejects anonymous requests and wrong methods', async () => {
+  const response = await handleApiRequest(developmentIdentityRequest('account-a', '/api/v1/players/search?q=Test'), env, undefined, authenticatedTestOptions('search'))
+  assert.equal(response.status, 200)
+  const body = await response.json() as { data: { projectionVersion: number; results: unknown[] } }
+  assert.deepEqual(body.data, { projectionVersion: 1, results: [] })
+  const anonymous = await handleApiRequest(developmentIdentityRequest(undefined, '/api/v1/players/search?q=Test'), env, undefined, authenticatedTestOptions('search-denied'))
+  assert.equal(anonymous.status, 401)
+  const wrongMethod = await handleApiRequest(new Request('http://localhost/api/v1/players/search?q=Test', { method: 'POST' }), env, undefined, authenticatedTestOptions('search-method'))
+  assert.equal(wrongMethod.status, 405)
 })

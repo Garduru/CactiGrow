@@ -1,3 +1,5 @@
+import { getTotalLevel, type PublicSkillLevel } from '../../src/features/progression/publicSkills.ts'
+import { skillDefinitions } from '../../src/features/progression/skillDefinitions.ts'
 import { isCanonicalUuid } from '../realtime/identifiers.ts'
 import { hasExactKeys, isRecord } from '../realtime/protocolV1.ts'
 
@@ -5,6 +7,8 @@ export interface PublicPlayerSummaryV1 {
   publicId: string
   displayName: string
   joinedAt: string
+  skills?: readonly PublicSkillLevel[]
+  totalLevel?: number
   cultivationLevel?: number
   cultivationXp?: number
   collectionCount: number
@@ -52,12 +56,14 @@ export function isSocialCommandV1(value: unknown): value is SocialCommandV1 {
 function isSummary(value: unknown): value is PublicPlayerSummaryV1 {
   const baseKeys = ['publicId', 'displayName', 'joinedAt', 'collectionCount', 'breedingCount']
   if (!isRecord(value) || (!hasExactKeys(value, baseKeys)
-    && !hasExactKeys(value, [...baseKeys, 'cultivationLevel', 'cultivationXp']))) return false
+    && !hasExactKeys(value, [...baseKeys, 'cultivationLevel', 'cultivationXp'])
+    && !hasExactKeys(value, [...baseKeys, 'cultivationLevel', 'cultivationXp', 'skills', 'totalLevel']))) return false
   return isCanonicalUuid(value.publicId) && typeof value.displayName === 'string' && value.displayName.length >= 3 && value.displayName.length <= 20
     && typeof value.joinedAt === 'string' && Number.isFinite(Date.parse(value.joinedAt))
     && Number.isSafeInteger(value.collectionCount) && (value.collectionCount as number) >= 0
     && Number.isSafeInteger(value.breedingCount) && (value.breedingCount as number) >= 0
     && (!Object.hasOwn(value, 'cultivationLevel') || (Number.isSafeInteger(value.cultivationLevel) && (value.cultivationLevel as number) >= 1 && (value.cultivationLevel as number) <= 99))
+    && (!Object.hasOwn(value, 'skills') || (isPublicSkills(value.skills) && value.totalLevel === getTotalLevel(value.skills)))
     && (!Object.hasOwn(value, 'cultivationXp') || (Number.isSafeInteger(value.cultivationXp) && (value.cultivationXp as number) >= 0))
 }
 
@@ -77,4 +83,15 @@ export function isPublicPlayerProfileV1(value: unknown): value is PublicPlayerPr
     && typeof relationship.isSelf === 'boolean' && typeof relationship.areFriends === 'boolean'
     && (relationship.request === null || relationship.request === 'incoming' || relationship.request === 'outgoing')
     && typeof relationship.blockedByMe === 'boolean' && typeof relationship.blocksMe === 'boolean'
+}
+function isPublicSkills(value: unknown): value is PublicSkillLevel[] {
+  return Array.isArray(value) && value.length === skillDefinitions.length && skillDefinitions.every((definition) =>
+    value.filter((skill) => isRecord(skill) && hasExactKeys(skill, ['id', 'name', 'level']) && skill.id === definition.id
+      && skill.name === definition.name && typeof skill.level === 'number' && Number.isSafeInteger(skill.level) && skill.level >= 1 && skill.level <= 99).length === 1)
+}
+
+export interface PlayerSearchV1 { projectionVersion: 1; results: readonly PublicPlayerProfileV1[] }
+export function isPlayerSearchV1(value: unknown): value is PlayerSearchV1 {
+  return isRecord(value) && hasExactKeys(value, ['projectionVersion', 'results']) && value.projectionVersion === 1
+    && Array.isArray(value.results) && value.results.length <= 12 && value.results.every(isPublicPlayerProfileV1)
 }

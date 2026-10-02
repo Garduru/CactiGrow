@@ -86,12 +86,14 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
       setError(`Enter a whole Token price from 1 to ${MAX_LISTING_PRICE.toLocaleString()}.`)
       return
     }
-    const listing = await listPlant(plantId, price)
-    if (!listing) {
-      setError('This specimen could not be listed. It may no longer be available.')
-      return
-    }
-    setSuccess({ kind: 'marketplace', price })
+    if (submitting.current) return
+    submitting.current = true; setIsSubmitting(true); setError('')
+    try {
+      const listing = await listPlant(plantId, price)
+      if (!listing) throw new Error('This specimen could not be listed. It may no longer be available.')
+      setSuccess({ kind: 'marketplace', price })
+    } catch (error) { setError(error instanceof Error ? error.message : 'Unable to create listing.') }
+    finally { submitting.current = false; setIsSubmitting(false) }
   }
 
   return (

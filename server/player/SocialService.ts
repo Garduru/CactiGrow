@@ -1,8 +1,9 @@
-import { and, count, eq, inArray, or } from 'drizzle-orm'
+import { and, count, eq, ilike, inArray, or } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { bredSeeds, friendRequests, friendships, playerBlocks, playerOnboarding, playerProfiles, plantSpecimens, players } from '../db/schema/index.ts'
-import type { PublicPlayerProfileV1, PublicPlayerSummaryV1, SocialCommandV1, SocialOverviewV1 } from '../../shared/api/socialV1.ts'
+import type { PublicPlayerProfileV1, PublicPlayerSummaryV1, SocialCommandV1, SocialOverviewV1, PlayerSearchV1 } from '../../shared/api/socialV1.ts'
 import { getLevelFromXp } from '../../src/features/progression/progressionModel.ts'
+import { publicSkillsFromXp, getTotalLevel } from '../../src/features/progression/publicSkills.ts'
 import { ApiError } from '../api/errors.ts'
 
 type Transaction = Parameters<Parameters<CactiGrowDatabase['transaction']>[0]>[0]
@@ -78,6 +79,35 @@ export class SocialService {
     } }
   }
 
+  async search(viewerId: string, input: string): Promise<PlayerSearchV1> {
+    const query = input.trim()
+    if (Array.from(query).length < 2 || Array.from(query).length > 20) throw ApiError.validation('Enter 2-20 characters to find a player.')
+    // Escape LIKE wildcards; names are data, never SQL or a relationship key.
+    const pattern = `%${query.replace(/[\\%_]/g, '\\$&')}%`
+    const matches = await this.database.select({ playerId: playerProfiles.playerId, publicId: playerProfiles.publicId }).from(playerProfiles)
+      .where(ilike(playerProfiles.displayName, pattern)).orderBy(playerProfiles.displayName, playerProfiles.publicId).limit(12)
+    if (!matches.length) return { projectionVersion: 1, results: [] }
+    const ids = matches.map((row) => row.playerId)
+    const [summaries, friends, requests, blocks] = await Promise.all([
+      this.summaries(ids),
+      this.database.select().from(friendships).where(or(and(eq(friendships.playerLowId, viewerId), inArray(friendships.playerHighId, ids)), and(eq(friendships.playerHighId, viewerId), inArray(friendships.playerLowId, ids)))),
+      this.database.select().from(friendRequests).where(and(eq(friendRequests.status, 'pending'), or(and(eq(friendRequests.fromPlayerId, viewerId), inArray(friendRequests.toPlayerId, ids)), and(eq(friendRequests.toPlayerId, viewerId), inArray(friendRequests.fromPlayerId, ids))))),
+      this.database.select().from(playerBlocks).where(or(and(eq(playerBlocks.blockerPlayerId, viewerId), inArray(playerBlocks.blockedPlayerId, ids)), and(eq(playerBlocks.blockedPlayerId, viewerId), inArray(playerBlocks.blockerPlayerId, ids)))),
+    ])
+    const byId = new Map(summaries.map((row) => [row.playerId, row.summary]))
+    return { projectionVersion: 1, results: matches.flatMap(({ playerId }) => {
+      const profile = byId.get(playerId)
+      if (!profile) return []
+      return [{ projectionVersion: 1 as const, profile, relationship: {
+        isSelf: playerId === viewerId,
+        areFriends: playerId !== viewerId && friends.some((row) => row.playerLowId === playerId || row.playerHighId === playerId),
+        request: playerId === viewerId ? null : requests.some((row) => row.fromPlayerId === playerId) ? 'incoming' as const : requests.some((row) => row.toPlayerId === playerId) ? 'outgoing' as const : null,
+        blockedByMe: blocks.some((row) => row.blockerPlayerId === viewerId && row.blockedPlayerId === playerId),
+        blocksMe: blocks.some((row) => row.blockerPlayerId === playerId && row.blockedPlayerId === viewerId),
+      } }]
+    }) }
+  }
+
   async execute(playerId: string, command: SocialCommandV1): Promise<SocialOverviewV1> {
     if (command.type === 'set-display-name') {
       const displayName = normalizeCharacterName(command.displayName)
@@ -107,7 +137,10 @@ export class SocialService {
   }
 
   private async lockPair(tx: Transaction, firstId: string, secondId: string): Promise<void> {
-    const rows = await tx.select({ id: players.id }).from(players).where(inArray(players.id, [firstId, secondId])).orderBy(players.id).for('update')
+    // Relationship commands serialize on profiles, whose runtime grant includes UPDATE.
+    // Locking identity rows would require widening the players table's privileges.
+    const rows = await tx.select({ id: playerProfiles.playerId }).from(playerProfiles)
+      .where(inArray(playerProfiles.playerId, [firstId, secondId])).orderBy(playerProfiles.playerId).for('update')
     if (rows.length !== 2) throw ApiError.notFound('Player not found.')
   }
 
@@ -166,7 +199,7 @@ export class SocialService {
   private async summaries(playerIds: readonly string[]): Promise<readonly { playerId: string; summary: PublicPlayerSummaryV1 }[]> {
     if (!playerIds.length) return []
     const profiles = await this.database.select({ playerId: playerProfiles.playerId, publicId: playerProfiles.publicId,
-      displayName: playerProfiles.displayName, joinedAt: players.createdAt, cultivationXp: playerOnboarding.cultivationXp })
+      displayName: playerProfiles.displayName, joinedAt: players.createdAt, cultivationXp: playerOnboarding.cultivationXp, breedingXp: playerOnboarding.breedingXp, geneticsXp: playerOnboarding.geneticsXp })
       .from(playerProfiles).innerJoin(players, eq(playerProfiles.playerId, players.id))
       .leftJoin(playerOnboarding, eq(playerOnboarding.playerId, playerProfiles.playerId))
       .where(inArray(playerProfiles.playerId, [...playerIds]))
@@ -180,7 +213,9 @@ export class SocialService {
     const breedingCounts = new Map(breeding.map((row) => [row.playerId, row.total]))
     return profiles.map((row) => ({ playerId: row.playerId, summary: {
       publicId: row.publicId, displayName: row.displayName, joinedAt: row.joinedAt.toISOString(),
-      ...(row.cultivationXp === null ? {} : { cultivationLevel: getLevelFromXp(row.cultivationXp), cultivationXp: row.cultivationXp }),
+      ...(row.cultivationXp === null ? {} : { cultivationLevel: getLevelFromXp(row.cultivationXp), cultivationXp: row.cultivationXp,
+        skills: publicSkillsFromXp({ cultivationXp: row.cultivationXp, breedingXp: row.breedingXp ?? 0, geneticsXp: row.geneticsXp ?? 0 }),
+        totalLevel: getTotalLevel(publicSkillsFromXp({ cultivationXp: row.cultivationXp, breedingXp: row.breedingXp ?? 0, geneticsXp: row.geneticsXp ?? 0 })) }),
       collectionCount: collectionCounts.get(row.playerId) ?? 0, breedingCount: breedingCounts.get(row.playerId) ?? 0,
     } }))
   }

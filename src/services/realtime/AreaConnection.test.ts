@@ -144,8 +144,13 @@ test('Remote renderer interpolates one avatar per presence, stops at its target 
   const avatars: { x: number; y: number; destroyed: boolean; setPosition(x: number, y: number): void; destroy(): void }[] = []
   const view = new RemotePlayers(() => { const avatar = { x: 0, y: 0, destroyed: false, setPosition(x: number, y: number) { this.x = x; this.y = y }, destroy() { this.destroyed = true } }; avatars.push(avatar); return avatar })
   view.sync([player(2)], 0); view.sync([player(2)], 5); assert.equal(avatars.length, 1)
+  assert.equal(view.getAtPosition({ x: 1100, y: 1219 })?.publicId, player(2).publicId, 'head is selectable')
+  assert.equal(view.getAtPosition({ x: 1100, y: 1262 })?.publicId, player(2).publicId, 'body is selectable')
+  assert.equal(view.getAtPosition({ x: 1000, y: 1219 }), undefined, 'empty ground is not a profile')
   view.sync([{ ...player(2, 1), position: { x: 1210, y: 1280 } }], 10)
   view.update(65); assert.equal(avatars[0].x, 1155)
+  assert.equal(view.getAtPosition({ x: 1155, y: 1219 })?.publicId, player(2).publicId, 'hit test follows the rendered avatar')
+  assert.equal(view.getAtPosition({ x: 1210, y: 1219 }), undefined, 'future network position is not selectable yet')
   view.update(1000); assert.equal(avatars[0].x, 1210)
   view.sync([], 1001); assert.equal(avatars[0].destroyed, true)
   view.sync([player(3)], 1002); view.clear(); assert.equal(avatars[1].destroyed, true)

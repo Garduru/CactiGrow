@@ -1,0 +1,24 @@
+# Shop and Marketplace V1 release — 2026-10-02
+
+1. **Previous state:** Shop was a placeholder. Marketplace supported own specimen listings and cancellation, but no buyer settlement.
+2. **Shop:** Buy normal San Pedro or Peyote seeds in quantities 1–100. Shows authoritative balance, quantity controls, costs and insufficient-funds states.
+3. **Pricing:** `server/gameplay/shopCatalog.ts`: San Pedro $25, Peyote $75 each. Existing NPC prices remain unchanged.
+4. **Purchases:** Existing authenticated Grower commands derive prices server-side, lock seed stack/balance, update both in one transaction and persist an idempotent receipt. Responses include updated balance/inventory references.
+5. **NPC selling:** Reuses existing specimen sale and valuation. Unique specimens require confirmation; favorites and active listings are rejected through server validation.
+6. **Marketplace assets:** Collected mature specimens. Commodity/bred-seed trading remains unavailable.
+7. **Schema:** Reuses existing `marketplace_listings`; no schema change.
+8. **Listings:** Create a price-bounded listing, browse own statuses and cancel active listings. Ownership uses internal player UUIDs.
+9. **Settlement:** Lock specimen, listing and deterministically ordered account balances; debit buyer, credit full price to seller, transfer ownership, clean seller display metadata, mark sold, and commit together.
+10. **Concurrency:** Only one competing buyer wins. Receipt replay cannot charge twice; injected mid-transfer failure rolls back payments, ownership and listing state.
+11. **Seller identity:** Current persistent public display name/public ID. No email/provider identity or seller internal UUID in public listing responses.
+12. **Inspection:** Reuses PlantVisual and GeneticKnowledgeView with the viewer's research visibility. Clone/specimen identity, established genetics, timestamps and bred lineage survive transfer.
+13. **Mobile:** Responsive commerce cards, wrapping filters and 44px controls inside the existing scrolling feature panel. User approved local Shop/Marketplace appearance. Physical-device acceptance is not independently claimed.
+14. **Synchronization:** Existing authoritative Grower state updates HUD balance; existing lifecycle/Garden invalidations refresh inventory. Marketplace refreshes after transactions and on window focus. Cross-account seller updates occur on refresh/reopen/focus, not a new realtime economy push.
+15. **Migration/grants:** None applied to production. Uses the existing listing, inventory, balance, receipt, public-profile and Garden permissions. Isolated PostgreSQL testing uses a restricted runtime role.
+16. **Validation:** Production build, lint, Worker typecheck, 34 Worker tests, 23 client tests, 7 menu/input/social regression tests and 4 commerce tests passed. Commerce integration uses real isolated PostgreSQL and authenticated route/client plumbing with test identities. Local browser verified Farm → Town → Shop, authoritative balance and closing back to Town. Existing bundle-size warning remains.
+17. **Implementation files:** Server: `shopCatalog.ts`, `commerceTransactions.ts`, `specimenCommerceEligibility.ts`, `MarketplaceService.ts`, `GrowerAlphaService.ts`, `PlantLifecycleService.ts`, API router. Contracts/client: `commerceV1.ts`, `growerAlphaV1.ts`, `CactiGrowApiClient.ts`, Grower provider/command runner, `restoreServerGameState.ts`. UI: ShopPage, MarketplacePage, OwnedSpecimenCommerce, useCommerceActions, SellWorkflow, feature-panel registration, TownWorldPage and commerce-only CSS. Shared visual model changes only make runtime import extensions compatible with Node tests. Focused tests and package script added. Separate local setup fixes configure 5174/8788 and preserve development selection through navigation; no production credentials/configuration changed.
+18. **Deployment:** Successful via `CACTIGROW_DEPLOY_CONFIRM=production` and `npm run deploy:production`. Live `/api/health` and `/play` return 200; anonymous commerce APIs correctly return 401. Live main bundle is `index-B7RHWSGe.js`. A Node-only import guard fix rebuilt to the identical production asset hashes.
+19. **Worker version:** `63249442-7958-4e6e-a7f9-547eb05be630`. Previous known accepted version: `6f6cdf82-fa85-4866-9c09-a6279e9088e5`.
+20. **Remaining live acceptance:** Real production Account A lists a specimen; Account B purchases; verify buyer/seller balances, transfer, sold status and reload persistence. Also buy a Shop seed and reload. These production account writes were not performed in this release verification.
+
+No commit or push was performed. Existing unrelated working-tree changes were preserved. No production migration, grants, DNS, authentication configuration, multiplayer architecture, growth timing or CactiSwap changes were made.

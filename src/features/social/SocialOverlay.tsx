@@ -1,10 +1,11 @@
+import { worldInputBoundary } from '../../components/layout/worldInputBoundary'
 import { useEffect, useRef } from 'react'
-import { FriendsPage } from './FriendsPage'
 import { ChatPage } from './ChatPage'
 import { useSocialPanel } from './useSocialPanel'
 import type { SocialPanelTab } from './socialPanelState'
 import { PlayerProfilePanel } from './PlayerProfilePanel'
 import { useSocialState } from './useSocialState'
+import { useChatViewport } from './useChatViewport'
 
 const tabs: readonly { id: SocialPanelTab; label: string }[] = [
   { id: 'friends', label: 'Friends' },
@@ -13,9 +14,10 @@ const tabs: readonly { id: SocialPanelTab; label: string }[] = [
 ]
 
 export function SocialOverlay() {
-  const { open, activeTab, closePanel, setActiveTab } = useSocialPanel()
+  const { open, activeTab, closePanel, openPanel } = useSocialPanel()
   const { profileTarget, closeProfile } = useSocialState()
   const isOpen = open || profileTarget.open
+  const viewportRef = useChatViewport<HTMLDivElement>(false, isOpen)
   const close = profileTarget.open ? closeProfile : closePanel
   const closeRef = useRef<HTMLButtonElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
@@ -42,15 +44,15 @@ export function SocialOverlay() {
     }
   }, [isOpen, close])
 
-  return isOpen && <div className="social-overlay" onPointerDown={(event) => { if (event.target === event.currentTarget) close() }}>
+  return isOpen && <div {...worldInputBoundary} ref={viewportRef} className={`social-overlay${!profileTarget.open && activeTab !== 'friends' ? ' social-overlay--chat' : ''}`} onPointerDown={(event) => { if (event.target === event.currentTarget) close() }}>
       <section className="social-overlay__panel" role="dialog" aria-modal="true" aria-label={profileTarget.open ? 'Player profile' : 'Social'}>
         {profileTarget.open ? <PlayerProfilePanel publicId={profileTarget.publicId} onClose={closeProfile} /> : <>
           <header className="social-overlay__header"><strong>Social</strong><button ref={closeRef} type="button" onClick={closePanel} aria-label="Close Social panel">Close</button></header>
           <nav className="social-overlay__tabs" aria-label="Social sections">
-            {tabs.map((tab) => <button key={tab.id} type="button" aria-current={activeTab === tab.id ? 'page' : undefined} onClick={() => setActiveTab(tab.id)}>{tab.label}</button>)}
+            {tabs.map((tab) => <button key={tab.id} type="button" aria-current={activeTab === tab.id ? 'page' : undefined} onClick={() => openPanel(tab.id)}>{tab.label}</button>)}
           </nav>
           <div className="social-overlay__content">
-            {activeTab === 'friends' ? <FriendsPage /> : <ChatPage selectedMode={activeTab} />}
+            <ChatPage selectedMode={activeTab === 'friends' ? 'world-chat' : activeTab} />
           </div>
         </>}
       </section>

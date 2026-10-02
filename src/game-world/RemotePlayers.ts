@@ -3,7 +3,7 @@ import type { PresenceId } from '../../shared/realtime/identifiers.ts'
 import type { Position } from '../../shared/realtime/areas.ts'
 
 export interface RemoteAvatar { setPosition(x: number, y: number): unknown; destroy(): void }
-interface Remote { avatar: RemoteAvatar; presence: PublicPresenceV1; from: Position; target: Position; receivedAt: number }
+interface Remote { avatar: RemoteAvatar; presence: PublicPresenceV1; from: Position; target: Position; rendered: Position; receivedAt: number }
 const INTERPOLATION_MS = 110
 
 /** Presentation only: one non-physical avatar per delivered public presence, no extrapolation. */
@@ -20,7 +20,7 @@ export class RemotePlayers {
         old?.avatar.destroy()
         const avatar = this.create(presence)
         avatar.setPosition(presence.position.x, presence.position.y)
-        this.players.set(presence.presenceId, { avatar, presence, from: presence.position, target: presence.position, receivedAt: now })
+        this.players.set(presence.presenceId, { avatar, presence, from: presence.position, target: presence.position, rendered: presence.position, receivedAt: now })
       } else if (presence.sequence > old.presence.sequence) {
         const position = this.position(old, now)
         old.from = position; old.target = presence.position; old.receivedAt = now; old.presence = presence
@@ -32,11 +32,14 @@ export class RemotePlayers {
     return { x: remote.from.x + (remote.target.x - remote.from.x) * fraction, y: remote.from.y + (remote.target.y - remote.from.y) * fraction }
   }
   update(now: number) {
-    for (const remote of this.players.values()) { const position = this.position(remote, now); remote.avatar.setPosition(position.x, position.y) }
+    for (const remote of this.players.values()) { const position = this.position(remote, now); remote.rendered = position; remote.avatar.setPosition(position.x, position.y) }
   }
-  getAtPosition(position: Position, radius = 42): PublicPresenceV1 | undefined {
-    return [...this.players.values()].find((remote) => Math.hypot(position.x - remote.presence.position.x,
-      position.y - remote.presence.position.y) <= radius)?.presence
+  getAtPosition(position: Position): PublicPresenceV1 | undefined {
+    // Match the visible head/body at the interpolated location, not the network target's feet.
+    return [...this.players.values()].filter((remote) => Math.abs(position.x - remote.rendered.x) <= 30
+      && position.y >= remote.rendered.y - 84 && position.y <= remote.rendered.y + 18)
+      .sort((a, b) => Math.hypot(position.x - a.rendered.x, position.y - (a.rendered.y - 32))
+        - Math.hypot(position.x - b.rendered.x, position.y - (b.rendered.y - 32)))[0]?.presence
   }
   clear() { for (const remote of this.players.values()) remote.avatar.destroy(); this.players.clear() }
 }

@@ -1,4 +1,4 @@
-import { getGeneticFeatureDefinition } from '../../data/geneticFeatures'
+import { getGeneticFeatureDefinition } from '../../data/geneticFeatures.ts'
 import type { GeneticFeatureState, SpecialVariantState } from '../../types/geneticFeature'
 
 function hasValidGenotype(state: GeneticFeatureState): boolean {

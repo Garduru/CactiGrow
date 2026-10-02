@@ -7,6 +7,9 @@ import { build } from 'esbuild'
 import { createFarmReturnState, createTownReturnState, resolveFarmReturnPath, resolveFarmSpawnId, createFarmTownRoadEntryState } from './farmReturnNavigation.ts'
 
 test('Public homepage renders outside authentication; direct game routes retain the production access boundary', async (t) => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
+  Object.defineProperty(globalThis, 'window', { value: { location: new URL('https://test/play') }, configurable: true })
+  t.after(() => { if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow); else Reflect.deleteProperty(globalThis, 'window') })
   // Compile the actual React routes for server rendering using the existing build dependency.
   const directory = resolve('node_modules/.tmp')
   await mkdir(directory, { recursive: true })
@@ -19,15 +22,16 @@ test('Public homepage renders outside authentication; direct game routes retain 
     import { AppRoutes } from './src/app/AppRouter';
     import { DeploymentAccessBoundary } from './src/app/DeploymentAccessBoundary';
     import { PlayerBootstrapContext } from './src/app/PlayerBootstrapContext';
+    import { SocialContext } from './src/features/social/socialContextState';
     export function render(path) { return renderToString(<MemoryRouter initialEntries={[path]}><AppRoutes /></MemoryRouter>); }
-    export function access(state) { return renderToString(<PlayerBootstrapContext.Provider value={state}><DeploymentAccessBoundary><p>Game content</p></DeploymentAccessBoundary></PlayerBootstrapContext.Provider>); }
+    export function access(state) { return renderToString(<PlayerBootstrapContext.Provider value={state}><SocialContext.Provider value={{state:{status:'ready',overview:{ownProfile:{publicId:'test'}}}}}><DeploymentAccessBoundary><p>Game content</p></DeploymentAccessBoundary></SocialContext.Provider></PlayerBootstrapContext.Provider>); }
   `, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, jsx: 'automatic', platform: 'node', format: 'esm', packages: 'external',
     // Phaser is a browser renderer; this test exercises routing/access, not canvas rendering.
     plugins: [{ name: 'browser-renderer-placeholder', setup(plugin) {
       plugin.onResolve({ filter: /^phaser$/ }, () => ({ path: 'phaser', namespace: 'renderer-test' }))
       plugin.onLoad({ filter: /.*/, namespace: 'renderer-test' }, () => ({ contents: 'export default { Scene: class {} }' }))
     } }],
-    loader: { '.css': 'empty' }, define: { 'import.meta.env.MODE': '"production"', 'import.meta.env.DEV': 'false', 'import.meta.env.VITE_CACTIGROW_API_BASE_URL': '"https://dev.cactigrow.com"' } })
+    loader: { '.css': 'empty' }, define: { 'import.meta.env': JSON.stringify({ MODE: 'production', DEV: false, VITE_CACTIGROW_API_BASE_URL: 'https://dev.cactigrow.com' }) } })
   await writeFile(file, result.outputFiles[0].contents)
   const { render, access } = await import(pathToFileURL(file).href)
   const homepage: string = render('/')
@@ -35,7 +39,7 @@ test('Public homepage renders outside authentication; direct game routes retain 
   assert.match(homepage, /href="\/play"/)
   assert.match(homepage, /PLAY NOW/)
   assert.doesNotMatch(homepage, /Establishing your secure session|game-header|Tokens/)
-  for (const route of ['/play', '/town', '/nursery', '/garden', '/inventory', '/home', '/lab', '/mail', '/shop', '/market', '/farm', '/world-preview', '/collection', '/marketplace']) {
+  for (const route of ['/play', '/town', '/nursery', '/garden', '/inventory', '/friends', '/profile', '/settings', '/home', '/lab', '/mail', '/shop', '/market', '/farm', '/world-preview', '/collection', '/marketplace']) {
     assert.match(render(route), /Establishing your secure session/, route)
   }
   assert.doesNotMatch(access({ status: 'unauthenticated' }), /Game content/)

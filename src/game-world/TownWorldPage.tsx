@@ -1,6 +1,7 @@
+import { useFeaturePanel } from '../features/menu/featurePanelState'
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { CANONICAL_FARM_PATH, createFarmTownRoadEntryState, createTownReturnState, resolveTownSpawnId } from '../app/farmReturnNavigation'
+import { CANONICAL_FARM_PATH, createFarmTownRoadEntryState, resolveTownSpawnId } from '../app/farmReturnNavigation'
 import { WorldNav } from '../components/layout/WorldNav'
 import { InGameChatHud } from '../features/social/InGameChatHud'
 import { useSocialPanel } from '../features/social/useSocialPanel'
@@ -13,6 +14,7 @@ import { useSocialState } from '../features/social/useSocialState'
 
 export function TownWorldPage() {
   const navigate = useNavigate()
+  const { openFeature } = useFeaturePanel()
   const location = useLocation()
   const spawnId = resolveTownSpawnId(location.state)
   const { connection, status, enabled } = useTownPresence(spawnId)
@@ -27,8 +29,8 @@ export function TownWorldPage() {
     const destination = townWorldProjection.locations.find((location) => location.id === intent.locationId)
     if (!destination) return
     if (destination.id === 'farm') navigate(CANONICAL_FARM_PATH, { state: createFarmTownRoadEntryState() })
-    else navigate(destination.route, { state: createTownReturnState(destination.id) })
-  }, [navigate, openProfile])
+    else openFeature(destination.id)
+  }, [navigate, openProfile, openFeature])
   const createGame = useCallback((parent: HTMLElement, bridge: Parameters<typeof createTownWorldGame>[1], editor?: Parameters<typeof createTownWorldGame>[2]['editor']) => createTownWorldGame(parent, bridge, { spawnId, editor, connection }), [spawnId, connection])
 
   return (
