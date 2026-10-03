@@ -5,6 +5,7 @@ import type { PublicPlayerProfileV1, PublicPlayerSummaryV1, SocialCommandV1, Soc
 import { getLevelFromXp } from '../../src/features/progression/progressionModel.ts'
 import { publicSkillsFromXp, getTotalLevel } from '../../src/features/progression/publicSkills.ts'
 import { ApiError } from '../api/errors.ts'
+import { socialRead } from './socialReadDiagnostics.ts'
 
 type Transaction = Parameters<Parameters<CactiGrowDatabase['transaction']>[0]>[0]
 const RESERVED_NAMES = new Set(['admin', 'administrator', 'cactigrow', 'cactiswap', 'moderator', 'mod', 'staff', 'support', 'system', 'grower'])
@@ -36,10 +37,10 @@ export class SocialService {
   async overview(playerId: string): Promise<SocialOverviewV1> {
     const [ownProfile] = await this.summaries([playerId])
     const [friendRows, incoming, outgoing, blocked] = await Promise.all([
-      this.database.select().from(friendships).where(or(eq(friendships.playerLowId, playerId), eq(friendships.playerHighId, playerId))),
-      this.database.select().from(friendRequests).where(and(eq(friendRequests.toPlayerId, playerId), eq(friendRequests.status, 'pending'))),
-      this.database.select().from(friendRequests).where(and(eq(friendRequests.fromPlayerId, playerId), eq(friendRequests.status, 'pending'))),
-      this.database.select().from(playerBlocks).where(eq(playerBlocks.blockerPlayerId, playerId)),
+      socialRead('social.friendships', () => this.database.select().from(friendships).where(or(eq(friendships.playerLowId, playerId), eq(friendships.playerHighId, playerId)))),
+      socialRead('social.incoming', () => this.database.select().from(friendRequests).where(and(eq(friendRequests.toPlayerId, playerId), eq(friendRequests.status, 'pending')))),
+      socialRead('social.outgoing', () => this.database.select().from(friendRequests).where(and(eq(friendRequests.fromPlayerId, playerId), eq(friendRequests.status, 'pending')))),
+      socialRead('social.blocks', () => this.database.select().from(playerBlocks).where(eq(playerBlocks.blockerPlayerId, playerId))),
     ])
     const friendIds = friendRows.map((row) => row.playerLowId === playerId ? row.playerHighId : row.playerLowId)
     const incomingIds = incoming.map((row) => row.fromPlayerId)
@@ -198,25 +199,25 @@ export class SocialService {
 
   private async summaries(playerIds: readonly string[]): Promise<readonly { playerId: string; summary: PublicPlayerSummaryV1 }[]> {
     if (!playerIds.length) return []
-    const profiles = await this.database.select({ playerId: playerProfiles.playerId, publicId: playerProfiles.publicId,
+    const profiles = await socialRead('social.profiles', () => this.database.select({ playerId: playerProfiles.playerId, publicId: playerProfiles.publicId,
       displayName: playerProfiles.displayName, joinedAt: players.createdAt, cultivationXp: playerOnboarding.cultivationXp, breedingXp: playerOnboarding.breedingXp, geneticsXp: playerOnboarding.geneticsXp })
       .from(playerProfiles).innerJoin(players, eq(playerProfiles.playerId, players.id))
       .leftJoin(playerOnboarding, eq(playerOnboarding.playerId, playerProfiles.playerId))
-      .where(inArray(playerProfiles.playerId, [...playerIds]))
+      .where(inArray(playerProfiles.playerId, [...playerIds])))
     const [collections, breeding] = await Promise.all([
-      this.database.select({ playerId: plantSpecimens.ownerPlayerId, total: count() }).from(plantSpecimens)
-        .where(and(inArray(plantSpecimens.ownerPlayerId, [...playerIds]), eq(plantSpecimens.lifecycleStatus, 'owned'))).groupBy(plantSpecimens.ownerPlayerId),
-      this.database.select({ playerId: bredSeeds.ownerPlayerId, total: count() }).from(bredSeeds)
-        .where(inArray(bredSeeds.ownerPlayerId, [...playerIds])).groupBy(bredSeeds.ownerPlayerId),
+      socialRead('social.collections', () => this.database.select({ playerId: plantSpecimens.ownerPlayerId, total: count() }).from(plantSpecimens)
+        .where(and(inArray(plantSpecimens.ownerPlayerId, [...playerIds]), eq(plantSpecimens.lifecycleStatus, 'owned'))).groupBy(plantSpecimens.ownerPlayerId)),
+      socialRead('social.bredSeeds', () => this.database.select({ playerId: bredSeeds.ownerPlayerId, total: count() }).from(bredSeeds)
+        .where(inArray(bredSeeds.ownerPlayerId, [...playerIds])).groupBy(bredSeeds.ownerPlayerId)),
     ])
     const collectionCounts = new Map(collections.map((row) => [row.playerId, row.total]))
     const breedingCounts = new Map(breeding.map((row) => [row.playerId, row.total]))
-    return profiles.map((row) => ({ playerId: row.playerId, summary: {
+    return socialRead('social.projection', async () => profiles.map((row) => ({ playerId: row.playerId, summary: {
       publicId: row.publicId, displayName: row.displayName, joinedAt: row.joinedAt.toISOString(),
       ...(row.cultivationXp === null ? {} : { cultivationLevel: getLevelFromXp(row.cultivationXp), cultivationXp: row.cultivationXp,
         skills: publicSkillsFromXp({ cultivationXp: row.cultivationXp, breedingXp: row.breedingXp ?? 0, geneticsXp: row.geneticsXp ?? 0 }),
         totalLevel: getTotalLevel(publicSkillsFromXp({ cultivationXp: row.cultivationXp, breedingXp: row.breedingXp ?? 0, geneticsXp: row.geneticsXp ?? 0 })) }),
       collectionCount: collectionCounts.get(row.playerId) ?? 0, breedingCount: breedingCounts.get(row.playerId) ?? 0,
-    } }))
+    } })))
   }
 }

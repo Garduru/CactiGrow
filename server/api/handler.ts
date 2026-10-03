@@ -1,5 +1,6 @@
 import type { WorkerEnv } from '../env.ts'
 import { ApiError } from './errors.ts'
+import { safeSocialReadDiagnostic } from '../player/socialReadDiagnostics.ts'
 import { errorResponse } from './response.ts'
 import { routeApiRequest, type ApiRouter } from './router.ts'
 import {
@@ -29,7 +30,12 @@ export async function handleApiRequest(
   const requestId = createRequestId()
   const router = options.router ?? routeApiRequest
   const database = (options.createRequestDatabaseContext ?? createRequestDatabaseContext)(env)
-  const reporter = options.reportUnexpectedError ?? reportUnexpectedError
+  const reporter = options.reportUnexpectedError ?? ((error: unknown, id: string) => {
+    reportUnexpectedError(error, id)
+    if (env.CACTIGROW_ENVIRONMENT === 'staging' && new URL(request.url).pathname === '/api/v1/me/social' && request.method === 'GET') {
+      console.error('Staging Social read diagnostic.', { requestId: id, ...safeSocialReadDiagnostic(error) })
+    }
+  })
 
   try {
     return await router({ request, env, executionContext, requestId, database })
