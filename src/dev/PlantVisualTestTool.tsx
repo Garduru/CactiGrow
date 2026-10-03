@@ -17,7 +17,7 @@ const featureIds = ['crested', 'monstrose', 'melted', 'spiral-helical', 'dichoto
 const stages: NurseryPresentationStage[] = ['germinating', 'seedling', 'juvenile', 'developing', 'mature']
 const gardenAnchor = GARDEN_DISPLAY_ANCHORS.find((anchor) => anchor.id === 'garden-display-front-center')!
 
-export function PlantVisualTestTool({ onGardenPreview }: { onGardenPreview: (projection: GardenDisplayProjection | null) => void }) {
+export function PlantVisualTestTool({ onGardenPreview, embedded = false }: { onGardenPreview: (projection: GardenDisplayProjection | null) => void; embedded?: boolean }) {
   const [config, setConfig] = useState<PlantVisualTestConfig>(defaultPlantVisualTestConfig)
   const [frozenNow] = useState(() => Date.now())
   const [target, setTarget] = useState<'nursery' | 'garden' | 'details'>('nursery')
@@ -43,7 +43,7 @@ export function PlantVisualTestTool({ onGardenPreview }: { onGardenPreview: (pro
   const update = (change: Partial<PlantVisualTestConfig>) => setConfig((current) => ({ ...current, ...change }))
   const reset = () => { setConfig(defaultPlantVisualTestConfig); setTarget('nursery'); setDetailsOpen(false); setInspectionZoom(1) }
 
-  return <aside className="plant-test" aria-label="Development plant visual test tool">
+  return <aside className={`plant-test${embedded ? ' plant-test--embedded' : ''}`} aria-label="Development plant visual test tool">
     <header><strong>Plant Visual Test</strong><button type="button" onClick={() => { setDetailsOpen(false); setOpen(false) }} aria-label="Close plant visual test tool">Close</button></header>
     <div className="plant-test__body">
       <label>Species<select value={config.speciesId} onChange={(event) => update({ speciesId: event.target.value })}>{species.map((entry) => <option key={entry.id} value={entry.id}>{entry.commonName}</option>)}</select></label>

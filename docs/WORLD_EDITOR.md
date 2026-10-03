@@ -1,5 +1,7 @@
 # Development World Edit
 
+Dev Tools V1 entry: Menu → Other → Developer Tools → World → Open existing World Editor. This attaches the existing editor to the current Farm/Town scene without travel/remount/reconnect. Choose Dock panel for world preview for canvas dragging or Test Movement; numeric fields work within the panel. Closing returns to Test Movement and clears selection. Legacy `?worldEdit` opens the same unified panel in local development; its pre-existing multiplayer-disabled startup behavior remains. The original URL workflow below is historical; the temporary draft/source-art contract is unchanged. See [DEV_TOOLS_V1.md](DEV_TOOLS_V1.md).
+
 World Edit is a temporary geometry preview tool for the Phaser Farm and Town. Run the Vite development server and open `/` or `/town` with `?worldEdit`, for example `http://localhost:5173/?worldEdit`. It is available only in development builds. `?worldDebug` continues to work separately; World Edit supplies its own selected-object overlay and live physics outlines. The panel is React UI over the Phaser canvas.
 
 Select an object by clicking/tapping its visual bounds in **Edit Geometry** mode or by choosing it from the panel. Farm supports Nursery, Home, Garden, Genetics Lab, Mailbox, and Road to Town. Town supports Shop, Marketplace/Exchange, and Road to Farm. The selected bounds, colliders, interaction circle, approach points, return/arrival spawn, and any named anchors are shown on the world. Garden's six collection-display anchors are editable preview points. No Nursery interior bench anchors exist yet.

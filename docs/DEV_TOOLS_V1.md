@@ -1,0 +1,90 @@
+# CactiGrow Dev Tools V1 — 2026-10-03
+
+Internal development tooling. Production deployment is expressly excluded from this milestone.
+
+## Discovery and consolidation
+
+Inspected current source and contracts before implementation. Existing utilities were:
+
+- `src/dev/PlantVisualTestTool.tsx` and `plantVisualTestModel.ts`: isolated canonical art specimens, Nursery/Plant Details previews and temporary Farm Garden render projection, previously opened with `?plantTest`. Governed by `docs/PLANT_VISUAL_TEST_TOOL.md`.
+- `src/game-world/editor/`: existing temporary World Editor controller, panel and Phaser geometry overlay, previously opened with `?worldEdit`. Governed by `docs/WORLD_EDITOR.md`.
+- Farm/Town scene and game factories: development `?worldDebug` physics, geometry, camera and navigation diagnostics.
+- `src/services/api/developmentCredentials.ts` and `server/identity/DevelopmentIdentityProvider.ts`: explicit Account A/B development selection, not a general admin account.
+- `server/development/provisionSeedFixtures.ts` and `server/staging/provisionSeedFixtures.ts`: owner-side, explicitly enabled provisioning scripts, not in-game cheat endpoints. They remain separate operational tools; no browser access to owner credentials was added.
+- `.wrangler/local-dev/README.md`: existing isolated persistent local PostgreSQL and Account A/B launcher. Prototype reducer fixtures and visual preview specimens are not authoritative testing controls.
+
+Search covered dev/debug/developer/admin/testing, seeds/currency/XP, spawn/teleport, lifecycle/research/breeding, inventory/specimens, Garden/Nursery/Farm/Town and player-state utilities. No existing general privileged in-game XP, currency or lifecycle command surface was found. Normal research, Favorite, property-upgrade, commerce and lifecycle actions already existed and are reused.
+
+## Architecture and commands
+
+One entry at **Menu → Other → Developer Tools** opens the existing Feature Panel. Internal sections show one tool category at a time. Visual Testing embeds the existing plant tool; World embeds the existing World Editor and invokes existing collision/navigation overlays. Legacy query shortcuts open the unified interface. Opening the editor dynamically attaches its existing controller to the current scene without changing its host or Town connection.
+
+World and Visual Testing offer an explicit **Dock panel for world preview** mode. It makes only Dev Tools nonmodal so the existing canvas drag/zoom/movement previews remain usable. Ordinary Dev Tools and all other feature panels retain modal input isolation. Closing restores normal UI and returns the editor to Test Movement with no selected geometry. Editor drafts remain temporary; locked source/config/art is never written.
+
+`/api/v1/dev/session`, `/api/v1/dev/commands` and `/api/v1/dev/specimen?id=...` are authenticated and owner-scoped. No SQL/row/JSON-patch endpoint exists. `DevToolsService` implements four explicit domain operations over the existing authoritative schema:
+
+| Command | Limits and semantics |
+| --- | --- |
+| `add-xp` | Actual skill registry; 1–1,000,000 XP per request. Uses existing `addXp` clamp and XP-derived levels. |
+| `add-currency` | $1–$100,000 per request; rejects storage overflow. Updates existing balance/version. |
+| `adjust-seeds` | Shared Shop species catalog; nonzero -100–100 quantity; rejects underflow/overflow. Locks/version-updates existing inventory stack. Negative UI adjustments require confirmation. |
+| `advance-growth` | Owned growing Nursery specimen only; 1–60 minutes or complete schedule. Preserves specimen/clone IDs, genetics, original `plantedAt` and rule constants. Uses occupancy-before-specimen locks, matching normal collection. Normal collection still awards normal outcomes exactly once. |
+
+Commands validate exact keys and canonical UUIDs, reject supplied actor IDs, use the existing request database context, row locks, atomic transactions and existing command receipts. A per-player dev advisory lock serializes duplicate receipt attempts. Replays return fresh authoritative Grower/lifecycle projections without repeating mutations. Those validated projections reconcile the existing providers immediately, including HUD/inventory; no extra game-state store or reload exists. An unresolved command can be retried with the exact body/ID. Definitive 4xx rejections release the pending command.
+
+## Environment isolation
+
+UI uses the existing deployment-mode resolver: development/staging only; unknown modes fail closed to production. Production cannot open Dev Tools programmatically and the production build excludes its UI chunk.
+
+The Worker rejects the dev surface before authentication/database acquisition in production, unknown/test environments, and the public apex/www domains. Protected staging uses its existing verified Cloudflare Access identity path. Development commands additionally require the existing loopback `cactigrow_local` database target. This is a database isolation check layered on the existing environment gate, not a hostname-only UI check. The remote development database shares production data; its dev-command requests are deliberately rejected.
+
+No production auth, Neon endpoint, DNS, Access policy, schema, migration, runtime grant or deployment configuration was changed.
+
+## Implemented sections
+
+- **Overview:** environment, authenticated public name/internal UUID, active world/Area/position, total level, currency, Garden level, multiplayer status/layer and Worker version. Copy UUID/open own profile.
+- **Progression:** actual Cultivation/Breeding/Genetics XP, levels, remaining XP, presets/custom additions. Garden building progression has no separate XP. Organized Beds uses the normal eligibility/cost/purchase path; no fake unlock flag. Use a still-Level-1 local Account B for below-gate testing and a legitimately upgraded account for above-gate testing.
+- **Economy/Inventory:** immediate authoritative currency and seed adjustments, current stacks and shared catalog.
+- **Plants:** searchable owned/growing specimens, species, owner, IDs, lifecycle timestamps, Favorite/research, developer genetic identity, lineage and server-calculated NPC value/commerce protection. Growth controls and normal Favorite mutation. Create physical test specimens by adding seeds and using normal Nursery planting/collection.
+- **Research & Breeding:** existing next research milestone, exact Genetics gate, knowledge projection and normal observe/analyze actions. Pair diagnostics reuse actual `canBreed`; no override or breeding automation.
+- **World:** active scene ID, current-world safe reset, position/destination/waypoint count, existing editor and collision/path overlays. Town connection/layer/remote-player count is read from the existing `AreaConnection`; Farm correctly reports no registered multiplayer Area.
+- **Social:** public name, friends/incoming/blocked counts, existing own profile/Friends conveniences.
+- **Visual Testing:** existing deterministic isolated plant visual tool; temporary Garden render preview is cleared on close/unmount. No durable specimen/XP award.
+- **System:** Worker version, authenticated API reachability, auth/bootstrap/authority, pathname/current panel/world session and clean snapshot.
+
+## Snapshot and action feedback
+
+Copy Debug Snapshot uses an explicit field allowlist, including nested position and multiplayer fields. It omits query/hash, tokens, cookies, credentials, provider subjects, emails, DB URLs and reconnect credentials. It includes a timestamp, public name/internal UUID, levels, currency and diagnostic session/world information. The 40-entry action log exists only in module memory for the current SPA session and never reaches a database or localStorage.
+
+## Verification
+
+Passed:
+
+- Production and staging builds; ESLint; Worker typecheck; diff checks.
+- Dev Tools infrastructure: 6 tests (environment/public-host/shared-data rejection, authentication, strict inputs, four-mode UI availability, snapshot allowlist, actual scene diagnostic adapters).
+- Real disposable PostgreSQL dev integration: 1 end-to-end test using the existing runtime privilege pattern. Covers duplicate/concurrent receipt replay, ID reuse conflict, XP/currency/seeds, underflow/unknown species, foreign/missing specimens, preserved growth identity/timing, normal collection, Favorite commerce protection and actual React providers/client/Worker/DB reconciliation of HUD/derived levels/inventory.
+- Existing Worker (34), client (23), lifecycle/breeding (9), menu (7), navigation (12), multiplayer client/workerd (9), collection (7), Garden sale (10), and disposable PostgreSQL commerce (4) tests.
+
+Farm/Town menu runtime regression opens Dev Tools, copies a snapshot, docks/restores/closes and verifies unchanged host instance, position, route, bootstrap and presence start/stop counters. Scene-adapter tests execute actual Farm/Town registration/reset code with renderer fixtures and verify current-world spawn, stable scene ID, unchanged connection lifecycle, debug cleanup and no production handle. These are automated source/runtime checks, not visual Phaser acceptance.
+
+Existing build chunk-size warnings remain. The existing PostgreSQL code emits a pg concurrent-query deprecation warning; tests pass. No dependency changes were made.
+
+Browser tooling reported no available browser; creating an in-app browser also failed. Desktop/mobile visual acceptance remains manual. The already-running local Worker on 8788 timed out on bounded health/dev-session probes; its existing processes were preserved. Disposable database/UI integration passed independently of that local process.
+
+## Deployment and git scope
+
+Local source/build validation only. No production deployment occurred. Staging was not deployed because its current Social V1 migration/runtime-grant prerequisites could not be verified from the available environment; the runbook forbids upload before those gates. No migration or grant was attempted. Use the existing isolated local launcher and bookmarked `/play?developmentIdentity=account-a&e1Lifecycle=server` (or Account B) for manual acceptance after the existing local Worker is restarted.
+
+Release commit title: `feat: unify development tools with authoritative dev commands`. The exact commit hash and push result are recorded in the final handoff/git history. The existing production-source ZIP, NPC-sale audit report and local benchmark report are excluded.
+
+Changed paths are confined to `server/development/{DevToolsService,devToolsGate,devTools.test,devTools.integration.test,devToolsUi.integration}`, `server/api/router.ts`, `shared/api/devToolsV1.ts`, `src/features/devtools/`, `src/features/menu/`, `src/components/layout/UtilityMenu.tsx`, the existing Grower/lifecycle providers/contexts and GameSession, deployment-mode helper, Farm/Town scene diagnostics/Farm visual projection, existing World Editor host/overlay, existing plant-tool embedding, typed API client, package test scripts, this report and the project-context milestone.
+
+Intentionally deferred: balance/XP setters and account resets; Garden downgrade/fake unlocks; specimen deletion/arbitrary creation; research reset/override; forced commerce; arbitrary teleport; realtime reconnect button; absent health/Zone systems; full frontend build-ID instrumentation. No harvesting/tutorial/automation/CactiSwap work.
+
+Manual acceptance:
+
+1. In local server-authority Farm/Town, open Menu → Other → Developer Tools; record position/session/layer, add a small amount of XP/currency/seeds and close. Verify the same world/position/connection and updated HUD/Inventory.
+2. Plant normally, advance/complete that owned specimen and collect normally; verify IDs/genetics/original planting time remain. Confirm another account cannot inspect/accelerate it.
+3. Test Organized Beds below and above its real purchase gate using separate local accounts; verify normal research eligibility and Favorite protection.
+4. Dock World/Visual Testing; exercise existing editor dragging/numeric previews/debug overlays and plant previews, then close and confirm normal world input/render assignments return. Check desktop and narrow-screen controls/scrolling.
+5. Inspect copied snapshot for omitted private fields. Verify production build has no Dev Tools entry and production manual API requests return 404 before any privileged mutation.

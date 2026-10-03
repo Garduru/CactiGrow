@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { WorldNav } from '../components/layout/WorldNav'
 import { InGameChatHud } from '../features/social/InGameChatHud'
@@ -7,13 +7,12 @@ import { createFarmReturnState, createTownFarmArrivalState, resolveFarmSpawnId }
 import { useGameState } from '../game/useGameState'
 import { createFarmWorldProjection } from './farmWorldProjection'
 import { FarmWorldHost } from './FarmWorldHost'
-import type { GardenDisplayProjection, WorldIntent } from './worldTypes'
+import type { WorldIntent } from './worldTypes'
+import { getGardenPreview, subscribeGardenPreview } from '../features/devtools/worldDiagnostics'
+import { useFeaturePanel } from '../features/menu/featurePanelState'
+import { devToolsAvailable } from '../config/deploymentMode'
 import { usePlantLifecycle } from '../app/usePlantLifecycle'
 import { useGardenAuthority } from '../app/useGardenAuthority'
-
-const PlantVisualTestTool = import.meta.env.DEV
-  ? lazy(() => import('../dev/PlantVisualTestTool').then((module) => ({ default: module.PlantVisualTestTool })))
-  : null
 
 export function FarmWorldPage() {
   const { state } = useGameState()
@@ -21,9 +20,11 @@ export function FarmWorldPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const spawnId = resolveFarmSpawnId(location.state)
-  const [testGardenDisplay, setTestGardenDisplay] = useState<GardenDisplayProjection | null>(null)
+  const testGardenDisplay = useSyncExternalStore(subscribeGardenPreview, getGardenPreview)
+  const { openFeature } = useFeaturePanel()
   const social = useSocialPanel()
-  const testEnabled = import.meta.env.DEV && new URLSearchParams(location.search).has('plantTest')
+  const testEnabled = devToolsAvailable()
+  useEffect(() => { if (testEnabled && new URLSearchParams(location.search).has('plantTest')) openFeature('devtools') }, [location.search, openFeature, testEnabled])
   const projection = useMemo(() => {
     const serverPlants = lifecycle.state.authority === 'server' && lifecycle.state.status === 'ready' ? lifecycle.state.projection.ownedSpecimens : null
     const live = createFarmWorldProjection(state.property, state.geneticsLab, serverPlants ?? state.ownedPlants, garden.projection?.displayAssignments ?? state.gardenDisplayAssignments)
@@ -54,7 +55,6 @@ export function FarmWorldPage() {
           />
         )}
       </div>
-      {testEnabled && PlantVisualTestTool && <Suspense fallback={null}><PlantVisualTestTool onGardenPreview={setTestGardenDisplay} /></Suspense>}
     </section>
   )
 }

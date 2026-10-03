@@ -1,0 +1,26 @@
+.feature-panel--devtools { width: min(980px, calc(100vw - 24px)); }
+.feature-overlay--dev-preview { pointer-events: none; background: transparent; place-items: start end; }
+.feature-overlay--dev-preview .feature-panel { pointer-events: auto; width: min(520px, 50vw); }
+.feature-overlay--dev-preview .dev-tools { grid-template-columns: 1fr; }
+.feature-overlay--dev-preview .dev-tools__nav { flex-direction: row; flex-wrap: wrap; }
+.dev-tools { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; }
+.dev-tools__nav { display: flex; flex-direction: column; gap: 6px; align-self: start; }
+.dev-tools__nav button { text-align: left; }
+.dev-tools__nav button[aria-pressed="true"] { border-color: var(--cg-accent, #b76b39); background: #50321f; }
+.dev-tools__body { min-width: 0; }
+.dev-tools__status { color: var(--cg-text-muted); font-size: .85rem; }
+.dev-tools__section { border: 0; padding: 0; margin: 0; min-width: 0; }
+.dev-tools__card { padding: 12px; margin-bottom: 12px; background: #1d1611; border: 1px solid #4c3527; border-radius: 10px; }
+.dev-tools__card h3 { margin: 0 0 8px; }
+.dev-tools__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.dev-tools__facts div { background: #1d1611; border-radius: 8px; padding: 8px; min-width: 0; }
+.dev-tools__facts dt { color: var(--cg-text-muted); font-size: .8rem; }
+.dev-tools__facts dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.dev-tools__buttons, .dev-tools__amount form { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin: 8px 0; }
+.dev-tools label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.dev-tools input, .dev-tools select { min-width: 0; max-width: 100%; }
+.dev-tools pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+.dev-tools__log { border-top: 1px solid #4c3527; padding-top: 10px; }
+.dev-tools__log ol { padding-left: 20px; max-height: 180px; overflow: auto; font-size: .8rem; }
+.dev-tools .plant-test--embedded, .dev-tools .world-editor { position: static; width: 100%; max-width: none; max-height: none; box-sizing: border-box; }
+@media (max-width: 640px) { .dev-tools { grid-template-columns: 1fr; }.dev-tools__nav { flex-direction: row; flex-wrap: wrap; }.dev-tools__nav button { font-size: .8rem; }.dev-tools__facts { grid-template-columns: 1fr; }.feature-overlay--dev-preview .feature-panel { width: 85vw; } }

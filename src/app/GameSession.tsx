@@ -37,5 +37,5 @@ export function GameSession() {
 
 function GameMain() {
   const menu = useFeaturePanel()
-  return <main id="main-content" className="game-main" inert={menu.feature !== null}><Outlet /></main>
+  return <main id="main-content" className="game-main" inert={menu.feature !== null && !(menu.feature === 'devtools' && menu.worldPreview)}><Outlet /></main>
 }

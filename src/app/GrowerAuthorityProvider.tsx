@@ -27,7 +27,11 @@ export function GrowerAuthorityProvider({ children }: { children: ReactNode }) {
     return () => controller.abort()
   }, [enabled, refresh])
   useEffect(() => { if (!enabled) return; const handler = () => { void refresh() }; window.addEventListener(GROWER_AUTHORITY_CHANGED_EVENT, handler); return () => window.removeEventListener(GROWER_AUTHORITY_CHANGED_EVENT, handler) }, [enabled, refresh])
-  const value = useMemo(() => ({ state, refresh, async mutate(command: GrowerAlphaCommandInputV1) {
+  const value = useMemo(() => ({ state, refresh, applyProjection(projection: import('../../shared/api/growerAlphaV1').GrowerAlphaProjectionV1) {
+    if (!enabled) return
+    readGeneration.current += 1
+    setState({ authority: 'server', status: 'ready', projection })
+  }, async mutate(command: GrowerAlphaCommandInputV1) {
     if (!enabled) return null
     commandRunner.current ??= createGrowerCommandRunner({
       send: (input) => browserApiClient.mutateGrowerAlpha(input),

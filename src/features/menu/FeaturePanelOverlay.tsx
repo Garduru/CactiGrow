@@ -7,7 +7,8 @@ import { FeatureContent } from './FeatureContent'
 import { featureTitles, useFeaturePanel } from './featurePanelState'
 
 export function FeaturePanelOverlay() {
-  const { feature, closeFeature } = useFeaturePanel()
+  const { feature, closeFeature, worldPreview } = useFeaturePanel()
+  const preview = feature === 'devtools' && worldPreview
   const open = feature !== null
   const { profileTarget } = useSocialState()
   const { open: socialOpen } = useSocialPanel()
@@ -27,7 +28,7 @@ export function FeaturePanelOverlay() {
     if (!open || covered) return
     function keydown(event: globalThis.KeyboardEvent) {
       if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); closeFeature() }
-      if (event.key !== 'Tab') return
+      if (event.key !== 'Tab' || preview) return
       const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled):not([tabindex="-1"]), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex="0"]') ?? [])
       const first = items[0], last = items[items.length - 1]
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
@@ -35,10 +36,10 @@ export function FeaturePanelOverlay() {
     }
     document.addEventListener('keydown', keydown, true)
     return () => document.removeEventListener('keydown', keydown, true)
-  }, [open, covered, closeFeature])
+  }, [open, covered, closeFeature, preview])
 
-  return feature && <div {...worldInputBoundary} ref={viewportRef} className="feature-overlay" onPointerDown={(event) => { if (event.target === event.currentTarget) closeFeature() }}>
-    <section ref={panelRef} className={`feature-panel feature-panel--${feature}`} role="dialog" aria-modal={!covered} aria-labelledby="feature-panel-title" inert={covered}>
+  return feature && <div {...worldInputBoundary} ref={viewportRef} className={`feature-overlay${preview ? ' feature-overlay--dev-preview' : ''}`} onPointerDown={(event) => { if (!preview && event.target === event.currentTarget) closeFeature() }}>
+    <section ref={panelRef} className={`feature-panel feature-panel--${feature}`} role="dialog" aria-modal={!covered && !preview} aria-labelledby="feature-panel-title" inert={covered}>
       <header className="feature-panel__header"><h2 id="feature-panel-title">{featureTitles[feature]}</h2>
         <button ref={closeRef} type="button" onClick={closeFeature} aria-label="Close feature panel">Close</button>
       </header>

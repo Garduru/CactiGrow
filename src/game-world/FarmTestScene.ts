@@ -1,4 +1,6 @@
 import { NavigationMap } from './navigation/NavigationMap'
+import { registerWorldDiagnostics } from '../features/devtools/worldDiagnostics'
+import { getWorldEditor } from './editor/worldEditorState'
 import { NavigationController } from './navigation/NavigationController'
 import { bindWorldKeyboardFocus, canUseWorldKeyboard } from './worldKeyboardFocus'
 import Phaser from 'phaser'
@@ -64,8 +66,9 @@ function isFarmWorldLocation(location: { id: string }): location is FarmWorldLoc
 export class FarmTestScene extends Phaser.Scene {
   private readonly bridge: WorldBridge
   private readonly debugWorld: boolean
+  private devDebugObjects: Phaser.GameObjects.GameObject[] = []
   private readonly playerSpawn: { x: number; y: number }
-  private readonly editor?: WorldEditorController
+  private editor?: WorldEditorController
   private readonly editorVisuals = new Map<string, { main: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle; extras: { object: Phaser.GameObjects.Rectangle; x: number; y: number }[]; x: number; y: number }>()
   private readonly ownedColliders = new Map<string, Phaser.GameObjects.Rectangle[]>()
   private readonly gardenPlantVisuals = new Map<string, { revision: string; visual: Phaser.GameObjects.Container }>()
@@ -120,8 +123,7 @@ export class FarmTestScene extends Phaser.Scene {
     this.configureCamera()
     if (this.editor) this.setupEditor()
     this.rebuildNavigation()
-    if (this.debugWorld) this.pathDebug = this.add.graphics().setDepth(WORLD_DEPTH.debug)
-    if (this.debugWorld) this.drawDebugOverlay()
+    if (this.debugWorld) this.setDevelopmentDebug(true)
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
       this.updateGardenDisplays(projection.gardenDisplays ?? [])
@@ -134,6 +136,21 @@ export class FarmTestScene extends Phaser.Scene {
       })
     })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unsubscribeProjection?.())
+    if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'staging') {
+      const sessionId = crypto.randomUUID()
+      const unregister = registerWorldDiagnostics({
+        read: () => ({ world: 'Farm', area: null, sessionId, position: { x: this.player.x, y: this.player.y }, destination: this.navigation.destination, waypoints: this.navigation.path.length, multiplayer: null }),
+        resetPosition: () => {
+          const spawn = farmWorldSpawns.default
+          if (!this.navigation.map.walkable(spawn)) return false
+          this.navigation.cancel(); (this.player.body as Phaser.Physics.Arcade.Body).reset(spawn.x, spawn.y)
+          return true
+        },
+        enableEditor: () => { if (!this.editor) { this.editor = getWorldEditor('farm'); this.editor.setMode('test'); this.setupEditor() }; return this.editor },
+        setDebugVisible: visible => this.setDevelopmentDebug(visible),
+      })
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, unregister)
+    }
   }
 
   private updateGardenDisplays(displays: readonly GardenDisplayProjection[]) {
@@ -150,6 +167,21 @@ export class FarmTestScene extends Phaser.Scene {
       current?.visual.destroy()
       this.gardenPlantVisuals.set(display.slotId, { revision, visual: createPlantWorldVisual(this, display) })
     })
+  }
+
+  private setDevelopmentDebug(visible: boolean) {
+    if (import.meta.env.MODE !== 'development' && import.meta.env.MODE !== 'staging') return
+    this.devDebugObjects.forEach(object => object.destroy()); this.devDebugObjects = []
+    this.pathDebug?.destroy(); this.pathDebug = null
+    this.cameraDebugText = null
+    this.physics.world.drawDebug = visible
+    if (visible && !this.physics.world.debugGraphic) this.physics.world.createDebugGraphic()
+    this.physics.world.debugGraphic?.setVisible(visible)
+    if (!visible) return
+    this.pathDebug = this.add.graphics().setDepth(WORLD_DEPTH.debug)
+    const before = new Set(this.children.list)
+    this.drawDebugOverlay()
+    this.devDebugObjects = this.children.list.filter(object => !before.has(object))
   }
 
   update(time: number, delta = 1000 / 60) {
@@ -545,7 +577,7 @@ export class FarmTestScene extends Phaser.Scene {
     const unsubscribe = this.editor.subscribe(apply)
     apply()
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe)
-    if (!import.meta.env.DEV) return
+    if (import.meta.env.MODE !== 'development' && import.meta.env.MODE !== 'staging') return
     void import('./editor/WorldEditorOverlay').then(({ WorldEditorOverlay }) => {
       if (this.scene.isActive()) new WorldEditorOverlay(this, this.editor!)
     })

@@ -1,4 +1,5 @@
 import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV1 } from '../../../shared/api/commerceV1.ts'
+import { isDevCommandResult, isDevSpecimenDiagnostics, type DevCommand, type DevCommandResult, type DevSpecimenDiagnostics } from '../../../shared/api/devToolsV1.ts'
 import type { ApiEnvelope } from '../../../shared/api/envelope.ts'
 import { isRealtimeCredentialsResponseV1, type RealtimeCredentialsRequestV1, type RealtimeCredentialsResponseV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
 import {
@@ -79,6 +80,16 @@ export class CactiGrowApiClient {
     this.baseUrl = options.baseUrl ?? ''
     this.request = options.fetch ?? fetch
     this.getCredentials = options.getCredentials ?? (() => undefined)
+  }
+
+  async getDevSession(signal?: AbortSignal): Promise<{ environment: string; version: string; playerId: string }> {
+    return this.execute('/api/v1/dev/session', { method: 'GET', signal }, (v): v is { environment: string; version: string; playerId: string } => !!v && typeof v === 'object' && ['environment', 'version', 'playerId'].every(k => typeof (v as Record<string, unknown>)[k] === 'string'), 'developer session')
+  }
+  async executeDevCommand(command: DevCommand): Promise<DevCommandResult> {
+    return this.execute('/api/v1/dev/commands', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isDevCommandResult, 'developer command result')
+  }
+  async getDevSpecimen(id: string, signal?: AbortSignal): Promise<DevSpecimenDiagnostics> {
+    return this.execute(`/api/v1/dev/specimen?id=${encodeURIComponent(id)}`, { method: 'GET', signal }, isDevSpecimenDiagnostics, 'specimen diagnostics')
   }
 
   async getPlayerBootstrap(signal?: AbortSignal): Promise<PlayerBootstrapResult> {

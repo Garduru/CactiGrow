@@ -9,6 +9,10 @@ export function getDeploymentMode(): DeploymentMode {
   return resolveDeploymentMode(import.meta.env.MODE)
 }
 
+export function devToolsAvailable(): boolean {
+  return getDeploymentMode() !== 'production'
+}
+
 const developmentServerLifecycle = import.meta.env?.MODE === 'development' && typeof window !== 'undefined'
   && new URLSearchParams(window.location.search).get('e1Lifecycle') === 'server'
 

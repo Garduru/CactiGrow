@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { devToolsAvailable } from '../../config/deploymentMode'
 import { useFeaturePanel, type FeatureId } from '../../features/menu/featurePanelState'
 
 export function MenuDropdown({ onDismiss }: { onDismiss(): void }) {
@@ -22,6 +23,7 @@ export function MenuDropdown({ onDismiss }: { onDismiss(): void }) {
           <button type="button" onClick={() => launch('settings')}>Settings</button>
           <a href="https://cactiswap.com" target="_blank" rel="noopener noreferrer" onClick={onDismiss}>Visit CactiSwap</a>
           <button type="button" onClick={() => launch('signout')}>Sign Out</button>
+          {devToolsAvailable() && <button type="button" onClick={() => launch('devtools')}>Developer Tools</button>}
         </>}
       </div>}
     </section>)}

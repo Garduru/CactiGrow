@@ -15,7 +15,9 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
   install('ResizeObserver', class { observe() {} disconnect() {} })
   dom.window.HTMLElement.prototype.scrollIntoView = () => {}
   dom.window.matchMedia = () => ({ matches: false }) as MediaQueryList
-  const records = { worlds: [] as { emitIntent: (intent: { type: string; locationId: string }) => void; world: string; x: number; y: number; destroyed: boolean; destroy(): void }[], starts: 0, stops: 0, bootstrap: 0, social: 0, signouts: 0 }
+  const records = { worlds: [] as { emitIntent: (intent: { type: string; locationId: string }) => void; world: string; x: number; y: number; destroyed: boolean; destroy(): void }[], starts: 0, stops: 0, bootstrap: 0, social: 0, signouts: 0, snapshots: 0 }
+  Object.defineProperty(dom.window.navigator, 'clipboard', { value: { async writeText(value: string) { assert.equal(JSON.parse(value).panel, 'devtools'); records.snapshots++ } } })
+  install('navigator', dom.window.navigator)
   install('menuTestRecords', records)
   const own = { publicId: '00000000-0000-4000-8000-000000000001', displayName: 'Test Alpha', joinedAt: '2026-01-01', collectionCount: 0, breedingCount: 0, cultivationXp: 388, cultivationLevel: 5, skills: [{id:'cultivation',name:'Cultivation',level:5},{id:'breeding',name:'Breeding',level:3},{id:'genetics',name:'Genetics',level:2}], totalLevel: 10 }
   const friend = { ...own, publicId: '00000000-0000-4000-8000-000000000002', displayName: 'Test Bravo' }
@@ -33,6 +35,7 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
       if (init?.method === 'POST' && JSON.parse(String(init.body)).type === 'accept-friend') { overview.friends.push(incoming); overview.incomingRequests = [] }
       data = overview
     } else if (url.endsWith('/shop')) data = { projectionVersion: 1, maxQuantity: 100, items: [{ id: 'san-pedro-seed', speciesId: 'echinopsis-pachanoi', name: 'San Pedro seeds', description: 'Normal species seeds.', price: 25 }] }
+    else if (url.endsWith('/dev/session')) data = { environment: 'development', version: 'test-build', playerId: own.publicId }
     else if (url.includes('/marketplace?')) data = { projectionVersion: 1, hasMore: false, listings: [] }
     else if (url.includes('/players/search?q=')) data = {projectionVersion:1,results:[{projectionVersion:1,profile:{...friend,publicId:'00000000-0000-4000-8000-000000000004',displayName:'Test Delta'},relationship:{isSelf:false,areFriends:false,request:overview.outgoingRequests.length?'outgoing':null,blockedByMe:false,blocksMe:false}}]}
     else if (url.includes('/players/')) data = { projectionVersion: 1, profile: friend, relationship: { isSelf: false, areFriends: true, request: null, blockedByMe: false, blocksMe: false } }
@@ -207,8 +210,34 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
     assert.equal(link.getAttribute('href'), 'https://cactiswap.com')
     assert.equal(link.getAttribute('target'), '_blank')
     assert.equal(link.getAttribute('rel'), 'noopener noreferrer')
-    assert.equal(document.querySelector('.menu-dropdown__items')?.lastElementChild?.textContent, 'Sign Out')
+    assert.equal(document.querySelector('.menu-dropdown__items')?.lastElementChild?.textContent, 'Developer Tools')
     await click('button[aria-label="Menu"]')
+    await launch('Other', 'Developer Tools')
+    await settle()
+    assert.ok(document.querySelector('.feature-panel--devtools'))
+    await assertUiInputContained('.feature-panel--devtools')
+    const devSection = Array.from(document.querySelectorAll<HTMLButtonElement>('.dev-tools__nav button')).find(b => b.textContent === 'System')!
+    await act(async () => devSection.click())
+    const copy = Array.from(document.querySelectorAll<HTMLButtonElement>('.dev-tools button')).find(b => b.textContent === 'Copy Debug Snapshot')!
+    const copiesBefore = records.snapshots
+    await act(async () => copy.click())
+    assert.equal(records.snapshots, copiesBefore + 1)
+    const inspect = document.querySelector('.dev-tools details summary') as HTMLElement
+    await act(async () => inspect.click())
+    assert.match(document.querySelector('.dev-tools pre')!.textContent!, /"panel": "devtools"/)
+    assert.equal(world.destroyed, false)
+    assert.equal(records.worlds.length, mountedWorldCount)
+    assert.equal(records.starts, connectedPresence.starts)
+    assert.equal(records.stops, connectedPresence.stops)
+    assert.equal(world.x, 1234); assert.equal(world.y, 567)
+    const worldSection = Array.from(document.querySelectorAll<HTMLButtonElement>('.dev-tools__nav button')).find(b => b.textContent === 'World')!
+    await act(async () => worldSection.click())
+    const dock = Array.from(document.querySelectorAll<HTMLButtonElement>('.dev-tools button')).find(b => b.textContent === 'Dock panel for world preview')!
+    await act(async () => dock.click())
+    assert.equal(document.querySelector('.feature-panel--devtools')!.getAttribute('aria-modal'), 'false')
+    assert.equal(document.querySelector('#main-content')!.hasAttribute('inert'), false)
+    await click('button[aria-label="Close feature panel"]')
+    assert.equal(document.querySelector('#test-path')!.textContent, path)
     const signoutsBefore = records.signouts
     await launch('Other', 'Sign Out')
     assert.match(document.querySelector('.feature-panel')!.textContent!, /Sign out of CactiGrow\?/)

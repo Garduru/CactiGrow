@@ -16,6 +16,8 @@
     "worker:types:check": "wrangler types server/worker-configuration.d.ts --env-interface CloudflareEnv --config wrangler.jsonc --check",
     "typecheck:worker": "npm run worker:types && tsc -p server/tsconfig.json",
     "test:worker": "node --experimental-strip-types --test --test-isolation=none server/api/handler.test.ts server/identity/CloudflareAccessJwtVerifier.test.ts",
+    "test:devtools": "node --experimental-strip-types --test --test-isolation=none server/development/devTools.test.ts src/features/devtools/devTools.runtime.test.ts src/features/devtools/worldDiagnostics.runtime.test.mjs",
+    "test:devtools:db": "node --experimental-strip-types --test server/development/devTools.integration.test.mjs",
     "test:client": "node --experimental-strip-types --test --test-isolation=none src/services/api/CactiGrowApiClient.test.ts",
     "test:website": "node --experimental-strip-types --test --test-isolation=none src/app/websiteRouting.test.ts",
     "test:menu": "node --experimental-strip-types --test --test-isolation=none src/features/menu/gameMenu.runtime.test.ts src/features/social/chatViewport.test.ts src/game-world/townProfileInteraction.test.ts src/game-world/worldKeyboardFocus.test.ts src/features/progression/publicSkills.test.ts",

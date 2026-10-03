@@ -1,5 +1,9 @@
 # CactiGrow project context
 
+## Unified developer tools milestone — 2026-10-03
+
+Dev Tools V1 consolidates plant visual testing, temporary World Editor and scene debug overlays into Menu → Other → Developer Tools using the existing Feature Panel. Development/staging builds only; production and unknown modes cannot open it. Explicit docking in World/Visual Testing preserves canvas preview interaction without remounting Farm/Town or recreating Town presence. Authenticated `/api/v1/dev/` commands add actual skill XP/currency, adjust shared-catalog seed stacks and accelerate owned Nursery schedules through isolated authoritative transactions/receipts; results reconcile existing Grower/lifecycle providers. No second game state, fake Garden unlock, genetics reroll, production timing change, schema/migration or infrastructure change exists. The remote development database shares production data, so dev commands reject it; local commands require the existing loopback `cactigrow_local` target. Staging retains verified Cloudflare Access authentication. See [DEV_TOOLS_V1.md](docs/DEV_TOOLS_V1.md) for source discovery, security rules, tests and manual acceptance. Source/build and disposable PostgreSQL validation passed; no deployment was performed because current staging migration/grant gates were unavailable. Browser visual acceptance remains open and the existing local Worker health probes timed out. Production remains on the accepted Collection release.
+
 ## Product and architecture
 
 CactiGrow is an independent cactus-growing game built with TypeScript, React, Vite, React Router, and ESLint. The legacy game is a gameplay and visual reference only. CactiGrow must operate and evolve independently of CactiSwap.

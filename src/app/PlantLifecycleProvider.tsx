@@ -38,6 +38,11 @@ export function PlantLifecycleProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     state,
+    applyProjection(projection: import('../../shared/api/plantLifecycleV3').PlantLifecycleProjectionV3) {
+      if (!enabled) return
+      readGeneration.current += 1
+      setState({ authority: 'server', status: 'ready', projection, error: null })
+    },
     async plant(slotId: string, speciesId: string): Promise<boolean> {
       if (state.authority !== 'server' || state.status !== 'ready' || !isNurserySlotIdV3(slotId)) throw new CactiGrowApiError('server', 'The Nursery or seed is no longer available. Refresh and try again.')
       const stack = state.projection.seedStacks.find((item) => item.speciesId === speciesId)
@@ -87,7 +92,7 @@ export function PlantLifecycleProvider({ children }: { children: ReactNode }) {
         return result.seed
       } catch { await refresh(); return null }
     },
-  }), [refresh, state])
+  }), [enabled, refresh, state])
 
   return <PlantLifecycleContext.Provider value={value}>{children}</PlantLifecycleContext.Provider>
 }

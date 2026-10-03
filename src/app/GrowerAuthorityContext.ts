@@ -10,6 +10,7 @@ export interface GrowerAuthorityValue {
   state: GrowerAuthorityState
   mutate: (command: GrowerAlphaCommandInputV1) => Promise<GrowerAlphaProjectionV1 | null>
   refresh: () => Promise<void>
+  applyProjection: (projection: GrowerAlphaProjectionV1) => void
 }
 
 export const GrowerAuthorityContext = createContext<GrowerAuthorityValue | null>(null)

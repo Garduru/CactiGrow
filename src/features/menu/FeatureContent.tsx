@@ -12,10 +12,15 @@ import { SettingsPanel, HelpPanel } from './UtilityPanels'
 import { PlayerLogout } from '../authentication/PlayerLogout'
 import { useFeaturePanel } from './featurePanelState'
 import type { FeatureId } from './featurePanelState'
+import { lazy, Suspense } from 'react'
+import { devToolsAvailable } from '../../config/deploymentMode'
+const DevToolsPanel = import.meta.env.MODE === 'development' || import.meta.env.MODE === 'staging'
+  ? lazy(() => import('../devtools/DevToolsPanel').then(m => ({ default: m.DevToolsPanel }))) : null
 
 export function FeatureContent({ feature }: { feature: FeatureId }) {
   const { closeFeature } = useFeaturePanel()
   switch (feature) {
+    case 'devtools': return devToolsAvailable() && DevToolsPanel ? <Suspense fallback={<p>Loading developer tools…</p>}><DevToolsPanel /></Suspense> : null
     case 'shop': return <ShopPage />
     case 'market': return <MarketplacePage />
     case 'inventory': return <InventoryPage />

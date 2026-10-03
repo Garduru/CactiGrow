@@ -1,5 +1,7 @@
 # Plant Visual Test Tool
 
+Dev Tools V1 entry: Menu → Other → Developer Tools → Visual Testing. The existing isolated tool is now embedded in that panel; `/play?plantTest` opens the same interface in approved development/staging builds. Use explicit Dock panel for world preview to inspect the Farm Garden canvas. Production cannot open the interface. The legacy development-only URL workflow below describes the original entry; specimen/rendering contracts remain unchanged. See [DEV_TOOLS_V1.md](DEV_TOOLS_V1.md).
+
 This is permanent **development-only** art and genetics inspection tooling. Open the Farm in the Vite development server with `/?plantTest`. Both `import.meta.env.DEV` and the query parameter are required; a production build cannot activate the tool through its URL. Closing it or loading without the query returns to ordinary gameplay.
 
 The isolated factory in `src/dev/plantVisualTestModel.ts` creates a canonical `CollectedPlant`/`Plant` with deterministic `dev-test-plant-*` and `dev-test-clone-*` identities. It uses canonical species and genetic-feature definitions, then the same `createPlantVisualDescriptor` resolver as gameplay. It never dispatches a game action or writes owned plants, Nursery slots, Garden assignments, clone registry, inventory, progression, or persistence. The frozen preview time selects an existing two-minute growth band without changing the timer.

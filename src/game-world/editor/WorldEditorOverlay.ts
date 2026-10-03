@@ -54,6 +54,7 @@ export class WorldEditorOverlay {
     g.clear()
     this.labels.forEach((label) => label.destroy())
     this.labels = []
+    if (state.mode === 'test' && !state.selectedId) return
     state.objects.forEach((object) => {
       const { sprite } = object
       const left = sprite.x - sprite.width * sprite.originX

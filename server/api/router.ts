@@ -22,6 +22,9 @@ import { routeRealtime, syncRealtimeSocial, type RealtimePlayerSocialProjection 
 import { SocialService } from '../player/SocialService.ts'
 import { isSocialCommandV1, type SocialCommandV1 } from '../../shared/api/socialV1.ts'
 import { isCanonicalUuid } from '../../shared/realtime/identifiers.ts'
+import { assertDevToolsEnvironment } from '../development/devToolsGate.ts'
+import { DevToolsService } from '../development/DevToolsService.ts'
+import { isDevCommand } from '../../shared/api/devToolsV1.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -97,6 +100,29 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
   return async (context) => {
     const { request, env, requestId } = context
     const url = new URL(request.url)
+    if (url.pathname.startsWith('/api/v1/dev/')) {
+      assertDevToolsEnvironment(env, request.url)
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        if (url.pathname === '/api/v1/dev/session') {
+          if (request.method !== 'GET') throw ApiError.methodNotAllowed()
+          return successResponse({ ...getRuntimeMetadata(env), playerId: player.playerId }, requestId)
+        }
+        const service = new DevToolsService(await context.database.getDatabase(), getRuntimeMetadata(env).environment)
+        if (url.pathname === '/api/v1/dev/commands') {
+          if (request.method !== 'POST') throw ApiError.methodNotAllowed()
+          const body = await readJson(request)
+          if (!isDevCommand(body)) throw ApiError.validation('Invalid development command.')
+          return successResponse(await service.execute(player.playerId, body), requestId)
+        }
+        if (url.pathname === '/api/v1/dev/specimen') {
+          if (request.method !== 'GET') throw ApiError.methodNotAllowed()
+          const id = url.searchParams.get('id') ?? ''
+          if (!isCanonicalUuid(id)) throw ApiError.validation('Invalid specimen ID.')
+          return successResponse(await service.specimen(player.playerId, id), requestId)
+        }
+        throw ApiError.notFound('API route not found.')
+      }, dependencies.authenticationConfigurationFactory)
+    }
     if (url.pathname.startsWith('/api/v1/realtime/')) return routeRealtime(context, readJson,
       dependencies.authenticationConfigurationFactory, dependencies.resolveRealtimePlayerSocial)
 
