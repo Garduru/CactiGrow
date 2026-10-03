@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { devToolsAvailable } from '../../config/deploymentMode'
 import { useFeaturePanel, type FeatureId } from '../../features/menu/featurePanelState'
+import { useAdminAccess } from '../../features/admin/adminAccess'
 
 export function MenuDropdown({ onDismiss }: { onDismiss(): void }) {
   const [expanded, setExpanded] = useState<string[]>([])
   const { openFeature } = useFeaturePanel()
+  const { session: staff } = useAdminAccess()
   function launch(feature: FeatureId) { onDismiss(); openFeature(feature) }
   return <nav id="hud-menu-dropdown" className="menu-dropdown" aria-label="Menu">
     {['Game', 'Social', 'Other'].map((category) => <section key={category}>
@@ -24,6 +26,7 @@ export function MenuDropdown({ onDismiss }: { onDismiss(): void }) {
           <a href="https://cactiswap.com" target="_blank" rel="noopener noreferrer" onClick={onDismiss}>Visit CactiSwap</a>
           <button type="button" onClick={() => launch('signout')}>Sign Out</button>
           {devToolsAvailable() && <button type="button" onClick={() => launch('devtools')}>Developer Tools</button>}
+          {staff?.permissions.includes('admin.access') && <button type="button" onClick={() => launch('admintools')}>Admin Tools</button>}
         </>}
       </div>}
     </section>)}

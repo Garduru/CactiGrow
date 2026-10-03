@@ -25,6 +25,7 @@ import { isCanonicalUuid } from '../../shared/realtime/identifiers.ts'
 import { assertDevToolsEnvironment } from '../development/devToolsGate.ts'
 import { DevToolsService } from '../development/DevToolsService.ts'
 import { isDevCommand } from '../../shared/api/devToolsV1.ts'
+import { routeAdmin } from '../admin/routes.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -100,6 +101,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
   return async (context) => {
     const { request, env, requestId } = context
     const url = new URL(request.url)
+    if (url.pathname.startsWith('/api/v1/admin/')) return routeAdmin(context, readJson, dependencies.authenticationConfigurationFactory)
     if (url.pathname.startsWith('/api/v1/dev/')) {
       assertDevToolsEnvironment(env, request.url)
       return withAuthenticatedPlayer(context, async ({ player }) => {

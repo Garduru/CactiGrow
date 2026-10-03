@@ -1,4 +1,4 @@
-import { buyShopSeeds, buyMarketplaceListing } from './commerceTransactions.ts'
+import { buyShopSeeds, buyMarketplaceListing, cancelMarketplaceListing } from './commerceTransactions.ts'
 import { assertSpecimenUnprotected } from './specimenCommerceEligibility.ts'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
@@ -200,9 +200,7 @@ export class GrowerAlphaService {
       return
     }
     if (command.type === 'cancel-listing') {
-      const [listing] = await tx.select().from(marketplaceListings).where(and(eq(marketplaceListings.id, command.listingId), eq(marketplaceListings.sellerPlayerId, playerId))).for('update').limit(1)
-      if (!listing || listing.status !== 'active') throw new ApiError('NOT_FOUND', 404, 'The active listing was not found.')
-      await tx.update(marketplaceListings).set({ status: 'cancelled', completedAt: now, version: listing.version + 1 }).where(eq(marketplaceListings.id, listing.id))
+      const listing = await cancelMarketplaceListing(tx, command.listingId, now, playerId)
       await this.recordEvent(tx, playerId, command.commandId, 'listing-cancelled', now, { listingId: listing.id })
       return
     }

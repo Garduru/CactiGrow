@@ -16,10 +16,12 @@ import { lazy, Suspense } from 'react'
 import { devToolsAvailable } from '../../config/deploymentMode'
 const DevToolsPanel = import.meta.env.MODE === 'development' || import.meta.env.MODE === 'staging'
   ? lazy(() => import('../devtools/DevToolsPanel').then(m => ({ default: m.DevToolsPanel }))) : null
+const AdminToolsPanel = lazy(() => import('../admin/AdminToolsPanel').then(m => ({ default: m.AdminToolsPanel })))
 
 export function FeatureContent({ feature }: { feature: FeatureId }) {
   const { closeFeature } = useFeaturePanel()
   switch (feature) {
+    case 'admintools': return <Suspense fallback={<p>Loading Admin Tools…</p>}><AdminToolsPanel /></Suspense>
     case 'devtools': return devToolsAvailable() && DevToolsPanel ? <Suspense fallback={<p>Loading developer tools…</p>}><DevToolsPanel /></Suspense> : null
     case 'shop': return <ShopPage />
     case 'market': return <MarketplacePage />

@@ -12,6 +12,14 @@ async function bumpInventory(tx: Transaction, playerId: string, now: Date) {
   await tx.insert(playerPlantLifecycleVersions).values({ playerId, version: 1, updatedAt: now }).onConflictDoUpdate({ target: playerPlantLifecycleVersions.playerId, set: { version: sql`${playerPlantLifecycleVersions.version} + 1`, updatedAt: now } })
 }
 
+/** Shared cancellation semantics. Moderation changes no ownership or balances. */
+export async function cancelMarketplaceListing(tx: Transaction, listingId: string, now: Date, sellerPlayerId?: string) {
+  const [listing] = await tx.select().from(marketplaceListings).where(sellerPlayerId ? and(eq(marketplaceListings.id, listingId), eq(marketplaceListings.sellerPlayerId, sellerPlayerId)) : eq(marketplaceListings.id, listingId)).for('update').limit(1)
+  if (!listing || listing.status !== 'active') throw ApiError.notFound('The active listing was not found.')
+  await tx.update(marketplaceListings).set({ status: 'cancelled', completedAt: now, version: listing.version + 1 }).where(eq(marketplaceListings.id, listing.id))
+  return listing
+}
+
 export async function buyShopSeeds(tx: Transaction, playerId: string, itemId: string, quantity: number, now: Date) {
   const item = SHOP_CATALOG.find((entry) => entry.id === itemId)
   if (!item || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_SHOP_QUANTITY) throw new ApiError('INVALID_COMMAND', 400, 'Choose a valid shop item and quantity from 1 to 100.')

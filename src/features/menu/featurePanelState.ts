@@ -5,6 +5,7 @@ export const featureTitles = {
   journal: 'Journal', research: 'Research', achievements: 'Achievements', mail: 'Mail',
   settings: 'Settings', help: 'Help', signout: 'Sign Out',
   devtools: 'CactiGrow Dev Tools',
+  admintools: 'Admin Tools',
 } as const
 export type FeatureId = keyof typeof featureTitles
 interface FeaturePanelState {

@@ -13,6 +13,7 @@ import { SocialProvider } from '../features/social/SocialContext'
 import { FeaturePanelProvider } from '../features/menu/FeaturePanelProvider'
 import { FeaturePanelOverlay } from '../features/menu/FeaturePanelOverlay'
 import { useFeaturePanel } from '../features/menu/featurePanelState'
+import { AdminAccessProvider } from '../features/admin/AdminAccessProvider'
 
 /** One provider tree shared by all game routes; the public website needs no player session. */
 export function GameSession() {
@@ -21,13 +22,13 @@ export function GameSession() {
       <SocialProvider>
         <DeploymentAccessBoundary>
           <PlantLifecycleProvider><GardenAuthorityProvider><GrowerAuthorityProvider><GameStateProvider>
-            <FeaturePanelProvider><SocialPanelProvider>
+            <AdminAccessProvider><FeaturePanelProvider><SocialPanelProvider>
               <GameHeader />
               <GameMain />
               <FeaturePanelOverlay />
               <SocialOverlay />
               <LevelUpNotice />
-            </SocialPanelProvider></FeaturePanelProvider>
+            </SocialPanelProvider></FeaturePanelProvider></AdminAccessProvider>
           </GameStateProvider></GrowerAuthorityProvider></GardenAuthorityProvider></PlantLifecycleProvider>
         </DeploymentAccessBoundary>
       </SocialProvider>

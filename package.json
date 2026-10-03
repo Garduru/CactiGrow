@@ -4,6 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "admin:owner": "node --experimental-strip-types scripts/admin-owner.ts",
+    "admin:bootstrap-owner": "node --experimental-strip-types scripts/admin-owner.ts",
+    "test:admin": "node --experimental-strip-types --test --test-isolation=none server/admin/admin.test.ts src/features/admin/admin.runtime.test.mjs",
+    "test:admin:db": "node --experimental-strip-types --test server/admin/admin.integration.test.mjs",
     "dev": "vite",
     "dev:worker": "wrangler dev --env development --config wrangler.jsonc --port 8788",
     "build": "npm run build:production",

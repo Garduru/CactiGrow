@@ -1,4 +1,5 @@
 import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV1 } from '../../../shared/api/commerceV1.ts'
+import { isAdminSession, isAdminPlayer, isAdminInspection, isAdminListing, isAdminAudit, isAdminResult, isAdminRoleEntry, isAdminSpecimen, adminPageValidator, type AdminSession, type AdminMutation, type AdminAction } from '../../../shared/api/adminV1.ts'
 import { isDevCommandResult, isDevSpecimenDiagnostics, type DevCommand, type DevCommandResult, type DevSpecimenDiagnostics } from '../../../shared/api/devToolsV1.ts'
 import type { ApiEnvelope } from '../../../shared/api/envelope.ts'
 import { isRealtimeCredentialsResponseV1, type RealtimeCredentialsRequestV1, type RealtimeCredentialsResponseV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
@@ -84,6 +85,17 @@ export class CactiGrowApiClient {
 
   async getDevSession(signal?: AbortSignal): Promise<{ environment: string; version: string; playerId: string }> {
     return this.execute('/api/v1/dev/session', { method: 'GET', signal }, (v): v is { environment: string; version: string; playerId: string } => !!v && typeof v === 'object' && ['environment', 'version', 'playerId'].every(k => typeof (v as Record<string, unknown>)[k] === 'string'), 'developer session')
+  }
+  async getAdminSession(signal?: AbortSignal): Promise<AdminSession> { return this.execute('/api/v1/admin/me', { method: 'GET', signal }, isAdminSession, 'staff session') }
+  async searchAdminPlayers(query: string) { return this.execute(`/api/v1/admin/players/search?q=${encodeURIComponent(query)}`, { method: 'GET' }, adminPageValidator(isAdminPlayer), 'staff player search') }
+  async inspectAdminPlayer(id: string) { return this.execute(`/api/v1/admin/players/${encodeURIComponent(id)}`, { method: 'GET' }, isAdminInspection, 'staff player inspection') }
+  async inspectAdminSpecimen(id: string) { return this.execute(`/api/v1/admin/specimens/${encodeURIComponent(id)}`, { method: 'GET' }, isAdminSpecimen, 'staff specimen inspection') }
+  async getAdminListings(offset = 0, filter = '') { return this.execute(`/api/v1/admin/marketplace?offset=${offset}&filter=${encodeURIComponent(filter)}`, { method: 'GET' }, adminPageValidator(isAdminListing), 'staff listings') }
+  async getAdminRoles(offset = 0) { return this.execute(`/api/v1/admin/roles?offset=${offset}`, { method: 'GET' }, adminPageValidator(isAdminRoleEntry), 'staff roles') }
+  async getAdminAudit(offset = 0, filters: { actor?: string; target?: string; action?: string } = {}) { return this.execute(`/api/v1/admin/audit?offset=${offset}&${new URLSearchParams(filters)}`, { method: 'GET' }, adminPageValidator(isAdminAudit), 'staff audit') }
+  async mutateAdmin(target: string, action: AdminAction, command: AdminMutation) {
+    const path = action === 'cancel-listing' ? `/api/v1/admin/marketplace/${encodeURIComponent(target)}/cancel` : `/api/v1/admin/players/${encodeURIComponent(target)}/${action}`
+    return this.execute(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isAdminResult, 'staff mutation result')
   }
   async executeDevCommand(command: DevCommand): Promise<DevCommandResult> {
     return this.execute('/api/v1/dev/commands', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isDevCommandResult, 'developer command result')

@@ -1,10 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
-import { gameplayCommandReceipts, marketplaceListings, nurseryOccupancies, plantSpecimens, playerGardenSpecimens, playerOnboarding, playerPlantLifecycleVersions, playerSeedStacks } from '../db/schema/index.ts'
+import { gameplayCommandReceipts, marketplaceListings, nurseryOccupancies, plantSpecimens, playerGardenSpecimens, playerPlantLifecycleVersions } from '../db/schema/index.ts'
 import { ApiError } from '../api/errors.ts'
 import { isDevCommand, type DevCommand, type DevSpecimenDiagnostics } from '../../shared/api/devToolsV1.ts'
-import { addXp } from '../../src/features/progression/progressionModel.ts'
-import { SHOP_CATALOG, MAX_ECONOMY_INTEGER } from '../gameplay/shopCatalog.ts'
+import { adjustPlayerBalance, adjustPlayerSkill, adjustPlayerSeeds } from '../gameplay/supportAdjustments.ts'
 import { GrowerAlphaService } from '../gameplay/GrowerAlphaService.ts'
 import { PlantLifecycleService } from '../gameplay/PlantLifecycleService.ts'
 import { getNpcSaleValue } from '../../src/features/marketplace/sellModel.ts'
@@ -29,26 +28,13 @@ export class DevToolsService {
       }
       const now = new Date()
       if (command.type === 'add-xp' || command.type === 'add-currency') {
-        const [profile] = await tx.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update')
-        if (!profile) throw ApiError.notFound('Player progression is unavailable.')
         if (command.type === 'add-xp') {
-          const key = ({ cultivation: 'cultivationXp', breeding: 'breedingXp', genetics: 'geneticsXp' } as const)[command.skillId]
-          const xp = addXp(profile[key], command.amount)
-          if (xp === null) throw ApiError.validation('Invalid XP amount.')
-          await tx.update(playerOnboarding).set({ [key]: xp, version: profile.version + 1 }).where(eq(playerOnboarding.playerId, playerId))
+          await adjustPlayerSkill(tx, playerId, command.skillId, command.amount)
         } else {
-          const balance = profile.tokenBalance + command.amount
-          if (balance > MAX_ECONOMY_INTEGER) throw ApiError.validation('Currency balance exceeds storage capacity.')
-          await tx.update(playerOnboarding).set({ tokenBalance: balance, version: profile.version + 1 }).where(eq(playerOnboarding.playerId, playerId))
+          await adjustPlayerBalance(tx, playerId, command.amount)
         }
       } else if (command.type === 'adjust-seeds') {
-        if (!SHOP_CATALOG.some(item => item.speciesId === command.speciesId)) throw ApiError.validation('Unsupported seed species.')
-        // Insert the missing zero stack first so concurrent Shop/planting locks use the same row.
-        await tx.insert(playerSeedStacks).values({ playerId, speciesId: command.speciesId, quantity: 0 }).onConflictDoNothing()
-        const [stack] = await tx.select().from(playerSeedStacks).where(and(eq(playerSeedStacks.playerId, playerId), eq(playerSeedStacks.speciesId, command.speciesId))).for('update')
-        const quantity = stack.quantity + command.amount
-        if (quantity < 0 || quantity > MAX_ECONOMY_INTEGER) throw ApiError.validation('Seed adjustment exceeds the available stack or storage capacity.')
-        await tx.update(playerSeedStacks).set({ quantity, version: stack.version + 1, updatedAt: now }).where(and(eq(playerSeedStacks.playerId, playerId), eq(playerSeedStacks.speciesId, command.speciesId)))
+        await adjustPlayerSeeds(tx, playerId, command.speciesId, command.amount, now)
       } else {
         // Match normal collection's occupancy -> specimen lock order.
         const [occupancy] = await tx.select().from(nurseryOccupancies).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.specimenId, command.specimenId))).for('update')
@@ -61,7 +47,7 @@ export class DevToolsService {
         // Preserve IDs, genetics, plantedAt and rule constants. Normal collection remains authoritative.
         await tx.update(nurseryOccupancies).set({ readyAt, version: occupancy.version + 1, updatedAt: now }).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.slotId, occupancy.slotId)))
       }
-      if (command.type === 'adjust-seeds' || command.type === 'advance-growth') {
+      if (command.type === 'advance-growth') {
         await tx.insert(playerPlantLifecycleVersions).values({ playerId, version: 1, updatedAt: now }).onConflictDoUpdate({ target: playerPlantLifecycleVersions.playerId, set: { version: sql`${playerPlantLifecycleVersions.version} + 1`, updatedAt: now } })
       }
       await tx.insert(gameplayCommandReceipts).values({ playerId, idempotencyKey: command.commandId, commandType: 'dev-tools-v1', requestFingerprint: fingerprint, status: 'completed', responsePayload: { commandId: command.commandId }, completedAt: now })
