@@ -2,6 +2,20 @@
 
 Internal development tooling. Production deployment is expressly excluded from this milestone.
 
+## Ongoing local and protected-staging workflow
+
+Dev Tools target **local development and protected staging at `https://dev.cactigrow.com`** using the same implementation. Production is excluded.
+
+1. Implement and validate locally against the isolated `cactigrow_local` database with server lifecycle enabled.
+2. Validate Dev Tools gates, authenticated commands, projection reconciliation and Farm/Town input/scene preservation; run lint, Worker typecheck and both staging/production builds. The production build is a gating check only.
+3. Verify the live staging Hyperdrive still targets `cactigrow_staging` and full-host Cloudflare Access remains intact. For an application-only release with no new migration/grant requirements, check compatibility through the existing authenticated runtime/read projections; unavailable owner SQL credentials alone do not block upload. Stop for unclear database isolation or demonstrated missing schema/privileges. Never substitute the shared remote development/production database or apply migrations/change grants without separate authorization.
+4. Build staging last, then use `CACTIGROW_DEPLOY_CONFIRM=staging` and `npm run deploy:staging` under the existing [staging runbook](DEPLOYMENT_STAGING_FOUNDATION.md). Record the source commit, Worker version and prior rollback version.
+5. Validate the authenticated staging menu/panel, diagnostics, snapshot and unchanged Farm/Town mounts, position, connection and input boundaries. Exercise small owner-scoped dev commands only when staging-data changes are authorized; otherwise use disposable integration tests and explicitly report the live mutation check as unperformed. Anonymous Access redirects prove protection only.
+
+Do not deploy production solely for Dev Tools changes. Changes to shared normal-game code require a separate explicit production-release decision. Preserve the existing production environment gate and infrastructure.
+
+Local and staging share the same sections and authoritative commands. Local mutations require the loopback `cactigrow_local` target; staging mutations require verified Access identity and the isolated staging database. World/visual previews stay temporary in both. Realtime diagnostics report the existing environment's actual connection; a staging deployment does not provision multiplayer or force a reconnect. Owner provisioning scripts, destructive resets and deferred controls are not panel actions in either environment.
+
 ## Discovery and consolidation
 
 Inspected current source and contracts before implementation. Existing utilities were:

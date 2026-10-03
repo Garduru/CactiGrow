@@ -10,6 +10,8 @@ Development permits the explicit Account A/B identity header, optional `?e1Lifec
 
 ## Build and deployment procedure
 
+For Dev Tools changes, implement/validate locally, update this existing protected staging environment, then validate on `dev.cactigrow.com`; follow [DEV_TOOLS_V1.md](DEV_TOOLS_V1.md#ongoing-local-and-protected-staging-workflow). Use one codebase for both targets. Production builds only verify exclusion; a production release is a separate explicit decision. For application-only updates with no new migration/grant requirements, verify isolation and compatibility through the existing authenticated runtime/read projections; unavailable owner SQL credentials alone do not block deployment. Stop for unclear isolation or demonstrated missing schema/privileges, including required Social V1 tables. Never weaken Access, substitute production data, or apply migrations/change grants without separate authorization.
+
 - Development preview: `npm run dev` and `npm run dev:worker`.
 - Staging-shaped build: `npm run build:staging`.
 - Production-shaped build: `npm run build:production`.
