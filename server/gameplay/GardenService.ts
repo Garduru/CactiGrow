@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
-import { gameplayCommandReceipts, plantSpecimens, playerGardenDisplays, playerGardenSpecimens, playerGrowerEvents, playerGrowerState } from '../db/schema/index.ts'
+import { gameplayCommandReceipts, marketplaceListings, plantSpecimens, playerGardenDisplays, playerGardenSpecimens, playerGrowerEvents, playerGrowerState } from '../db/schema/index.ts'
 import type { GardenCommandV1, GardenProjectionV1 } from '../../shared/api/gardenV1.ts'
 import { createGardenDisplayAssignments } from '../../src/features/garden/gardenDisplayModel.ts'
 import { addGardenTag, normalizeGardenTag, removeGardenTag, setGardenFavorite } from '../../src/features/garden/gardenOrganizationModel.ts'
@@ -65,7 +65,11 @@ export class GardenService {
             await tx.insert(playerGrowerEvents).values({ id: crypto.randomUUID(), playerId, eventType: 'specimen-displayed', sourceCommandId: command.commandId, occurredAt: new Date(), payload: { specimenId: command.specimenId, slotId: command.slotId } }).onConflictDoNothing()
           } else {
             const [grower] = await tx.select().from(playerGrowerState).where(eq(playerGrowerState.playerId, playerId)).limit(1)
-            if (!grower || grower.property.buildings.garden.level < 2) throw new ApiError('FORBIDDEN', 403, 'Organized Beds is required for favorites and tags.')
+            if (command.type !== 'favorite' && (!grower || grower.property.buildings.garden.level < 2)) throw new ApiError('FORBIDDEN', 403, 'Organized Beds is required for tags.')
+            if (command.type === 'favorite' && command.favorite) {
+              const [active] = await tx.select({ id: marketplaceListings.id }).from(marketplaceListings).where(and(eq(marketplaceListings.specimenId, specimen.id), eq(marketplaceListings.status, 'active'))).limit(1)
+              if (active) throw new ApiError('CONFLICT', 409, 'Cancel the Marketplace listing before favoriting this plant.')
+            }
             const [row] = await tx.select().from(playerGardenSpecimens).where(and(eq(playerGardenSpecimens.playerId, playerId), eq(playerGardenSpecimens.specimenId, command.specimenId))).limit(1)
             const current = row ? { [row.specimenId]: { specimenId: row.specimenId, favorite: row.favorite, tags: row.tags } } : {}
             const next = command.type === 'favorite' ? setGardenFavorite(current, command.specimenId, command.favorite)

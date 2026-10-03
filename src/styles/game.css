@@ -1742,3 +1742,24 @@ button, input, select { font-family: var(--cg-font-ui); }
   .feature-panel { max-height: 100%; }
   .feature-panel :where(input, select, textarea), .player-search input { font-size: 16px; }
 }
+
+/* Collection management uses the existing Garden surfaces and touch targets. */
+.collection-tools__tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px; }
+.collection-tools__tabs button, .collection-pagination button, .collection-favorite__button { min-height: 44px; padding: 7px 10px; border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); background: #241a14; color: var(--cg-text); cursor: pointer; }
+.collection-tools__tabs button[aria-pressed="true"], .collection-favorite__button[aria-pressed="true"] { background: #543522; border-color: #dfae61; color: #f2c575; }
+.collection-tools__tabs > span { color: var(--cg-text-muted); font-size: 12px; margin-left: auto; }
+.collection-tools input[type="search"], .breeding-section input, .breeding-section select { min-width: 0; width: 100%; min-height: 44px; padding: 7px 9px; color: var(--cg-text); background: #17120f; border: 1px solid var(--cg-border); border-radius: var(--cg-radius-sm); }
+.collection-favorite { padding: 6px 10px; display: grid; gap: 4px; }
+.collection-favorite__button { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 18px; }
+.collection-favorite__button span { font-size: 12px; }
+.collection-favorite small { font-size: 11px; color: var(--cg-text-muted); }
+.collection-knowledge { display: grid; gap: 4px; margin-top: 7px; }
+.collection-research { color: #d8c5a7; font-size: 11px; }
+.collection-research--studied { color: #b6d199; }
+.collection-knowledge small { font-size: 10px; color: var(--cg-text-muted); }
+.collection-pagination { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin: 14px 0; }
+.garden-selection-bar__actions { flex-wrap: wrap; }
+.collection-research-action { display: flex; flex-direction: column; gap: 4px; max-width: 240px; }
+.collection-research-action small { color: var(--cg-text-muted); font-size: 11px; }
+.garden-selection-bar { position: sticky; bottom: 0; }
+.collection-tools button:disabled, .collection-favorite button:disabled, .collection-pagination button:disabled { opacity: .55; cursor: default; }

@@ -41,5 +41,9 @@ export class RemotePlayers {
       .sort((a, b) => Math.hypot(position.x - a.rendered.x, position.y - (a.rendered.y - 32))
         - Math.hypot(position.x - b.rendered.x, position.y - (b.rendered.y - 32)))[0]?.presence
   }
+  getPosition(publicId: string): Position | undefined {
+    const remote = [...this.players.values()].find((player) => player.presence.publicId === publicId)
+    return remote ? { ...remote.rendered } : undefined
+  }
   clear() { for (const remote of this.players.values()) remote.avatar.destroy(); this.players.clear() }
 }

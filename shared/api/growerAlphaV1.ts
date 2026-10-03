@@ -8,6 +8,7 @@ import type { QuantitativeSeedTreatment } from '../../src/types/treatment.ts'
 
 export interface GrowerAlphaProjectionV1 {
   projectionVersion: 1
+  researchBatch?: { succeeded: string[]; skipped: { specimenId: string; reason: string }[] }
   commerceInventory?: { seedStacks: { speciesId: string; quantity: number; version: number }[]; ownedSpecimenIds: string[] }
   version: number
   player: {
@@ -26,6 +27,7 @@ export interface GrowerAlphaProjectionV1 {
 }
 
 export type GrowerAlphaCommandV1 =
+  | { type: 'research-specimens'; commandId: string; specimenIds: string[] }
   | { type: 'buy-shop-seeds'; commandId: string; itemId: string; quantity: number }
   | { type: 'buy-marketplace-listing'; commandId: string; listingId: string }
   | { type: 'sell-specimen-to-npc'; commandId: string; specimenId: string }
@@ -53,6 +55,7 @@ export function isGrowerAlphaCommandV1(value: unknown): value is GrowerAlphaComm
   if (!value || typeof value !== 'object') return false
   const command = value as Record<string, unknown>
   if (typeof command.type !== 'string' || typeof command.commandId !== 'string' || !UUID.test(command.commandId)) return false
+  if (command.type === 'research-specimens') return Object.keys(command).length === 3 && Array.isArray(command.specimenIds) && command.specimenIds.length > 0 && command.specimenIds.length <= 100 && command.specimenIds.every((id) => typeof id === 'string' && UUID.test(id)) && new Set(command.specimenIds).size === command.specimenIds.length
   if (command.type === 'buy-shop-seeds') return Object.keys(command).length === 4 && typeof command.itemId === 'string' && command.itemId.length <= 80 && Number.isInteger(command.quantity) && Number(command.quantity) >= 1 && Number(command.quantity) <= 100
   if (command.type === 'buy-marketplace-listing') return Object.keys(command).length === 3 && typeof command.listingId === 'string' && UUID.test(command.listingId)
   if (command.type === 'sell-specimen-to-npc' || command.type === 'list-specimen' || command.type === 'observe-specimen' || command.type === 'analyze-specimen' || command.type === 'collect-tissue-sample') {
@@ -74,6 +77,10 @@ export function isGrowerAlphaProjectionV1(value: unknown): value is GrowerAlphaP
   if (projection.projectionVersion !== 1 || !Number.isInteger(projection.version)) return false
   const player = projection.player as Record<string, unknown> | undefined
   const skills = player?.skills as Record<string, unknown> | undefined
+  if (projection.researchBatch !== undefined) {
+    const batch = projection.researchBatch as GrowerAlphaProjectionV1['researchBatch']
+    if (!batch || !Array.isArray(batch.succeeded) || !batch.succeeded.every((id) => typeof id === 'string') || !Array.isArray(batch.skipped) || !batch.skipped.every((entry) => entry && typeof entry.specimenId === 'string' && typeof entry.reason === 'string')) return false
+  }
   if (projection.commerceInventory !== undefined) {
     const inventory = projection.commerceInventory as GrowerAlphaProjectionV1['commerceInventory']
     if (!inventory || !Array.isArray(inventory.seedStacks) || !Array.isArray(inventory.ownedSpecimenIds)

@@ -5,6 +5,7 @@ interface UseGardenSelectionReturn {
   isSelected: (id: string) => boolean
   toggle: (id: string) => void
   clear: () => void
+  select: (ids: readonly string[]) => void
   remove: (ids: ReadonlySet<string>) => void
   exit: () => void
   selectedCount: number
@@ -37,6 +38,7 @@ export function useGardenSelection(ownedIds: Set<string>): UseGardenSelectionRet
   }, [])
 
   const clear = useCallback(() => setSelectedIds(new Set()), [])
+  const select = useCallback((ids: readonly string[]) => setSelectedIds((previous) => new Set([...previous, ...ids])), [])
   const remove = useCallback((ids: ReadonlySet<string>) => {
     setSelectedIds((previous) => new Set([...previous].filter((id) => !ids.has(id))))
   }, [])
@@ -50,6 +52,7 @@ export function useGardenSelection(ownedIds: Set<string>): UseGardenSelectionRet
     isSelected,
     toggle,
     clear,
+    select,
     remove,
     exit,
     selectedCount: reconciledIds.size,

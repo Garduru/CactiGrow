@@ -15,6 +15,9 @@ interface ResearchWorkflowProps {
 export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
   const { state, observePlant, analyzePlant, collectTissueSample } = useGameState()
   const [sampleNotice, setSampleNotice] = useState('')
+  const [researchBusy, setResearchBusy] = useState(false)
+  const [researchNotice, setResearchNotice] = useState('')
+  const researchPending = useRef(false)
   const [samplingNow, setSamplingNow] = useState(() => Date.now())
   const samplingRef = useRef(false)
   const panelRef = useRef<HTMLElement>(null)
@@ -46,9 +49,14 @@ export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  function advanceResearch() {
-    if (record) analyzePlant(plant.id)
-    else observePlant(plant.id)
+  async function advanceResearch() {
+    if (researchPending.current) return
+    researchPending.current = true; setResearchBusy(true); setResearchNotice('')
+    try {
+      const ok = record ? await analyzePlant(plant.id) : await observePlant(plant.id)
+      setResearchNotice(ok ? 'Research updated.' : 'No research milestone is currently available. Check your Genetics level and collection status.')
+    } catch (cause) { setResearchNotice(cause instanceof Error ? cause.message : 'Research could not be confirmed.') }
+    finally { researchPending.current = false; setResearchBusy(false) }
   }
 
   async function samplePlant() {
@@ -87,11 +95,12 @@ export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
             {level < nextStep.requiredLevel && <small>Requires Genetics Level {nextStep.requiredLevel}</small>}
           </div>
           {nextStep.label !== 'Research complete' && (
-            <button className="nursery-button" type="button" onClick={advanceResearch} disabled={!canAdvance}>
-              {record ? 'Run analysis' : 'Observe specimen'}
+            <button className="nursery-button" type="button" onClick={() => void advanceResearch()} disabled={!canAdvance || researchBusy}>
+              {researchBusy ? 'Researching…' : record ? 'Run analysis' : 'Observe specimen'}
             </button>
           )}
         </footer>
+        {researchNotice && <p role="status">{researchNotice}</p>}
         <section className="research-sampling" aria-labelledby="sampling-title">
           <div><h3 id="sampling-title">Tissue Sampling</h3><p>Creates a provenance-preserving research sample without changing or consuming the plant.</p></div>
           <ul>

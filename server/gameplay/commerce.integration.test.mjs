@@ -7,6 +7,7 @@ import { registerHooks } from 'node:module'
 import { build } from 'esbuild'
 import { tmpdir } from 'node:os'
 import { createServer } from 'node:net'
+import { verifyCollectionResearchUi } from './collectionUi.integration.mjs'
 
 const pgliteModule = process.env.CACTIGROW_PGLITE_MODULE
 const embeddedModule = process.env.CACTIGROW_EMBEDDED_POSTGRES_MODULE
@@ -35,7 +36,7 @@ test('Commerce authenticated API and PostgreSQL transactions preserve balances, 
   try {
     for (const file of (await readdir('server/db/migrations')).filter((f) => f.endsWith('.sql')).sort()) await pg.exec(await readFile('server/db/migrations/' + file, 'utf8'))
     const database = drizzle(pg.connection ?? pg)
-    const ids = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
+    const ids = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
     const [a, b, c] = ids
     for (const [i, id] of ids.entries()) {
       await pg.query('insert into players(id) values ($1)', [id]); await initializeStagingGrower(database, id)
@@ -45,7 +46,7 @@ test('Commerce authenticated API and PostgreSQL transactions preserve balances, 
     // Existing runtime table permissions, never production grants.
     await pg.exec(`create role commerce_runtime; grant usage on schema public to commerce_runtime; grant select on all tables in schema public to commerce_runtime;
       grant insert,update on player_onboarding,player_grower_state,player_seed_stacks,player_plant_lifecycle_versions,gameplay_command_receipts,plant_specimens,marketplace_listings,nursery_occupancies to commerce_runtime;
-      grant insert on player_grower_events to commerce_runtime; grant insert,update,delete on player_garden_displays,player_garden_specimens to commerce_runtime;`)
+      grant insert on player_grower_events,clone_lines,genetic_profiles,clone_line_variants,bred_seeds to commerce_runtime; grant insert,update,delete on player_garden_displays,player_garden_specimens to commerce_runtime;`)
     const router = createApiRouter({ authenticationConfigurationFactory: () => ({
       identityProvider: { verify: async (request) => ids.includes(request.getHeader('x-test-player')) ? { provider: 'test', subject: request.getHeader('x-test-player') } : null },
       createPlayerIdentityResolver: async () => ({ resolve: async (identity) => ({ playerId: identity.subject }) }),
@@ -59,6 +60,17 @@ test('Commerce authenticated API and PostgreSQL transactions preserve balances, 
     }, reportUnexpectedError: (e) => errors.push(e) }) })
     const ca = client(a), cb = client(b), cc = client(c)
     const command = (type, extra = {}) => ({ type, commandId: crypto.randomUUID(), ...extra })
+    // A separate disposable account exercises the Collection UI through the
+    // real providers and authenticated API without affecting commerce fixtures.
+    const uiPlayer = ids[3], uiClone = crypto.randomUUID(), uiSpecimen = crypto.randomUUID()
+    await pg.query("insert into clone_lines(id,species_id,origin_type,origin_player_id,established_at,genetic_representation_version,visual_derivation_version) values($1,'echinopsis-pachanoi','commodity-seed',$2,now(),1,1)", [uiClone, uiPlayer])
+    await pg.query('insert into genetic_profiles(clone_line_id,vigor,growth_speed,size,flowering,mutation_chance,establishment_rule_version) values($1,50,50,50,50,50,1)', [uiClone])
+    await pg.query("insert into plant_specimens(id,owner_player_id,clone_line_id,source_type,lifecycle_status,planted_at,collected_at,visual_derivation_version) values($1,$2,$3,'commodity-seed','owned',now(),now(),1)", [uiSpecimen, uiPlayer, uiClone])
+    const uiClient = client(uiPlayer)
+    await uiClient.mutateGarden(command('favorite', { specimenId: uiSpecimen, favorite: true }))
+    await verifyCollectionResearchUi(uiClient, false)
+    await pg.query("update player_grower_state set property=jsonb_set(property,'{buildings,garden,level}','2') where player_id=$1", [uiPlayer])
+    await verifyCollectionResearchUi(uiClient, true)
     const balance = async (id) => (await pg.query('select token_balance from player_onboarding where player_id=$1', [id])).rows[0].token_balance
     const stack = async (id) => (await pg.query("select quantity from player_seed_stacks where player_id=$1 and species_id='echinopsis-pachanoi'", [id])).rows[0].quantity
     await pg.exec('set role commerce_runtime')
@@ -82,13 +94,54 @@ test('Commerce authenticated API and PostgreSQL transactions preserve balances, 
     const parent = crypto.randomUUID()
     await pg.query("insert into plant_specimens(id,owner_player_id,clone_line_id,source_type,lifecycle_status,planted_at,collected_at,visual_derivation_version) values($1,$2,$3,'commodity-seed','sold',$4,$4,1)", [parent, a, clone, stamp])
     await pg.query("insert into bred_seeds(id,owner_player_id,clone_line_id,parent_1_specimen_id,parent_2_specimen_id,parent_1_species_id,parent_2_species_id,is_hybrid,genetic_features,status,created_at,planted_at,planted_specimen_id) values($1,$2,$3,$4,$5,'echinopsis-pachanoi','echinopsis-pachanoi',false,'[]','planted',$6,$6,$4)", [crypto.randomUUID(), a, clone, specimen, parent, stamp])
-    await pg.query('insert into player_garden_specimens(player_id,specimen_id,favorite) values($1,$2,true)', [a, specimen])
+    const favorite = command('favorite', { specimenId: specimen, favorite: true })
+    await assert.rejects(ca.mutateGarden({ ...favorite, ownerPlayerId: a }), (e) => e.status === 400)
+    await assert.rejects(ca.mutateGarden({ ...favorite, specimenId: 'invalid' }), (e) => e.status === 400)
+    await ca.mutateGarden(favorite)
+    assert.equal((await ca.getGarden()).organization[specimen].favorite, true)
+    await ca.mutateGarden(favorite)
+    await assert.rejects(cb.mutateGarden(command('favorite', { specimenId: specimen, favorite: false })), (e) => e.status === 404)
+    await ca.mutateGarden(command('favorite', { specimenId: specimen, favorite: false }))
+    assert.equal((await ca.getGarden()).organization[specimen].favorite, false)
+    await ca.mutateGarden(command('favorite', { specimenId: specimen, favorite: true }))
+    await assert.rejects(ca.mutateGrowerAlpha(command('research-specimens', { specimenIds: [specimen] })), (e) => e.status === 403)
+    await pg.query("update player_grower_state set property=jsonb_set(property,'{buildings,garden,level}','2') where player_id=$1", [a])
+    const batch = command('research-specimens', { specimenIds: [specimen, parent, crypto.randomUUID()] })
+    const researched = await ca.mutateGrowerAlpha(batch)
+    assert.deepEqual(researched.researchBatch.succeeded, [specimen])
+    assert.equal(researched.researchBatch.skipped.length, 2)
+    assert.equal((await ca.getGrowerAlpha()).research.records[clone].analysisDepth, 'observed')
+    const earned = researched.player.skills.geneticsXp
+    const replay = await ca.mutateGrowerAlpha(batch)
+    assert.equal(replay.player.skills.geneticsXp, earned)
+    const blocked = await ca.mutateGrowerAlpha(command('research-specimens', { specimenIds: [specimen] }))
+    assert.equal(blocked.researchBatch.succeeded.length, 0)
+    assert.equal(blocked.player.skills.geneticsXp, earned)
+    await assert.rejects(ca.mutateGrowerAlpha(command('research-specimens', { specimenIds: [specimen, specimen] })), (e) => e.status === 400)
+    await assert.rejects(ca.mutateGrowerAlpha(command('research-specimens', { specimenIds: Array.from({ length: 101 }, () => crypto.randomUUID()) })), (e) => e.status === 400)
+    await pg.query('update player_onboarding set genetics_xp=1154 where player_id=$1', [a])
+    const analysis = await ca.mutateGrowerAlpha(command('research-specimens', { specimenIds: [specimen] }))
+    assert.equal(analysis.research.records[clone].analysisDepth, 'basic-analysis')
+    assert.deepEqual(analysis.researchBatch.succeeded, [specimen])
+    const twin = crypto.randomUUID()
+    await pg.query("insert into plant_specimens(id,owner_player_id,clone_line_id,source_type,lifecycle_status,planted_at,collected_at,visual_derivation_version) values($1,$2,$3,'commodity-seed','owned',$4,$4,1)", [twin, a, clone, stamp])
+    await pg.query('update player_onboarding set genetics_xp=4470 where player_id=$1', [a])
+    const shared = await ca.mutateGrowerAlpha(command('research-specimens', { specimenIds: [specimen, twin] }))
+    assert.deepEqual(shared.researchBatch.succeeded, [specimen])
+    assert.equal(shared.researchBatch.skipped.length, 1)
+    const favoriteBreed = await ca.breedSpecimens({ parent1SpecimenId: specimen, parent2SpecimenId: twin, expectedParent1Version: 1, expectedParent2Version: 1 }, crypto.randomUUID())
+    assert.deepEqual(favoriteBreed.seed.parentPlantIds, [specimen, twin])
+    assert.equal((await ca.getGarden()).organization[specimen].favorite, true)
+    assert.equal((await ca.getPlantLifecycleV3()).ownedSpecimens.length, 2)
+    await pg.query("update plant_specimens set lifecycle_status='sold' where id=$1", [twin])
     await pg.exec('set role commerce_runtime')
     for (const type of ['list-specimen', 'sell-specimen-to-npc']) await assert.rejects(ca.mutateGrowerAlpha(command(type, { specimenId: specimen, ...(type === 'list-specimen' ? { askingPrice: 450 } : {}) })), (e) => e.status === 409 && /Unfavorite/.test(e.message))
-    await pg.query('update player_garden_specimens set favorite=false where specimen_id=$1', [specimen])
+    await ca.mutateGarden(command('favorite', { specimenId: specimen, favorite: false }))
     await assert.rejects(cb.mutateGrowerAlpha(command('list-specimen', { specimenId: specimen, askingPrice: 450 })), (e) => e.status === 404)
     const listed = await ca.mutateGrowerAlpha(command('list-specimen', { specimenId: specimen, askingPrice: 450 }))
     const listingId = listed.marketplaceListings.find((l) => l.status === 'active').id
+    await assert.rejects(ca.mutateGarden(command('favorite', { specimenId: specimen, favorite: true })), (e) => e.status === 409 && /Cancel/.test(e.message))
+    assert.equal((await ca.getGarden()).organization[specimen].favorite, false)
     await assert.rejects(ca.mutateGrowerAlpha(command('list-specimen', { specimenId: specimen, askingPrice: 500 })), (e) => e.status === 409)
     await assert.rejects(ca.mutateGrowerAlpha(command('sell-specimen-to-npc', { specimenId: specimen })), (e) => e.status === 409)
     const browsing = await cb.getMarketplace(); assert.equal(browsing.listings[0].seller.displayName, 'Trader 0'); assert.equal(browsing.listings[0].knowledge.quantitativeGenetics, undefined)
@@ -139,10 +192,23 @@ test('Commerce authenticated API and PostgreSQL transactions preserve balances, 
     const relisted = await winningClient.mutateGrowerAlpha(command('list-specimen', { specimenId: specimen, askingPrice: 500 }))
     const activeId = relisted.marketplaceListings.find((l) => l.status === 'active').id
     await winningClient.mutateGrowerAlpha(command('cancel-listing', { listingId: activeId }))
+    await winningClient.mutateGarden(command('favorite', { specimenId: specimen, favorite: true }))
+    assert.equal((await winningClient.getGarden()).organization[specimen].favorite, true)
+    await winningClient.mutateGarden(command('favorite', { specimenId: specimen, favorite: false }))
     await assert.rejects(ca.mutateGrowerAlpha(command('buy-marketplace-listing', { listingId: activeId })), (e) => e.status === 409)
     await winningClient.mutateGrowerAlpha(command('sell-specimen-to-npc', { specimenId: specimen }))
     assert.equal((await lifecycle.getProjectionV3(winner)).ownedSpecimens.length, 0)
     assert.equal(errors.length, 0, String(errors[0]))
+    const racingSpecimen = crypto.randomUUID()
+    await pg.query("insert into plant_specimens(id,owner_player_id,clone_line_id,source_type,lifecycle_status,planted_at,collected_at,visual_derivation_version) values($1,$2,$3,'commodity-seed','owned',$4,$4,1)", [racingSpecimen, a, clone, stamp])
+    const racing = await Promise.allSettled([
+      ca.mutateGarden(command('favorite', { specimenId: racingSpecimen, favorite: true })),
+      ca.mutateGrowerAlpha(command('list-specimen', { specimenId: racingSpecimen, askingPrice: 1 })),
+    ])
+    assert.equal(racing.filter((outcome) => outcome.status === 'fulfilled').length, 1)
+    const raceGarden = await ca.getGarden()
+    const raceListing = (await ca.getGrowerAlpha()).marketplaceListings.find((listing) => listing.plantId === racingSpecimen && listing.status === 'active')
+    assert.equal(Boolean(raceGarden.organization[racingSpecimen]?.favorite) && Boolean(raceListing), false)
     assert.ok(new GrowerAlphaService(database)); assert.ok(new MarketplaceService(database))
   } finally { await pg.close(); if (cluster) await cluster.stop(); hooks?.deregister() }
 })

@@ -569,7 +569,8 @@ export function gameStateReducer(state: GameState, action: GameAction): GameStat
     }
 
     case 'garden/favorite-set': {
-      if (state.property.buildings.garden.level < 2 || !state.ownedPlants.some((plant) => plant.id === action.plantId)) return state
+      const plant = state.ownedPlants.find((plant) => plant.id === action.plantId)
+      if (!plant || action.favorite && plant.isListedForSale) return state
       const gardenOrganization = setGardenFavorite(state.gardenOrganization, action.plantId, action.favorite)
       return gardenOrganization === state.gardenOrganization ? state : { ...state, gardenOrganization }
     }

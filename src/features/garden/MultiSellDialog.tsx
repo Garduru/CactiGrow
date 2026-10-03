@@ -4,6 +4,8 @@ import { getNpcSaleValue } from '../marketplace/sellModel.ts'
 import type { CollectedPlant } from '../../game/gameState.ts'
 import { useModalFocus } from '../../components/ui/useModalFocus'
 import { sellSelectedSpecimens, type MultiSaleResult } from './sellSelectedSpecimens'
+import type { GardenOrganizationState } from '../../types/garden'
+import { isProtectedFromTransfer } from './collectionManagement'
 
 interface MultiSellDialogProps {
   selectedSpecimenIds: Set<string>
@@ -11,11 +13,17 @@ interface MultiSellDialogProps {
   onClose: () => void
   onSold: (soldIds: Set<string>) => void
   onSellPlant: (plantId: string) => Promise<boolean>
+  organization?: GardenOrganizationState
 }
 
-export function MultiSellDialog({ selectedSpecimenIds, ownedPlants, onClose, onSold, onSellPlant }: MultiSellDialogProps) {
+export function MultiSellDialog({ selectedSpecimenIds, ownedPlants, organization = {}, onClose, onSold, onSellPlant }: MultiSellDialogProps) {
   // Freeze the reviewed set; projection refreshes during selling cannot alter it.
-  const [selectedPlants] = useState(() => ownedPlants.filter((plant) => selectedSpecimenIds.has(plant.id)))
+  const [review] = useState(() => {
+    const selected = ownedPlants.filter((plant) => selectedSpecimenIds.has(plant.id))
+    const eligible = selected.filter((plant) => !isProtectedFromTransfer(organization[plant.id]) && !plant.isListedForSale && getNpcSaleValue(plant) !== null)
+    return { eligible, skipped: selectedSpecimenIds.size - eligible.length }
+  })
+  const selectedPlants = review.eligible
   const [phase, setPhase] = useState<'confirm' | 'selling' | 'done'>('confirm')
   const [result, setResult] = useState<MultiSaleResult | null>(null)
   const submitting = useRef(false)
@@ -51,6 +59,7 @@ export function MultiSellDialog({ selectedSpecimenIds, ownedPlants, onClose, onS
           </div>)}</div>
           <div className="multi-sell-reward">Estimated total: <strong>{estimatedTotal.toLocaleString()} Tokens</strong></div>
           <p>This permanently removes sold specimens from your Garden.</p>
+          <p>{selectedPlants.length} eligible · {review.skipped} skipped. Favorites, listed and unavailable specimens are excluded.</p>
         </div>
         <footer className="multi-sell-dialog__footer">
           <button type="button" onClick={onClose}>Cancel</button>
@@ -65,7 +74,8 @@ export function MultiSellDialog({ selectedSpecimenIds, ownedPlants, onClose, onS
             {result.failed.size > 0 && <> <span className="failed">{result.failed.size} could not be sold.</span></>}
             {result.unconfirmed.size > 0 && <> {result.unconfirmed.size} sales could not be confirmed. They may have completed; check your Garden and Tokens before retrying.</>}
           </p>
-          {!complete && <p>Any remaining owned specimens stay selected for retry. Listed specimens must be unlisted before NPC sale.</p>}
+          <p>{review.skipped} skipped. Favorites must be unfavorited and listings cancelled before selling.</p>
+          {!complete && <p>Any remaining owned specimens stay selected for retry.</p>}
         </div>
         <footer className="multi-sell-dialog__footer"><button className="nursery-button" type="button" onClick={onClose}>Done</button></footer>
       </>}

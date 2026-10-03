@@ -26,6 +26,7 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
   const plant = state.ownedPlants.find((specimen) => specimen.id === plantId)
   const species = plant ? getSpeciesById(plant.speciesId) : undefined
   const npcValue = plant ? getNpcSaleValue(plant) : null
+  const protectedPlant = Boolean(state.gardenOrganization[plantId]?.favorite)
 
   useEffect(() => {
     closeRef.current?.focus()
@@ -125,7 +126,7 @@ export function SellWorkflow({ plantId, onClose }: SellWorkflowProps) {
             </p>
             <button className="nursery-button" type="button" onClick={onClose}>Finish</button>
           </div>
-        ) : mode === 'choose' ? (
+        ) : protectedPlant ? <p role="alert">This plant is favorited. Remove it from Favorites before selling or trading.</p> : plant?.isListedForSale ? <p role="alert">Cancel the Marketplace listing before selling this plant.</p> : mode === 'choose' ? (
           <div className="sell-choices">
             <button type="button" onClick={() => { setMode('npc'); setError('') }}>
               <strong>Sell to NPC</strong>

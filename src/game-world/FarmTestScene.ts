@@ -1,3 +1,5 @@
+import { NavigationMap } from './navigation/NavigationMap'
+import { NavigationController } from './navigation/NavigationController'
 import { bindWorldKeyboardFocus, canUseWorldKeyboard } from './worldKeyboardFocus'
 import Phaser from 'phaser'
 import { FARM_WORLD_HEIGHT, FARM_WORLD_WIDTH, MAILBOX_APPROACH_POINTS, MAILBOX_V1_COLLIDERS, NURSERY_PATH_ENDPOINT, farmWorldLayout, farmWorldSpawns, type FarmLocationLayout } from './farmWorldLayout'
@@ -48,6 +50,8 @@ interface InteractionTarget {
 }
 
 interface PendingWorldTap {
+  screenX: number
+  screenY: number
   pointerId: number
   worldX: number
   worldY: number
@@ -69,7 +73,8 @@ export class FarmTestScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Container
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys
   private wasd!: Record<'up' | 'down' | 'left' | 'right' | 'interact', Phaser.Input.Keyboard.Key>
-  private movementTarget: Phaser.Math.Vector2 | null = null
+  private navigation = new NavigationController(new NavigationMap(FARM_WORLD_WIDTH, FARM_WORLD_HEIGHT, []))
+  private pathDebug: Phaser.GameObjects.Graphics | null = null
   private readonly interactionTargets: InteractionTarget[] = []
   private readonly staticColliders: Phaser.GameObjects.Rectangle[] = []
   private unsubscribeProjection: (() => void) | null = null
@@ -114,6 +119,8 @@ export class FarmTestScene extends Phaser.Scene {
     this.createInput()
     this.configureCamera()
     if (this.editor) this.setupEditor()
+    this.rebuildNavigation()
+    if (this.debugWorld) this.pathDebug = this.add.graphics().setDepth(WORLD_DEPTH.debug)
     if (this.debugWorld) this.drawDebugOverlay()
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
@@ -145,10 +152,10 @@ export class FarmTestScene extends Phaser.Scene {
     })
   }
 
-  update() {
+  update(time: number, delta = 1000 / 60) {
     const body = this.player.body as Phaser.Physics.Arcade.Body
     this.updateCameraZoom()
-    if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.movementTarget = null; return }
+    if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.navigation.cancel(); return }
     if (!this.canAcceptKeyboardInput()) {
       body.setVelocity(0)
       return
@@ -157,21 +164,14 @@ export class FarmTestScene extends Phaser.Scene {
     const horizontal = Number(this.cursors.right.isDown || this.wasd.right.isDown) - Number(this.cursors.left.isDown || this.wasd.left.isDown)
     const vertical = Number(this.cursors.down.isDown || this.wasd.down.isDown) - Number(this.cursors.up.isDown || this.wasd.up.isDown)
     if (horizontal || vertical) {
-      this.movementTarget = null
+      this.navigation.cancel()
       const velocity = new Phaser.Math.Vector2(horizontal, vertical).normalize().scale(PLAYER_SPEED)
       body.setVelocity(velocity.x, velocity.y)
-    } else if (this.movementTarget) {
-      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.movementTarget.x, this.movementTarget.y)
-      if (distance < 10) {
-        body.setVelocity(0)
-        this.movementTarget = null
-      } else {
-        const velocity = new Phaser.Math.Vector2(this.movementTarget.x - this.player.x, this.movementTarget.y - this.player.y).normalize().scale(PLAYER_SPEED)
-        body.setVelocity(velocity.x, velocity.y)
-      }
     } else {
-      body.setVelocity(0)
+      const velocity = this.navigation.update(this.player, delta, PLAYER_SPEED, time)
+      body.setVelocity(velocity.x, velocity.y)
     }
+    this.drawNavigationPath()
 
     const nearby = this.getNearestInteraction()
     this.interactionTargets.forEach((target) => {
@@ -356,11 +356,23 @@ export class FarmTestScene extends Phaser.Scene {
         this.handleWorldTap(pointer.worldX, pointer.worldY)
         return
       }
-      this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY }
+      this.pendingWorldTap = { pointerId: pointer.pointerId, worldX: pointer.worldX, worldY: pointer.worldY, screenX: pointer.x, screenY: pointer.y }
     })
-    this.input.on('pointermove', () => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.updatePinch() })
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (this.pendingWorldTap?.pointerId === pointer.pointerId
+        && Math.hypot(pointer.x - this.pendingWorldTap.screenX, pointer.y - this.pendingWorldTap.screenY) > 12) this.pendingWorldTap = null
+      if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.updatePinch()
+    })
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
-    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => { if (this.editor?.getSnapshot().mode !== 'edit' || this.pinchActive) this.finishPointerGesture(pointer) })
+    this.input.on('pointerupoutside', (pointer: Phaser.Input.Pointer) => { this.pendingWorldTap = null; this.finishPointerGesture(pointer) })
+    const cancelGesture = () => { this.pendingWorldTap = null; this.pinchActive = false; this.suppressWorldTap = false }
+    this.game.canvas.addEventListener('touchcancel', cancelGesture)
+    this.game.canvas.addEventListener('pointercancel', cancelGesture)
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      cancelGesture()
+      this.game.canvas.removeEventListener('touchcancel', cancelGesture)
+      this.game.canvas.removeEventListener('pointercancel', cancelGesture)
+    })
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _currentlyOver: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
       this.setUserZoom(this.targetCameraZoom * Math.exp(-deltaY * 0.0012))
     })
@@ -426,7 +438,7 @@ export class FarmTestScene extends Phaser.Scene {
     this.pinchActive = true
     this.suppressWorldTap = true
     this.pendingWorldTap = null
-    this.movementTarget = null
+    this.navigation.cancel()
     this.pinchStartDistance = Phaser.Math.Distance.Between(pointers[0].x, pointers[0].y, pointers[1].x, pointers[1].y)
     this.pinchStartZoom = this.targetCameraZoom
   }
@@ -450,28 +462,27 @@ export class FarmTestScene extends Phaser.Scene {
     if (!this.pendingWorldTap || this.pendingWorldTap.pointerId !== pointer.pointerId) return
     const tap = this.pendingWorldTap
     this.pendingWorldTap = null
+    if (Math.hypot(pointer.x - tap.screenX, pointer.y - tap.screenY) > 12) return
     this.handleWorldTap(tap.worldX, tap.worldY)
   }
 
   private handleWorldTap(worldX: number, worldY: number) {
     const target = this.interactionTargets.find((candidate) => {
-      const interaction = this.getTapCenter(candidate.layout)
-      return Phaser.Math.Distance.Between(worldX, worldY, interaction.x, interaction.y) <= candidate.layout.tapRadius
+      const point = this.getTapCenter(candidate.layout)
+      const onBody = this.ownedColliders.get(candidate.location.id)?.some((collider) => {
+        const body = collider.body as Phaser.Physics.Arcade.StaticBody
+        return worldX >= body.x && worldX <= body.right && worldY >= body.y && worldY <= body.bottom
+      })
+      return onBody || Phaser.Math.Distance.Between(worldX, worldY, point.x, point.y) <= candidate.layout.tapRadius
     })
-    if (target) {
-      if (this.isInInteractionRange(target)) this.enterLocation(target)
-      else {
-        if (target.location.id === 'mail') {
-          const approach = this.getNearestMailboxApproach()
-          this.movementTarget = new Phaser.Math.Vector2(approach.x, approach.y)
-        } else {
-          const approach = this.editor?.getSnapshot().objects.find((object) => object.id === target.location.id)?.approaches[0]
-          this.movementTarget = new Phaser.Math.Vector2(approach?.x ?? target.layout.approachX, approach?.y ?? target.layout.approachY)
-        }
-      }
-      return
-    }
-    this.movementTarget = new Phaser.Math.Vector2(worldX, worldY)
+    if (!target) { this.navigation.move(this.player, { x: worldX, y: worldY }); return }
+    const authored = this.editor?.getSnapshot().objects.find((object) => object.id === target.location.id)?.approaches[0]
+    const approach = target.location.id === 'mail' ? this.getNearestMailboxApproach() :
+      authored ?? { x: target.layout.approachX, y: target.layout.approachY }
+    this.navigation.approach(this.player, {
+      id: target.location.id, position: () => this.getInteractionCenter(target.layout),
+      radius: this.getInteractionRadius(target.layout), approach, activate: () => this.enterLocation(target),
+    }, performance.now())
   }
 
   private setUserZoom(zoom: number) {
@@ -557,8 +568,25 @@ export class FarmTestScene extends Phaser.Scene {
     })
     this.ownedColliders.set(object.id, [])
     object.colliders.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, object.id))
+    this.rebuildNavigation()
     const target = this.interactionTargets.find((candidate) => candidate.location.id === object.id)
     if (target && object.approaches[0]) target.prompt.setPosition(object.approaches[0].x, object.approaches[0].y + 74)
+  }
+
+  private rebuildNavigation() {
+    this.navigation = new NavigationController(new NavigationMap(FARM_WORLD_WIDTH, FARM_WORLD_HEIGHT,
+      this.staticColliders.map((collider) => { const body = collider.body as Phaser.Physics.Arcade.StaticBody; return { x: body.x + body.width / 2, y: body.y + body.height / 2, width: body.width, height: body.height } }),
+      (this.player.body as Phaser.Physics.Arcade.Body).radius))
+  }
+
+  private drawNavigationPath() {
+    const debug = this.pathDebug
+    if (!debug) return
+    debug.clear().lineStyle(3, 0x66eaff, 0.9)
+    debug.beginPath().moveTo(this.player.x, this.player.y)
+    for (const point of this.navigation.path) debug.lineTo(point.x, point.y)
+    debug.strokePath()
+    for (const point of this.navigation.path) debug.fillStyle(0x66eaff).fillCircle(point.x, point.y, 5)
   }
 
   private canAcceptKeyboardInput() {
@@ -596,9 +624,15 @@ export class FarmTestScene extends Phaser.Scene {
 
   private getNearestMailboxApproach() {
     const points = this.editor?.getSnapshot().objects.find((object) => object.id === 'mail')?.approaches ?? MAILBOX_APPROACH_POINTS
-    return [...points].sort((a, b) =>
-      Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y)
-      - Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y))[0]
+    const layout = this.interactionTargets.find((target) => target.location.id === 'mail')!.layout
+    const center = this.getInteractionCenter(layout)
+    return points.map((point) => {
+      const path = this.navigation.map.route(this.player, point)
+      const end = path?.at(-1)
+      let previous = this.player as { x: number; y: number }, cost = 0
+      for (const step of path ?? []) { cost += Math.hypot(step.x - previous.x, step.y - previous.y); previous = step }
+      return { point, cost: end && Math.hypot(end.x - center.x, end.y - center.y) <= this.getInteractionRadius(layout) ? cost : Infinity }
+    }).sort((a, b) => a.cost - b.cost)[0].point
   }
 
   private getInteractionRadius(layout: FarmLocationLayout) {
@@ -758,6 +792,7 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private enterLocation(target: InteractionTarget) {
+    this.navigation.cancel()
     this.bridge.emitIntent({ type: 'ENTER_LOCATION', locationId: target.location.id })
   }
 

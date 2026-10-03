@@ -39,9 +39,9 @@ export function GardenAuthorityProvider({ children }: { children: ReactNode }) {
         // An overlapping sale/read can overtake this response. Only then fetch again.
         else await refresh()
         return true
-      } catch { await refresh(); return false }
+      } catch (cause) { await refresh(); if (command.type === 'favorite') throw cause; return false }
     })
-    mutationTail.current = task
+    mutationTail.current = task.catch(() => undefined)
     return task
   }, [enabled, refresh])
   const value = useMemo(() => ({ projection, error, loading: enabled && !projection, mutate }), [enabled, error, mutate, projection])

@@ -16,7 +16,7 @@ export function createGrowerCommandRunner(deps: Dependencies) {
   const pendingSales = new Map<string, string>()
   return (input: GrowerAlphaCommandInputV1): Promise<GrowerAlphaProjectionV1> => {
     const task = tail.then(async () => {
-      const specimenId = input.type === 'sell-specimen-to-npc' ? input.specimenId : input.type === 'buy-shop-seeds' || input.type === 'buy-marketplace-listing' || input.type === 'list-specimen' || input.type === 'cancel-listing' ? JSON.stringify(input) : null
+      const specimenId = input.type === 'sell-specimen-to-npc' ? input.specimenId : input.type === 'research-specimens' || input.type === 'buy-shop-seeds' || input.type === 'buy-marketplace-listing' || input.type === 'list-specimen' || input.type === 'cancel-listing' ? JSON.stringify(input) : null
       const previousId = specimenId ? pendingSales.get(specimenId) : undefined
       const commandId = previousId ?? deps.createId()
       if (specimenId) pendingSales.set(specimenId, commandId)
@@ -24,7 +24,8 @@ export function createGrowerCommandRunner(deps: Dependencies) {
       try {
         const receipt = await deps.send({ ...input, commandId } as GrowerAlphaCommandV1)
         // A replay contains the original, possibly old balance. Read current state.
-        const projection = previousId ? await deps.read() : receipt
+        const current = previousId ? await deps.read() : receipt
+        const projection = previousId && receipt.researchBatch ? { ...current, researchBatch: receipt.researchBatch } : current
         deps.invalidateReads()
         deps.apply(projection)
         if (specimenId) pendingSales.delete(specimenId)
@@ -36,7 +37,7 @@ export function createGrowerCommandRunner(deps: Dependencies) {
         throw error
       } finally {
         // A failed response may still represent a committed sale.
-        if (specimenId) deps.saleSettled()
+        if (specimenId && input.type !== 'research-specimens') deps.saleSettled()
       }
     })
     tail = task.catch(() => undefined)

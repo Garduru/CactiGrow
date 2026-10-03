@@ -61,7 +61,6 @@ export function SpecimenQuickPreview({ plant, species, organization, onClose, on
         </div>
 
         <dl className="specimen-quick-preview__info">
-          <div><dt>Stage</dt><dd>{plant.stage}</dd></div>
           <div><dt>Rarity</dt><dd>{species?.rarity ?? '—'}</dd></div>
           {isShiny && <div><dt>Shiny</dt><dd className="shiny-indicator">★ Shiny</dd></div>}
           {organization.favorite && <div><dt>Favorites</dt><dd className="favorite-indicator">★ Favorite</dd></div>}

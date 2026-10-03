@@ -140,7 +140,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return true
     },
     async setGardenFavorite(plantId, favorite) {
-      if (effectiveState.property.buildings.garden.level < 2 || !effectiveState.ownedPlants.some((plant) => plant.id === plantId)) return false
+      if (!effectiveState.ownedPlants.some((plant) => plant.id === plantId)) return false
+      if (favorite && effectiveState.ownedPlants.find((plant) => plant.id === plantId)?.isListedForSale) throw new Error('Cancel the Marketplace listing before favoriting this plant.')
       if (setGardenFavoriteForState(effectiveState.gardenOrganization, plantId, favorite) === effectiveState.gardenOrganization) return false
       if (server) return Boolean(await garden.mutate({ type: 'favorite', specimenId: plantId, favorite }))
       dispatch({ type: 'garden/favorite-set', plantId, favorite })

@@ -8,6 +8,10 @@ import type { GardenSpecimenOrganization } from '../../types/garden'
 import { GardenOrganizationControls } from './GardenOrganizationControls'
 import { TreatmentHistory } from '../lab/TreatmentHistory'
 import { GardenDisplayControls } from './GardenDisplayControls'
+import { FavoriteControl } from './FavoriteControl'
+import { CollectionKnowledge } from './CollectionKnowledge'
+import { useGameState } from '../../game/useGameState'
+import { getLevelFromXp } from '../progression/progressionModel'
 import { PlantVisual } from '../../components/ui/PlantVisual'
 import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
 import type { GardenDisplayAssignments, GardenDisplaySlotId } from '../../types/garden'
@@ -25,7 +29,7 @@ interface LocalPlantDetailsProps {
   isListed: boolean
   organization?: GardenSpecimenOrganization
   organizationUnlocked: boolean
-  onFavoriteChange: (favorite: boolean) => void
+  onFavoriteChange: (favorite: boolean) => boolean | void | Promise<boolean | void>
   onAddTag: (tag: string) => boolean | Promise<boolean>
   onRemoveTag: (tag: string) => void
   displayAssignments: GardenDisplayAssignments
@@ -53,6 +57,11 @@ const detailFields = [
   ['Flowering', 'flowering'],
   ['Mutation tendency', 'mutationChance'],
 ] as const
+
+function DetailKnowledge({ plant }: { plant: CollectedPlant }) {
+  const game = useGameState()
+  return <CollectionKnowledge plant={plant} research={game.state.geneticsResearch} level={getLevelFromXp(game.state.player.skills.genetics.xp)} />
+}
 
 export function PlantDetails(props: PlantDetailsProps) {
   const { plant, species, onClose } = props
@@ -141,7 +150,7 @@ export function PlantDetails(props: PlantDetailsProps) {
         <div className="plant-details__preview"><PlantVisual visual={createPlantVisualDescriptor(plant, previewVisualStage, { variegationPattern: previewVariegationPattern })} size={100} /></div>
         <dl className="plant-details__identity">
           <div><dt>Specimen ID</dt><dd>{specimenId}</dd></div>
-          <div><dt>Stage</dt><dd>{previewVisualStage ?? stage}</dd></div>
+          {(props.readOnly || stage !== 'mature') && <div><dt>Stage</dt><dd>{previewVisualStage ?? stage}</dd></div>}
           {species && <div><dt>Rarity</dt><dd>{species.rarity}</dd></div>}
           {(localPlant?.isHybrid || (serverPlant && 'isHybrid' in serverPlant && serverPlant.isHybrid)) && <div><dt>Type</dt><dd>Same-genus hybrid</dd></div>}
           <div><dt>Planted</dt><dd>{new Date(plant.plantedAt).toLocaleString()}</dd></div>
@@ -201,7 +210,9 @@ export function PlantDetails(props: PlantDetailsProps) {
         </section>
 
         {local && <GardenDisplayControls plantId={local.plant.id} assignments={local.displayAssignments} onAssign={local.onAssignDisplay} onClear={local.onClearDisplay} />}
-        {local && local.organizationUnlocked && <GardenOrganizationControls metadata={local.organization} onFavoriteChange={local.onFavoriteChange} onAddTag={local.onAddTag} onRemoveTag={local.onRemoveTag} />}
+        {local && <FavoriteControl favorite={Boolean(local.organization?.favorite)} listed={local.isListed} name={`specimen ${specimenId}`} onChange={local.onFavoriteChange} />}
+        {local && <DetailKnowledge plant={local.plant} />}
+        {local && local.organizationUnlocked && <GardenOrganizationControls metadata={local.organization} onAddTag={local.onAddTag} onRemoveTag={local.onRemoveTag} />}
         {local && <TreatmentHistory treatments={local.plant.quantitativeTreatments} />}
 
         {local && <footer className="plant-details__actions">
@@ -209,7 +220,7 @@ export function PlantDetails(props: PlantDetailsProps) {
           <div>
             <button className="plant-details__primary-action" type="button" onClick={local.onResearch}>Study Genetics</button>
             <button className="plant-details__primary-action" type="button" onClick={local.onBreed} disabled={local.isListed}>Breed</button>
-            <button className="plant-details__primary-action" type="button" onClick={local.onSell} disabled={local.isListed}>Sell</button>
+            <button className="plant-details__primary-action" type="button" onClick={local.onSell} disabled={local.isListed || local.organization?.favorite} title={local.organization?.favorite ? 'Unfavorite this plant before selling.' : undefined}>Sell</button>
           </div>
         </footer>}
         {serverPlant && props.readOnly && props.onBreed && <footer className="plant-details__actions"><span>Specimen actions</span><div><button className="plant-details__primary-action" type="button" onClick={props.onBreed}>Breed</button></div></footer>}

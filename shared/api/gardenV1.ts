@@ -13,7 +13,7 @@ export function isGardenCommandV1(value: unknown): value is GardenCommandV1 {
   if (!value || typeof value !== 'object') return false
   const v = value as Record<string, unknown>
   if (typeof v.commandId !== 'string' || !/^[0-9a-f-]{36}$/i.test(v.commandId)) return false
-  if (v.type === 'favorite') return typeof v.specimenId === 'string' && typeof v.favorite === 'boolean'
+  if (v.type === 'favorite') return Object.keys(v).length === 4 && typeof v.specimenId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v.specimenId) && typeof v.favorite === 'boolean'
   if (v.type === 'add-tag' || v.type === 'remove-tag') return typeof v.specimenId === 'string' && typeof v.tag === 'string'
   if (v.type === 'assign-display') return typeof v.specimenId === 'string' && GARDEN_DISPLAY_SLOT_IDS.includes(v.slotId as never)
   return v.type === 'clear-display' && GARDEN_DISPLAY_SLOT_IDS.includes(v.slotId as never)

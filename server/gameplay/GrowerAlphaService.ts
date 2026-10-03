@@ -1,6 +1,6 @@
 import { buyShopSeeds, buyMarketplaceListing } from './commerceTransactions.ts'
 import { assertSpecimenUnprotected } from './specimenCommerceEligibility.ts'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import {
   bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings,
@@ -21,6 +21,7 @@ import { addTissueSample, createTissueSample, getTissueSamplingStatus, normalize
 import { createExtractionAttempt } from '../../src/features/lab/extractionModel.ts'
 import { createQuantitativeSeedTreatment } from '../../src/features/lab/treatmentModel.ts'
 import { recordTreatmentMilestones } from '../../src/features/research/researchModel.ts'
+import { canUseBulkResearch, isEligibleForResearch, MAX_RESEARCH_BATCH } from '../../src/features/garden/collectionManagement.ts'
 import { createAchievementProgress, evaluateAchievements, type ProgressionEventCounts } from '../../src/features/achievements/achievementsModel.ts'
 import { getDiscoveredSpeciesCount } from '../../src/features/journal/journalModel.ts'
 
@@ -95,8 +96,9 @@ export class GrowerAlphaService {
     try {
       return await this.database.transaction(async (tx) => {
         await tx.insert(gameplayCommandReceipts).values({ playerId, idempotencyKey: command.commandId, commandType: type, requestFingerprint: fingerprint, status: 'processing' })
-        await this.apply(tx, playerId, command)
+        const researchBatch = await this.apply(tx, playerId, command)
         const result = await this.projectWith(tx, playerId)
+        if (researchBatch) result.researchBatch = researchBatch
         if (command.type === 'buy-shop-seeds' || command.type === 'buy-marketplace-listing') {
           const [stacks, specimens] = await Promise.all([
             tx.select({ speciesId: playerSeedStacks.speciesId, quantity: playerSeedStacks.quantity, version: playerSeedStacks.version }).from(playerSeedStacks).where(eq(playerSeedStacks.playerId, playerId)),
@@ -117,8 +119,55 @@ export class GrowerAlphaService {
     }
   }
 
-  private async apply(tx: Transaction, playerId: string, command: GrowerAlphaCommandV1): Promise<void> {
+  private async apply(tx: Transaction, playerId: string, command: GrowerAlphaCommandV1): Promise<GrowerAlphaProjectionV1['researchBatch']> {
     const now = this.now()
+    if (command.type === 'research-specimens') {
+      if (!command.specimenIds.length || command.specimenIds.length > MAX_RESEARCH_BATCH || new Set(command.specimenIds).size !== command.specimenIds.length) throw new ApiError('INVALID_COMMAND', 400, 'Choose between 1 and 100 different specimens.')
+      // Lock specimens in stable order before account state, matching single research/commerce.
+      const specimens = await tx.select().from(plantSpecimens).where(and(eq(plantSpecimens.ownerPlayerId, playerId), inArray(plantSpecimens.id, command.specimenIds))).orderBy(plantSpecimens.id).for('update')
+      const [[profile], [state]] = await Promise.all([
+        tx.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1),
+        tx.select().from(playerGrowerState).where(eq(playerGrowerState.playerId, playerId)).for('update').limit(1),
+      ])
+      if (!profile || !state) throw new Error('The Grower state is not initialized.')
+      if (!canUseBulkResearch(state.property)) throw new ApiError('FORBIDDEN', 403, 'Organized Beds is required for batch research.')
+      const cloneIds = [...new Set(specimens.map((specimen) => specimen.cloneLineId))]
+      const [lines, profiles, seeds, variants] = cloneIds.length ? await Promise.all([
+        tx.select().from(cloneLines).where(inArray(cloneLines.id, cloneIds)),
+        tx.select().from(geneticProfiles).where(inArray(geneticProfiles.cloneLineId, cloneIds)),
+        tx.select().from(bredSeeds).where(inArray(bredSeeds.cloneLineId, cloneIds)),
+        tx.select().from(cloneLineVariants).where(inArray(cloneLineVariants.cloneLineId, cloneIds)),
+      ]) : [[], [], [], []]
+      const byId = new Map(specimens.map((specimen) => [specimen.id, specimen]))
+      const byLine = new Map(lines.map((line) => [line.id, line]))
+      const byProfile = new Map(profiles.map((entry) => [entry.cloneLineId, entry]))
+      const bySeed = new Map(seeds.map((seed) => [seed.cloneLineId, seed]))
+      const result: NonNullable<GrowerAlphaProjectionV1['researchBatch']> = { succeeded: [], skipped: [] }
+      const seen = new Set<string>()
+      let research = state.research
+      let xp = 0
+      // Eligibility is evaluated at the starting level; new XP cannot silently expand this batch.
+      const level = getLevelFromXp(profile.geneticsXp)
+      for (const specimenId of command.specimenIds) {
+        const specimen = byId.get(specimenId)
+        if (!specimen || specimen.lifecycleStatus !== 'owned' || !specimen.collectedAt) { result.skipped.push({ specimenId, reason: 'Not an owned mature specimen.' }); continue }
+        const line = byLine.get(specimen.cloneLineId), genetics = byProfile.get(specimen.cloneLineId), seed = bySeed.get(specimen.cloneLineId)
+        if (!line || !genetics || !getSpeciesById(line.speciesId)) throw new Error('The specimen has incomplete genetic identity.')
+        const plant: CollectedPlant = { id: specimenId, ownerId: playerId, cloneLineId: line.id, speciesId: line.speciesId, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), collectedAt: specimen.collectedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), genetics: { vigor: genetics.vigor, growthSpeed: genetics.growthSpeed, size: genetics.size, flowering: genetics.flowering, mutationChance: genetics.mutationChance }, geneticFeatures: seed?.geneticFeatures ?? [], specialVariants: variants.filter((variant) => variant.cloneLineId === line.id && variant.variantId === 'shiny').map((variant) => ({ variantId: 'shiny', origin: 'random', establishedAt: variant.establishedAt.toISOString() })), isHybrid: seed?.isHybrid ?? false, isHarvestable: false, isListedForSale: false }
+        if (seen.has(line.id)) { result.skipped.push({ specimenId, reason: 'This clone line is already included.' }); continue }
+        seen.add(line.id)
+        const record = research.records[line.id]
+        if (!isEligibleForResearch(plant, record, level)) { result.skipped.push({ specimenId, reason: record?.analysisDepth === 'fully-characterized' ? 'Research complete.' : 'Next milestone requires a higher Genetics level.' }); continue }
+        const step = record ? analyzeCloneLine(research, plant, level, now.getTime()) : observeCloneLine(research, plant, now.getTime())
+        if (!step.changed) { result.skipped.push({ specimenId, reason: 'No available milestone.' }); continue }
+        research = step.research; xp += step.xpAwarded; result.succeeded.push(specimenId)
+      }
+      if (result.succeeded.length) {
+        await this.persistResearchResult(tx, playerId, profile, state, research, xp, now)
+        await this.recordEvent(tx, playerId, command.commandId, 'specimens-researched', now, { specimenIds: result.succeeded })
+      }
+      return result
+    }
     if (command.type === 'buy-shop-seeds') {
       await buyShopSeeds(tx, playerId, command.itemId, command.quantity, now)
       await this.recordEvent(tx, playerId, command.commandId, 'shop-purchase', now, { itemId: command.itemId, quantity: command.quantity })
