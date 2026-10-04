@@ -1,16 +1,21 @@
 import { useEffect, useRef } from 'react'
+import { finishAdminViewportRestoration } from './adminViewportRestoration'
 
 /** Admin forms scroll inside the overlay, never by moving the game document. */
 export function useAdminViewport(active: boolean) {
   const ref = useRef<HTMLDivElement>(null)
+  const cancelRestoration = useRef<(() => void) | null>(null)
   useEffect(() => {
     const overlay = ref.current
     if (!active || !overlay) return
+    cancelRestoration.current?.()
+    cancelRestoration.current = null
     const viewport = window.visualViewport
     const scrollX = window.scrollX, scrollY = window.scrollY
     const body = document.body, root = document.documentElement
     const savedBody = ['position', 'top', 'left', 'width', 'overflow', 'overscroll-behavior'].map(key => [key, body.style.getPropertyValue(key), body.style.getPropertyPriority(key)])
     const savedRoot = ['overflow', 'overscroll-behavior', 'scroll-behavior'].map(key => [key, root.style.getPropertyValue(key), root.style.getPropertyPriority(key)])
+    const savedViewport = ['--admin-viewport-top', '--admin-viewport-left', '--admin-viewport-width', '--admin-viewport-height', '--admin-hud-space'].map(key => [key, overlay.style.getPropertyValue(key), overlay.style.getPropertyPriority(key)])
     body.style.position = 'fixed'
     body.style.top = `${-scrollY}px`
     body.style.left = `${-scrollX}px`
@@ -45,18 +50,27 @@ export function useAdminViewport(active: boolean) {
     window.addEventListener('resize', update)
     overlay.addEventListener('focusin', update)
     return () => {
+      const focused = document.activeElement
+      if (focused instanceof HTMLElement && overlay.contains(focused)) focused.blur()
       viewport?.removeEventListener('resize', update)
       viewport?.removeEventListener('scroll', update)
       window.removeEventListener('resize', update)
       overlay.removeEventListener('focusin', update)
       window.cancelAnimationFrame(frame)
+      for (const [key, value, priority] of savedViewport) overlay.style.setProperty(key, value, priority)
       for (const [key, value, priority] of savedBody) body.style.setProperty(key, value, priority)
       // Restore the original document position without a CSS smooth-scroll animation.
       for (const [key, value, priority] of savedRoot) if (key !== 'scroll-behavior') root.style.setProperty(key, value, priority)
-      window.scrollTo(scrollX, scrollY)
       const [, behavior, priority] = savedRoot.find(([key]) => key === 'scroll-behavior')!
-      root.style.setProperty('scroll-behavior', behavior, priority)
+      const restoreScroll = () => {
+        root.style.setProperty('scroll-behavior', 'auto')
+        window.scrollTo(scrollX, scrollY)
+        root.style.setProperty('scroll-behavior', behavior, priority)
+      }
+      restoreScroll()
+      cancelRestoration.current = finishAdminViewportRestoration(restoreScroll)
     }
   }, [active])
+  useEffect(() => () => cancelRestoration.current?.(), [])
   return ref
 }

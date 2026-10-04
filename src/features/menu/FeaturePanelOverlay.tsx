@@ -23,14 +23,26 @@ export function FeaturePanelOverlay() {
   useEffect(() => {
     if (!open) return
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    closeRef.current?.focus()
-    return () => { if (opener?.isConnected) opener.focus(); else document.querySelector<HTMLButtonElement>('.game-header__menu-toggle')?.focus() }
+    const preventScroll = !!closeRef.current?.closest('.feature-panel--admintools')
+    closeRef.current?.focus({ preventScroll })
+    return () => { if (opener?.isConnected) opener.focus({ preventScroll }); else document.querySelector<HTMLButtonElement>('.game-header__menu-toggle')?.focus({ preventScroll }) }
   }, [open])
+
+  const dismiss = () => {
+    const focused = document.activeElement
+    if (admin && focused instanceof HTMLElement && adminViewportRef.current?.contains(focused)) focused.blur()
+    closeFeature()
+  }
 
   useEffect(() => {
     if (!open || covered) return
     function keydown(event: globalThis.KeyboardEvent) {
-      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); closeFeature() }
+      if (event.key === 'Escape') {
+        event.preventDefault(); event.stopImmediatePropagation()
+        const focused = document.activeElement
+        if (admin && focused instanceof HTMLElement && adminViewportRef.current?.contains(focused)) focused.blur()
+        closeFeature()
+      }
       if (event.key !== 'Tab' || preview) return
       const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled):not([tabindex="-1"]), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], summary, [tabindex="0"]') ?? [])
       const first = items[0], last = items[items.length - 1]
@@ -39,12 +51,12 @@ export function FeaturePanelOverlay() {
     }
     document.addEventListener('keydown', keydown, true)
     return () => document.removeEventListener('keydown', keydown, true)
-  }, [open, covered, closeFeature, preview])
+  }, [open, covered, closeFeature, preview, admin, adminViewportRef])
 
-  return feature && <div {...worldInputBoundary} ref={admin ? adminViewportRef : viewportRef} className={`feature-overlay${admin ? ' feature-overlay--admin' : ''}${preview ? ' feature-overlay--dev-preview' : ''}`} onPointerDown={(event) => { if (admin) event.stopPropagation(); if (!preview && event.target === event.currentTarget) closeFeature() }}>
+  return feature && <div {...worldInputBoundary} ref={admin ? adminViewportRef : viewportRef} className={`feature-overlay${admin ? ' feature-overlay--admin' : ''}${preview ? ' feature-overlay--dev-preview' : ''}`} onPointerDown={(event) => { if (admin) event.stopPropagation(); if (!preview && event.target === event.currentTarget) dismiss() }}>
     <section ref={panelRef} className={`feature-panel feature-panel--${feature}`} role="dialog" aria-modal={!covered && !preview} aria-labelledby="feature-panel-title" inert={covered}>
       <header className="feature-panel__header"><h2 id="feature-panel-title">{featureTitles[feature]}</h2>
-        <button ref={closeRef} type="button" onClick={closeFeature} aria-label="Close feature panel">Close</button>
+        <button ref={closeRef} type="button" onClick={dismiss} aria-label="Close feature panel">Close</button>
       </header>
       <div key={feature} className="feature-panel__content location-page__content">
         <FeatureContent feature={feature} />

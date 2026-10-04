@@ -153,6 +153,14 @@ Changed profile/Grower revisions refetch the existing Grower projection; changed
 
 `test:reconciliation` verifies selective refetch, distinct counters, coalescing, hidden-session pause, cleanup, transient failure/retry, timeout, auth denial and wire validation. `test:admin:db` mounts two real React provider/HUD/commerce trees with separate authenticated typed clients and disposable PostgreSQL in staging and production modes. It verifies remote currency, XP/seeds, unchanged actor, repeated revision/replay, offline reopening, immediate Shop/Marketplace buyer/NPC reconciliation and observed Marketplace seller credit. The real `PhaserWorldCanvas` lifecycle is exercised with a test game constructor; worlds/feature selections remain mounted. This is automated integration evidence, not authenticated live staging, physical-device or rendered Phaser acceptance. No schema migration, grant, OWNER bootstrap, economy-rule, auth, presence/chat or world change is required.
 
+## Post-close mobile viewport restoration
+
+The earlier close path restored document styles/scroll once and immediately removed visual viewport listeners. The subsequent ordinary focus restoration could move the document again; late keyboard-dismiss viewport events had no remaining correction. The five overlay viewport properties also remained on the detached overlay. These are verified cleanup gaps; reproducing Safari's native zoom on a physical iPhone remains a device acceptance item.
+
+Admin dismissal now blurs its focused control before unlocking the document, restores the five overlay properties and every saved body/root inline property, and restores opener focus with `preventScroll`. A bounded restoration listener repairs late scroll/viewport changes, then removes itself after a quiet, full-height viewport or a 600ms deadline. It emits one normal window resize so the existing Phaser ScaleManager remeasures normal layout. It does not set a second scale, reset camera/player state or recreate the world. Reopening cancels the pending restoration. The already deployed player-state revision observer remains unchanged.
+
+The strengthened staging/production Chromium fixture uses the real `PhaserWorldCanvas` with a rendered Phaser game and checks close from Overview, Support, Players and Roles, keyboard shrink/dismiss, late viewport events, exact root/HUD/world geometry and inline-style restoration, cleaned overlay properties/listeners, unchanged Phaser/player/camera, and rapid reopening. Its viewport events/document pan are simulated; it does not establish physical Safari or authenticated live staging acceptance.
+
 ## Source map and deferred scope
 
 - Contracts/permissions: `shared/api/adminV1.ts`; database schema/migration: `server/db/schema/admin.ts`, migration 0006 and its Drizzle metadata.
