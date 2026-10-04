@@ -18,13 +18,16 @@ export function PlantLifecycleProvider({ children }: { children: ReactNode }) {
   const planting = useRef(false)
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    if (!enabled) return
+    if (!enabled) return false
     const generation = ++readGeneration.current
-    await browserApiClient.getPlantLifecycleV3(signal).then((projection) => {
-      if (generation === readGeneration.current && !signal?.aborted) setState({ authority: 'server', status: 'ready', projection, error: null })
+    return browserApiClient.getPlantLifecycleV3(signal).then((projection) => {
+      if (generation !== readGeneration.current || signal?.aborted) return false
+      setState({ authority: 'server', status: 'ready', projection, error: null })
+      return true
     }, (error: unknown) => {
-      if (error instanceof DOMException && error.name === 'AbortError') return
+      if (error instanceof DOMException && error.name === 'AbortError') return false
       if (generation === readGeneration.current && !signal?.aborted) setState((previous) => previous.authority === 'server' && previous.status === 'ready' ? previous : { authority: 'server', status: 'error', projection: null, error: 'Unable to load the server plant lifecycle.' })
+      return false
     })
   }, [enabled])
 
@@ -38,6 +41,7 @@ export function PlantLifecycleProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     state,
+    refresh,
     applyProjection(projection: import('../../shared/api/plantLifecycleV3').PlantLifecycleProjectionV3) {
       if (!enabled) return
       readGeneration.current += 1

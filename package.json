@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:reconciliation": "node --experimental-strip-types --test src/app/playerAuthorityReconciliation.test.ts",
     "admin:owner": "node --experimental-strip-types scripts/admin-owner.ts",
     "admin:bootstrap-owner": "node --experimental-strip-types scripts/admin-owner.ts",
     "test:admin": "node --experimental-strip-types --test --test-isolation=none server/admin/admin.test.ts src/features/admin/admin.runtime.test.mjs src/features/admin/admin.viewport.test.mjs",

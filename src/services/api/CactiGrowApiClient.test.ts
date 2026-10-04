@@ -18,6 +18,21 @@ const plantCommand = { slotId: 'slot-1' as const, speciesId: 'echinopsis-pachano
 const plantKey = '80000000-0000-4000-8000-000000000008'
 const plantResult = { commandId: plantKey, lifecycleVersion: '2', seedStack: { speciesId: 'echinopsis-pachanoi', quantity: 3, version: 2 }, slot: { slotId: 'slot-1' as const, occupancy: null } }
 
+test('authority revision uses authenticated owner-scoped GET, propagates abort and validates the response', async () => {
+  const signal = new AbortController().signal
+  const revision = { projectionVersion: 1, profileVersion: 2, growerVersion: 100, lifecycleVersion: 3 }
+  let valid = true
+  const client = new CactiGrowApiClient({ getCredentials: () => ({ 'x-test-player': 'current-player' }), fetch: async (url, init) => {
+    assert.equal(String(url), '/api/v1/me/authority-revision')
+    assert.equal(init?.method, 'GET'); assert.equal(init?.signal, signal)
+    assert.equal(new Headers(init?.headers).get('x-test-player'), 'current-player')
+    return response({ ok: true, data: valid ? revision : { ...revision, profileVersion: -1 }, meta: { requestId: 'revision' } })
+  } })
+  assert.deepEqual(await client.getPlayerAuthorityRevision(signal), revision)
+  valid = false
+  await assert.rejects(client.getPlayerAuthorityRevision(signal), error => error instanceof CactiGrowApiError && error.kind === 'invalid-response')
+})
+
 test('lost planting response retries once with the identical receipt key and body', async () => {
   const requests: RequestInit[] = []
   const receipts = new Map<string, typeof plantResult>()

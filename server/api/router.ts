@@ -26,6 +26,7 @@ import { assertDevToolsEnvironment } from '../development/devToolsGate.ts'
 import { DevToolsService } from '../development/DevToolsService.ts'
 import { isDevCommand } from '../../shared/api/devToolsV1.ts'
 import { routeAdmin } from '../admin/routes.ts'
+import { readPlayerAuthorityRevision } from '../gameplay/playerAuthorityRevision.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -224,6 +225,14 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
         if (url.pathname === '/api/v1/shop') return successResponse({ projectionVersion: 1, items: SHOP_CATALOG, maxQuantity: MAX_SHOP_QUANTITY }, requestId)
         return successResponse(await new MarketplaceService(await context.database.getDatabase()).browse(player.playerId, url.searchParams.get('mine') === 'true', offset), requestId)
       }, dependencies.authenticationConfigurationFactory)
+    }
+
+    if (url.pathname === '/api/v1/me/authority-revision') {
+      if (!['development', 'staging', 'production'].includes(getRuntimeMetadata(env).environment)) throw ApiError.notFound('API route not found.')
+      if (request.method !== 'GET') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => successResponse(
+        await readPlayerAuthorityRevision(await context.database.getDatabase(), player.playerId), requestId,
+      ), dependencies.authenticationConfigurationFactory)
     }
 
     if (url.pathname === '/api/v1/me/grower-alpha') {

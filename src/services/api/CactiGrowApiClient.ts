@@ -2,6 +2,7 @@ import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV
 import { isAdminSession, isAdminPlayer, isAdminInspection, isAdminListing, isAdminAudit, isAdminResult, isAdminRoleEntry, isAdminSpecimen, adminPageValidator, type AdminSession, type AdminMutation, type AdminAction } from '../../../shared/api/adminV1.ts'
 import { isDevCommandResult, isDevSpecimenDiagnostics, type DevCommand, type DevCommandResult, type DevSpecimenDiagnostics } from '../../../shared/api/devToolsV1.ts'
 import type { ApiEnvelope } from '../../../shared/api/envelope.ts'
+import { isPlayerAuthorityRevisionV1, type PlayerAuthorityRevisionV1 } from '../../../shared/api/playerAuthorityRevisionV1.ts'
 import { isRealtimeCredentialsResponseV1, type RealtimeCredentialsRequestV1, type RealtimeCredentialsResponseV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
 import {
   isPlayerBootstrapV1,
@@ -139,6 +140,7 @@ export class CactiGrowApiClient {
   async getMarketplace(mine = false, offset = 0, signal?: AbortSignal): Promise<MarketplaceV1> { return this.execute(`/api/v1/marketplace?mine=${mine}&offset=${offset}`, { method: 'GET', signal }, isMarketplaceV1, 'Marketplace') }
   async getGarden(signal?: AbortSignal): Promise<GardenProjectionV1> { return this.execute('/api/v1/me/garden', { method: 'GET', signal }, isGardenProjectionV1, 'Garden projection') }
   async mutateGarden(command: GardenCommandV1): Promise<GardenProjectionV1> { return this.execute('/api/v1/me/garden', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isGardenProjectionV1, 'Garden projection') }
+  async getPlayerAuthorityRevision(signal?: AbortSignal): Promise<PlayerAuthorityRevisionV1> { return this.execute('/api/v1/me/authority-revision', { method: 'GET', signal }, isPlayerAuthorityRevisionV1, 'player authority revision') }
   async getGrowerAlpha(signal?: AbortSignal): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'GET', signal }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
   async mutateGrowerAlpha(command: GrowerAlphaCommandV1): Promise<GrowerAlphaProjectionV1> { return this.execute('/api/v1/me/grower-alpha', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isGrowerAlphaProjectionV1, 'Grower Alpha projection') }
   async searchPlayers(query: string, signal?: AbortSignal): Promise<PlayerSearchV1> {

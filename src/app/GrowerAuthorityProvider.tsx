@@ -11,12 +11,15 @@ export function GrowerAuthorityProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GrowerAuthorityState>(enabled ? { authority: 'server', status: 'loading', projection: null } : { authority: 'local' })
   const readGeneration = useRef(0)
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    if (!enabled) return
+    if (!enabled) return false
     const generation = ++readGeneration.current
-    await browserApiClient.getGrowerAlpha(signal).then((projection) => {
-      if (generation === readGeneration.current && !signal?.aborted) setState({ authority: 'server', status: 'ready', projection })
+    return browserApiClient.getGrowerAlpha(signal).then((projection) => {
+      if (generation !== readGeneration.current || signal?.aborted) return false
+      setState({ authority: 'server', status: 'ready', projection })
+      return true
     }, () => {
       if (generation === readGeneration.current && !signal?.aborted) setState((previous) => previous.authority === 'server' && previous.status === 'ready' ? previous : { authority: 'server', status: 'error', projection: null })
+      return false
     })
   }, [enabled])
   const commandRunner = useRef<ReturnType<typeof createGrowerCommandRunner> | null>(null)
@@ -38,7 +41,7 @@ export function GrowerAuthorityProvider({ children }: { children: ReactNode }) {
       read: () => browserApiClient.getGrowerAlpha(),
       invalidateReads: () => { readGeneration.current += 1 },
       apply: (projection) => setState({ authority: 'server', status: 'ready', projection }),
-      reconcileFailure: () => refresh(),
+      reconcileFailure: async () => { await refresh() },
       saleSettled: () => {
         window.dispatchEvent(new Event(PLANT_AUTHORITY_CHANGED_EVENT))
         window.dispatchEvent(new Event(GARDEN_AUTHORITY_CHANGED_EVENT))

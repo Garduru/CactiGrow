@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { spawn } from 'node:child_process'
 import { verifyAdminToolsUi } from './adminUi.integration.mjs'
+import { verifyLivePlayerReconciliation } from './playerReconciliationUi.integration.mjs'
 
 test('Admin RBAC, current-role authorization, atomic audits, replay, owner safety and marketplace moderation against disposable PostgreSQL', { skip: !process.env.CACTIGROW_EMBEDDED_POSTGRES_MODULE && 'Set the existing isolated embedded PostgreSQL module path.' }, async t => {
   const { default: EmbeddedPostgres } = await import(process.env.CACTIGROW_EMBEDDED_POSTGRES_MODULE)
@@ -111,6 +112,23 @@ test('Admin RBAC, current-role authorization, atomic audits, replay, owner safet
           assert.equal(rows.length, 1); assert.equal(rows[0].actor_player_id, owner); assert.equal(rows[0].target_player_id, moderator); assert.equal(rows[0].reason, command.reason)
         }
       }
+      assert.deepEqual(errors, [])
+    })
+    await t.test('owner-scoped revision endpoint and two active clients reconcile remote currency, XP and seeds without reload in staging/production', async () => {
+      assert.equal((await fetchAs('invalid')('https://admin.test/api/v1/me/authority-revision')).status, 401)
+      assert.equal((await fetchAs(player)('https://admin.test/api/v1/me/authority-revision', { method: 'POST' })).status, 405)
+      const own = await cp.getPlayerAuthorityRevision()
+      const attemptedTarget = await fetchAs(player)(`https://admin.test/api/v1/me/authority-revision?playerId=${owner}`)
+      assert.deepEqual((await attemptedTarget.json()).data, own)
+      assert.equal(attemptedTarget.headers.get('cache-control'), 'no-store')
+      const createSpecimen = async id => {
+        const line = crypto.randomUUID(), specimen = crypto.randomUUID()
+        await pg.query("insert into clone_lines(id,species_id,origin_type,origin_player_id,established_at,genetic_representation_version,visual_derivation_version) values($1,'echinopsis-pachanoi','commodity-seed',$2,now(),1,1)", [line, id])
+        await pg.query('insert into genetic_profiles(clone_line_id,vigor,growth_speed,size,flowering,mutation_chance,establishment_rule_version) values($1,50,50,50,50,50,1)', [line])
+        await pg.query("insert into plant_specimens(id,owner_player_id,clone_line_id,source_type,lifecycle_status,planted_at,collected_at,visual_derivation_version) values($1,$2,$3,'commodity-seed','owned',now(),now(),1)", [specimen, id, line])
+        return specimen
+      }
+      for (const environment of ['staging', 'production']) await verifyLivePlayerReconciliation(client(owner, environment), client(moderator, environment), owner, moderator, environment, createSpecimen)
       assert.deepEqual(errors, [])
     })
     await t.test('moderator cancellation preserves ownership/currency, rejects later purchase and audits once', async () => {

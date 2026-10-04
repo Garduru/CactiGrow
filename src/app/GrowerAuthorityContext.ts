@@ -9,7 +9,7 @@ export type GrowerAuthorityState =
 export interface GrowerAuthorityValue {
   state: GrowerAuthorityState
   mutate: (command: GrowerAlphaCommandInputV1) => Promise<GrowerAlphaProjectionV1 | null>
-  refresh: () => Promise<void>
+  refresh: (signal?: AbortSignal) => Promise<boolean>
   applyProjection: (projection: GrowerAlphaProjectionV1) => void
 }
 
