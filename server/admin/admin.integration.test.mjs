@@ -100,6 +100,19 @@ test('Admin RBAC, current-role authorization, atomic audits, replay, owner safet
       assert.equal(await countAudits(), total)
       await pg.query('grant insert on admin_audit_log to admin_runtime'); errors.length = 0
     })
+    await t.test('OWNER UI targets a distinct MODERATOR for currency, XP and seeds in staging and production; actor unchanged, audits exact and replay idempotent', async () => {
+      for (const environment of ['staging', 'production']) {
+        const actorBefore = await co.inspectAdminPlayer(owner), before = await countAudits()
+        const mutations = await verifyAdminToolsUi(client(owner, environment), owner, moderator, environment)
+        assert.deepEqual(await co.inspectAdminPlayer(owner), actorBefore)
+        assert.equal(await countAudits(), before + 3)
+        for (const [, , command] of mutations) {
+          const { rows } = await pg.query('select actor_player_id,target_player_id,reason from admin_audit_log where command_id=$1', [command.commandId])
+          assert.equal(rows.length, 1); assert.equal(rows[0].actor_player_id, owner); assert.equal(rows[0].target_player_id, moderator); assert.equal(rows[0].reason, command.reason)
+        }
+      }
+      assert.deepEqual(errors, [])
+    })
     await t.test('moderator cancellation preserves ownership/currency, rejects later purchase and audits once', async () => {
       const line = crypto.randomUUID(), specimen = crypto.randomUUID(), listing = crypto.randomUUID(), now = new Date()
       await pg.query("insert into clone_lines(id,species_id,origin_type,origin_player_id,established_at,genetic_representation_version,visual_derivation_version) values($1,'echinopsis-pachanoi','commodity',$2,$3,1,1)", [line, player, now])

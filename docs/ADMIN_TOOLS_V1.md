@@ -131,6 +131,18 @@ Existing Dev Tools (including real database/UI), marketplace (including real dat
 
 For repeatable database validation, set `CACTIGROW_EMBEDDED_POSTGRES_MODULE` to the file URL of the existing isolated embedded PostgreSQL installation, then run `npm run test:admin:db`. The suite creates disposable databases and does not connect to staging/production. Without that module the database suite explicitly skips; a skip is not rollout evidence.
 
+## Mobile and target-confirmation hotfix
+
+Player selection is shared across Players, Support and Roles. An unsubmitted review is invalidated when searching/selecting a target or changing sections; an unresolved submitted command keeps its original target and UUID for replay. Player corrections require an explicit selected internal UUID. Returned receipts must match the authenticated actor, reviewed target and command before success is shown. Reconciliation reads the reviewed target, while the actor's gameplay projection refreshes only for self-corrections. Feedback names the target and shows currency/XP/seeds before, after, applied delta, reason and audit receipt. A zero applied delta is reported as no change; API errors remain visible without a success receipt.
+
+The Admin overlay uses visual viewport width/height and both offsets, temporarily fixes the document at its original scroll position, and restores original inline styles and scroll on close. The bounded panel retains its header/Close while only content scrolls; focus visibility adjustments scroll that container. Controls explicitly retain a minimum 16px font without disabling browser zoom. These changes are scoped to Admin Tools; the shared HUD/world and other Feature Panels retain their architecture.
+
+`test:admin:db` exercises OWNER A correcting a distinct MODERATOR B through the real React panel, typed client, Worker and disposable PostgreSQL in staging and production modes. Currency, Cultivation XP and commodity seeds each change B by +1, preserve A, record the exact actor/target/reason and replay without another mutation/audit. It also checks selection across tabs, stale review invalidation and an API-backed underflow error.
+
+Set `CACTIGROW_TEST_BROWSER_EXECUTABLE` to an existing headless Chromium executable before `npm run test:admin` to include the mobile layout test. It checks actual CSS geometry at 390px and 320px widths with simulated visual viewport keyboard shrink/pan, reachable Close, 16px controls, internal scrolling, document restoration, stable HUD/world nodes and mouse/touch/pointer isolation. This fixture does not simulate Safari's native keyboard or automatic zoom and does not establish authenticated live staging or physical-device acceptance.
+
+An already-open target game session has no staff-correction push channel: its HUD can retain an older snapshot until an authoritative refresh/reload. A successful receipt and the Admin target inspection refer to persisted target state, not another browser's cached HUD. This hotfix does not add polling or change realtime/social/gameplay authority.
+
 ## Source map and deferred scope
 
 - Contracts/permissions: `shared/api/adminV1.ts`; database schema/migration: `server/db/schema/admin.ts`, migration 0006 and its Drizzle metadata.

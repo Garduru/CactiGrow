@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useSocialPanel } from '../social/useSocialPanel'
 import { useSocialState } from '../social/useSocialState'
 import { useChatViewport } from '../social/useChatViewport'
+import { useAdminViewport } from '../admin/useAdminViewport'
 import { FeatureContent } from './FeatureContent'
 import { featureTitles, useFeaturePanel } from './featurePanelState'
 
@@ -12,7 +13,9 @@ export function FeaturePanelOverlay() {
   const open = feature !== null
   const { profileTarget } = useSocialState()
   const { open: socialOpen } = useSocialPanel()
-  const viewportRef = useChatViewport<HTMLDivElement>(false, open)
+  const admin = feature === 'admintools'
+  const viewportRef = useChatViewport<HTMLDivElement>(false, open && !admin)
+  const adminViewportRef = useAdminViewport(admin)
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const covered = profileTarget.open || socialOpen
@@ -38,7 +41,7 @@ export function FeaturePanelOverlay() {
     return () => document.removeEventListener('keydown', keydown, true)
   }, [open, covered, closeFeature, preview])
 
-  return feature && <div {...worldInputBoundary} ref={viewportRef} className={`feature-overlay${preview ? ' feature-overlay--dev-preview' : ''}`} onPointerDown={(event) => { if (!preview && event.target === event.currentTarget) closeFeature() }}>
+  return feature && <div {...worldInputBoundary} ref={admin ? adminViewportRef : viewportRef} className={`feature-overlay${admin ? ' feature-overlay--admin' : ''}${preview ? ' feature-overlay--dev-preview' : ''}`} onPointerDown={(event) => { if (admin) event.stopPropagation(); if (!preview && event.target === event.currentTarget) closeFeature() }}>
     <section ref={panelRef} className={`feature-panel feature-panel--${feature}`} role="dialog" aria-modal={!covered && !preview} aria-labelledby="feature-panel-title" inert={covered}>
       <header className="feature-panel__header"><h2 id="feature-panel-title">{featureTitles[feature]}</h2>
         <button ref={closeRef} type="button" onClick={closeFeature} aria-label="Close feature panel">Close</button>
