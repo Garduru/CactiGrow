@@ -12,7 +12,7 @@ export function canUseWorldKeyboard(canvas: HTMLElement): boolean {
 
 interface WorldKeyboard {
   enabled: boolean
-  manager: { enabled: boolean }
+  manager: { enabled: boolean } | null
   resetKeys(): unknown
 }
 
@@ -21,6 +21,8 @@ interface WorldKeyboard {
 export function bindWorldKeyboardFocus(canvas: HTMLElement, keyboard: WorldKeyboard): () => void {
   const document = canvas.ownerDocument
   const sync = () => {
+    // Phaser nulls the manager during destruction, before pending DOM focus events.
+    if (!keyboard.manager) return
     const enabled = canUseWorldKeyboard(canvas)
     keyboard.enabled = enabled
     keyboard.manager.enabled = enabled

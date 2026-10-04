@@ -74,6 +74,17 @@ function isEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 }
 
 export class CactiGrowApiClient {
+  async getUnreadMailCount(signal?: AbortSignal): Promise<{ unreadCount: number }> {
+    return this.execute('/api/v1/me/mail/count', { method: 'GET', signal },
+      (v): v is { unreadCount: number } => !!v && typeof v === 'object' && Number.isSafeInteger((v as { unreadCount?: unknown }).unreadCount) && ((v as { unreadCount: number }).unreadCount >= 0), 'unread mail count')
+  }
+  async getMailbox(signal?: AbortSignal, inboxOffset = 0, sentOffset = 0): Promise<Mailbox> {
+    return this.execute(`/api/v1/me/mail?inboxOffset=${inboxOffset}&sentOffset=${sentOffset}`, { method: 'GET', signal }, isMailbox, 'mailbox')
+  }
+  async mutateMail(command: MailCommand): Promise<{ mailId: string }> {
+    return this.execute('/api/v1/me/mail', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) },
+      isMailReceipt, 'mail receipt')
+  }
   private readonly baseUrl: string
   private readonly request: typeof fetch
   private readonly getCredentials: () => HeadersInit | undefined | Promise<HeadersInit | undefined>
@@ -227,3 +238,4 @@ export class CactiGrowApiClient {
     return body.data
   }
 }
+import { isMailbox, isMailReceipt, type Mailbox, type MailCommand } from '../../../shared/api/mailV1.ts'

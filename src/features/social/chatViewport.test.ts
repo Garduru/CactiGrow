@@ -7,15 +7,15 @@ test('mobile chat follows keyboard resize/pan and restores its position on iPhon
   for (const [width, height] of [[390, 844], [360, 800], [412, 915]]) {
     const values = new Map<string, string>()
     const parent = { getBoundingClientRect: () => ({ top: 130, bottom: height - 10 }) }
-    const element = { parentElement: parent, style: { setProperty: (key: string, value: string) => values.set(key, value) } }
+    const element = Object.assign(new EventTarget(), { parentElement: parent, contains: () => false, style: { getPropertyValue: (key: string) => values.get(key) ?? '', getPropertyPriority: () => '', setProperty: (key: string, value: string) => values.set(key, value) } })
     const viewport = Object.assign(new EventTarget(), { width, height, offsetTop: 0 })
     const windowMock = Object.assign(new EventTarget(), { visualViewport: viewport, innerHeight: height })
     let cleanup: (() => void) | undefined
     let disconnected = false
     const module = { exports: {} as { useChatViewport: (anchored: boolean) => unknown } }
-    const load = new Function('require', 'module', 'exports', 'window', 'ResizeObserver', result.outputFiles[0].text)
+    const load = new Function('require', 'module', 'exports', 'window', 'ResizeObserver', 'document', 'HTMLElement', result.outputFiles[0].text)
     load(() => ({ useRef: () => ({ current: element }), useEffect: (effect: () => () => void) => { cleanup = effect() } }), module, module.exports,
-      windowMock, class { observe() {} disconnect() { disconnected = true } })
+      windowMock, class { observe() {} disconnect() { disconnected = true } }, { activeElement: null }, class {})
     module.exports.useChatViewport(true)
     assert.equal(values.get('--chat-keyboard-inset'), '0px')
     viewport.height = height - 340
@@ -31,7 +31,7 @@ test('mobile chat follows keyboard resize/pan and restores its position on iPhon
     cleanup!()
     assert.equal(disconnected, true)
     viewport.height = 200; viewport.dispatchEvent(new Event('resize'))
-    assert.equal(values.get('--chat-keyboard-inset'), '0px', 'unmounted chat no longer listens')
+    assert.equal(values.get('--chat-keyboard-inset'), '', 'unmounted chat no longer listens')
     module.exports.useChatViewport(false)
     assert.equal(values.get('--chat-viewport-height'), '200px', 'modal chat uses the visible viewport height')
     cleanup!()

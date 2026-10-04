@@ -1,6 +1,7 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { assertSpecimenNotInMail } from './specimenCommerceEligibility.ts'
+import { and, isNull, eq, inArray, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
-import { bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings, nurseryOccupancies, plantSpecimens, playerGrowerEvents, playerGrowerState, playerOnboarding, playerPlantLifecycleVersions, playerSeedStacks } from '../db/schema/index.ts'
+import { bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings, mailMessages, nurseryOccupancies, plantSpecimens, playerGrowerEvents, playerGrowerState, playerOnboarding, playerPlantLifecycleVersions, playerSeedStacks } from '../db/schema/index.ts'
 import { NURSERY_SLOT_IDS, PLANT_LIFECYCLE_PROJECTION_VERSION, type CollectPlantCommandV1, type CollectPlantResultV1, type NurserySlotV1, type PlantCommoditySeedCommandV1, type PlantCommoditySeedResultV1, type PlantLifecycleProjectionV1, type PlantSpecimenV1 } from '../../shared/api/plantLifecycleV1.ts'
 import { ApiError } from '../api/errors.ts'
 import { ALPHA_GROWTH, shortenLegacyGrowth, GENETIC_ESTABLISHMENT_RULE_VERSION, GENETIC_REPRESENTATION_VERSION, VISUAL_DERIVATION_VERSION, establishCommoditySeedGenetics, resolvePlantGrowth, rollShiny, secureUint16, type SecureUint16 } from './plantLifecycleRules.ts'
@@ -92,7 +93,9 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     await this.upgradeAlphaSchedules(playerId)
     const stacks = await this.database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, playerId))
     const occupancies = await this.database.select().from(nurseryOccupancies).where(eq(nurseryOccupancies.playerId, playerId))
-    const specimens = await this.database.select().from(plantSpecimens).where(eq(plantSpecimens.ownerPlayerId, playerId))
+    const reserved = await this.database.select({ id: mailMessages.specimenId }).from(mailMessages).where(and(eq(mailMessages.senderPlayerId, playerId), isNull(mailMessages.claimedAt)))
+    const reservedIds = new Set(reserved.map(row => row.id))
+    const specimens = (await this.database.select().from(plantSpecimens).where(eq(plantSpecimens.ownerPlayerId, playerId))).filter(row => !reservedIds.has(row.id))
     const versionRows = await this.database.select().from(playerPlantLifecycleVersions).where(eq(playerPlantLifecycleVersions.playerId, playerId)).limit(1)
     const cloneIdList = [...new Set(specimens.map((specimen) => specimen.cloneLineId))]
     const lines = cloneIdList.length ? await this.database.select().from(cloneLines).where(inArray(cloneLines.id, cloneIdList)) : []
@@ -206,6 +209,8 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       const first = parents.find((parent) => parent.id === command.parent1SpecimenId)!
       const second = parents.find((parent) => parent.id === command.parent2SpecimenId)!
       if (first.version !== command.expectedParent1Version || second.version !== command.expectedParent2Version) throw safeConflict('STALE_VERSION', 'A parent specimen changed. Refresh and try again.')
+      await assertSpecimenNotInMail(tx, first.id)
+      await assertSpecimenNotInMail(tx, second.id)
       if (first.lifecycleStatus !== 'owned' || second.lifecycleStatus !== 'owned' || !first.collectedAt || !second.collectedAt) throw safeConflict('PLANT_NOT_READY', 'Both parents must be mature and collected.')
       const activeListings = await tx.select({ specimenId: marketplaceListings.specimenId }).from(marketplaceListings).where(and(inArray(marketplaceListings.specimenId, [first.id, second.id]), eq(marketplaceListings.status, 'active')))
       if (activeListings.length) throw safeConflict('CONFLICT', 'Listed specimens cannot breed.')

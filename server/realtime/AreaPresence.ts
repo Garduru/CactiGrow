@@ -1,3 +1,7 @@
+import { ChatDirectory, CHAT_DIRECTORY_NAME, isChatPeer, type ChatPeer, type ChatDelivery } from './ChatDirectory.ts'
+import { STALE_AFTER_MS } from './runtimeContracts.ts'
+import { parseServerMessageText, type PublicChatMessageV1 } from '../../shared/realtime/protocolV1.ts'
+import type { Membership } from './presenceState.ts'
 import { DurableObject } from 'cloudflare:workers'
 import { getAreaDefinition } from '../../shared/realtime/areas.ts'
 import { isRecord } from '../../shared/realtime/protocolV1.ts'
@@ -29,6 +33,8 @@ export function admitToArea(namespace: RealtimeEnv['AREA_PRESENCE'], scope: Trus
 }
 
 export class AreaPresence extends DurableObject<RealtimeEnv> {
+  #directory?: ChatDirectory
+  #pendingChats: { sender: Membership; message: PublicChatMessageV1 }[] = []
   #runtime?: AreaCoordinator
   #socialProfiles = new Map<string, AreaSocialProfile>()
 
@@ -63,6 +69,7 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
       now: () => Date.now(), uuid: () => crypto.randomUUID(),
       accept: (socket: PresenceSocket) => this.ctx.acceptWebSocket(socket as WebSocket),
       save: (value) => this.ctx.storage.kv.put(CHECKPOINT_KEY, value),
+      routeChat: (sender, message) => { this.#pendingChats.push({ sender, message }) },
       isBlocked: (blockerPlayerId, blockedPublicId) => this.#socialProfiles.get(blockerPlayerId)?.blockedPublicIds.includes(blockedPublicId) ?? false,
       removeSocial: (playerId) => { this.#socialProfiles.delete(playerId); this.#saveSocialProfiles() },
       diagnostic: (event, fields) => console.info(JSON.stringify({ service: 'area-presence', event, ...fields })),
@@ -82,6 +89,9 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
    */
   fetch(request: Request): Promise<Response> | Response {
     const path = new URL(request.url).pathname
+    if (this.ctx.id.toString() === this.env.AREA_PRESENCE.idFromName(CHAT_DIRECTORY_NAME).toString()) return this.#directoryFetch(request)
+    if (path === '/chat-deliver' && request.method === 'POST') return this.#deliver(request)
+    if (path === '/chat-revoke' && request.method === 'POST') return this.#revoke(request)
     if (path === '/social-sync' && request.method === 'POST') return this.#syncSocial(request)
     if (path === '/tickets' && request.method === 'POST') return this.#issue(request)
     if (path === '/redeem' && request.method === 'GET' && request.headers.get('Upgrade')?.toLowerCase() === 'websocket') return this.#redeem(request)
@@ -100,7 +110,9 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
     try { input = JSON.parse(text) } catch { return new Response('Invalid social profile', { status: 400 }) }
     if (!isAreaSocialProfile(input)) return new Response('Invalid social profile', { status: 400 })
     return this.ctx.blockConcurrencyWhile(async () => {
-      if (!this.#isOwner('town')) return new Response('Invalid Area', { status: 403 })
+      // Bound to a configured Area, including the authenticated player's private Farm.
+      const area = this.#runtime?.snapshot().area.areaId
+      if (area && !this.#isOwner(area)) return new Response('Invalid Area', { status: 403 })
       this.#socialProfiles.set(input.playerId, input)
       this.#saveSocialProfiles()
       return new Response(null, { status: 204 })
@@ -166,6 +178,11 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
     })
   }
   async #redeem(request: Request): Promise<Response> {
+    const response = await this.#redeemLocked(request)
+    if (response.status === 101) await this.#updateDirectory()
+    return response
+  }
+  async #redeemLocked(request: Request): Promise<Response> {
     const ticket = request.headers.get('X-CactiGrow-Ticket'), areaId = request.headers.get('X-CactiGrow-Area')
     if (!isRealtimeCredential(ticket) || !this.#isOwner(areaId)) return new Response('Invalid ticket', { status: 401 })
     const hash = await credentialHash(ticket)
@@ -195,20 +212,94 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
       return response
     })
   }
-  webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    return this.ctx.blockConcurrencyWhile(async () => {
+  async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    const chats = await this.ctx.blockConcurrencyWhile(async () => {
       if (this.#runtime) this.#runtime.message(socket, message)
       else socket.close(1008, 'Missing Area state')
+      const chats = this.#pendingChats.splice(0)
       await this.#schedule()
+      return chats
     })
+    // Never await cross-object callbacks under an Area's concurrency gate.
+    if (chats.length || typeof message === 'string' && message.includes('"ping"')) await this.#updateDirectory()
+    for (const chat of chats) {
+      const profile = this.#socialProfiles.get(chat.sender.playerId)
+      let delivered = false
+      try {
+        const response = await this.#directoryStub().fetch(new Request('https://chat.internal/route', { method: 'POST', body: JSON.stringify({ sender: this.#peer(chat.sender), message: chat.message, blockedPublicIds: profile?.blockedPublicIds ?? [] }) }))
+        delivered = response.ok && (await response.json() as { delivered: boolean }).delivered
+      } catch { /* Failure is visible; never synthesize a delivered DM. */ }
+      if (!delivered) this.#runtime?.chatUnavailable(chat.sender.playerId)
+    }
   }
   webSocketClose(socket: WebSocket): Promise<void> { return this.#close(socket) }
   webSocketError(socket: WebSocket): Promise<void> { return this.#close(socket) }
-  #close(socket: WebSocket): Promise<void> {
-    return this.ctx.blockConcurrencyWhile(async () => {
+  async #close(socket: WebSocket): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
       this.#runtime?.remove(socket)
       await this.#schedule()
     })
+    await this.#updateDirectory()
+  }
+  #directoryStub() { return this.env.AREA_PRESENCE.get(this.env.AREA_PRESENCE.idFromName(CHAT_DIRECTORY_NAME)) }
+  #peer(member: Membership): ChatPeer {
+    const attachment = this.ctx.getWebSockets().map(s => s.deserializeAttachment()).find(a => isRecord(a) && isRecord(a.member) && a.member.presenceId === member.presenceId) as { lastSeen: number; authorizationExpiresAt: number } | undefined
+    return { playerId: member.playerId, publicId: member.publicId, areaId: member.areaId, presenceId: member.presenceId, joinedAt: member.joinedAt,
+      expiresAt: attachment ? Math.min(attachment.authorizationExpiresAt, attachment.lastSeen + STALE_AFTER_MS) : 0 }
+  }
+  async #updateDirectory() {
+    if (!this.#runtime) return
+    const snapshot = this.#runtime.snapshot()
+    const response = await this.#directoryStub().fetch(new Request('https://chat.internal/update', { method: 'POST', body: JSON.stringify({ areaId: snapshot.area.areaId, peers: snapshot.members.map(m => this.#peer(m)) }) }))
+    if (!response.ok) throw new Error('Chat directory unavailable.')
+  }
+  async #deliver(request: Request): Promise<Response> {
+    const delivery = await request.json() as ChatDelivery
+    const parsed = parseServerMessageText(JSON.stringify({ v: 1, eventSequence: 0, type: 'chat', message: delivery.message }))
+    if (!parsed.ok || typeof delivery.senderAreaId !== 'string') return new Response(null, { status: 400 })
+    return this.ctx.blockConcurrencyWhile(async () => Response.json({ delivered: this.#runtime?.deliverChat(delivery.message, delivery.senderAreaId, delivery.targetPresenceId, delivery.echo) ?? 0 }))
+  }
+  async #revoke(request: Request): Promise<Response> {
+    const peer = await request.json() as ChatPeer
+    return this.ctx.blockConcurrencyWhile(async () => {
+      for (const socket of this.ctx.getWebSockets()) {
+        const attachment = socket.deserializeAttachment()
+        if (isRecord(attachment) && isRecord(attachment.member) && attachment.member.presenceId === peer.presenceId) this.#runtime?.remove(socket, 'replaced')
+      }
+      await this.#schedule()
+      return new Response(null, { status: 204 })
+    })
+  }
+  async #directoryFetch(request: Request): Promise<Response> {
+    const path = new URL(request.url).pathname
+    if (request.method !== 'POST') return new Response(null, { status: 404 })
+    const stored = this.ctx.storage.kv.get<ChatPeer[]>('chat-directory-v2') ?? []
+    this.#directory ??= new ChatDirectory({ now: Date.now, save: peers => this.ctx.storage.kv.put('chat-directory-v2', peers),
+      deliver: async (areaId, delivery) => {
+        const response = await getAreaCoordinator(this.env.AREA_PRESENCE, areaId).fetch(new Request('https://area.internal/chat-deliver', { method: 'POST', body: JSON.stringify(delivery) }))
+        return response.ok ? (await response.json() as { delivered: number }).delivered : 0
+      }, revoke: async peer => { await getAreaCoordinator(this.env.AREA_PRESENCE, peer.areaId).fetch(new Request('https://area.internal/chat-revoke', { method: 'POST', body: JSON.stringify(peer) })) },
+    }, stored)
+    if (path === '/update') {
+      const input = await request.json() as { areaId: string; peers: ChatPeer[] }
+      if (!getAreaDefinition(input.areaId) || !Array.isArray(input.peers) || input.peers.length > 128 || !input.peers.every(isChatPeer)) return new Response(null, { status: 400 })
+      await this.#directory.update(input.areaId, input.peers)
+      return new Response(null, { status: 204 })
+    }
+    if (path === '/route') {
+      const input = await request.json() as { sender: ChatPeer; message: PublicChatMessageV1; blockedPublicIds: string[] }
+      const parsed = parseServerMessageText(JSON.stringify({ v: 1, eventSequence: 0, type: 'chat', message: input.message }))
+      if (!isChatPeer(input.sender) || !parsed.ok || !Array.isArray(input.blockedPublicIds) || !input.blockedPublicIds.every(isCanonicalUuid)) return new Response(null, { status: 400 })
+      return Response.json({ delivered: await this.#directory.route(input.sender, input.message, input.blockedPublicIds) })
+    }
+    if (path === '/social-sync') {
+      const profile = await request.json() as AreaSocialProfile
+      if (!isAreaSocialProfile(profile)) return new Response(null, { status: 400 })
+      const peer = this.#directory.current(profile.playerId)
+      if (peer) return getAreaCoordinator(this.env.AREA_PRESENCE, peer.areaId).fetch(new Request('https://area.internal/social-sync', { method: 'POST', body: JSON.stringify(profile) }))
+      return new Response(null, { status: 204 })
+    }
+    return new Response(null, { status: 404 })
   }
   alarm(): Promise<void> {
     return this.ctx.blockConcurrencyWhile(async () => {

@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react'
+import { ChatHistory } from './ChatHistory'
+import { useLocation } from 'react-router-dom'
+import { browserRealtimeApiClient } from '../../services/api/browserApiClient'
+import { areaId } from '../../../shared/realtime/identifiers'
+import { getChatLocation } from '../../../shared/realtime/chatLocation'
+import { resolveTownSpawnId } from '../../app/farmReturnNavigation'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react'
 import { usePlayerBootstrap } from '../../app/usePlayerBootstrap'
 import { browserApiClient } from '../../services/api/browserApiClient'
 import { CactiGrowApiError } from '../../services/api/CactiGrowApiClient'
 import type { SocialCommandV1 } from '../../../shared/api/socialV1'
-import type { AreaConnection, AreaConnectionState } from '../../services/realtime/AreaConnection'
+import { AreaConnection, type AreaConnectionState } from '../../services/realtime/AreaConnection'
 import { SocialContext, type SocialLoadState } from './socialContextState'
 
 const EMPTY_TOWN_SNAPSHOT: AreaConnectionState = { status: 'idle', remotes: [], chatMessages: [] }
-const subscribeWithoutTown: (listener: () => void) => () => void = () => () => {}
 const getEmptyTownSnapshot = (): AreaConnectionState => EMPTY_TOWN_SNAPSHOT
 
 export function SocialProvider({ children }: { children: ReactNode }) {
@@ -16,19 +21,28 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const [loadedSocial, setLoadedSocial] = useState<{ playerId: string; revision: number; state: Exclude<SocialLoadState, { status: 'loading' }> } | null>(null)
   const [reload, setReload] = useState(0)
   const [profileTarget, setProfileTarget] = useState<{ open: false } | { open: true; publicId: string | null }>({ open: false })
-  const [townConnection, setTownConnection] = useState<AreaConnection | null>(null)
+  const location = useLocation()
   const [directRecipientPublicId, setDirectRecipientPublicId] = useState<string | null>(null)
-  const bindTownConnection = useCallback((connection: AreaConnection | null) => setTownConnection(connection), [])
   // Refreshing relationships must not tear down the authenticated game subtree.
   const state: SocialLoadState = playerId && loadedSocial?.playerId === playerId && (loadedSocial.state.status === 'ready' || loadedSocial.revision === reload)
     ? loadedSocial.state : { status: 'loading' }
-  const townSubscribe = townConnection?.subscribe ?? subscribeWithoutTown
-  const townSnapshot = townConnection?.getSnapshot ?? getEmptyTownSnapshot
-  const realtime = useSyncExternalStore(townSubscribe, townSnapshot, getEmptyTownSnapshot)
-  const chatStatus = !townConnection ? 'World Chat is available in Town.'
-    : realtime.status === 'connected' ? 'Connected to Town Chat.'
-      : realtime.status === 'reconnecting' ? 'Reconnecting to Town Chat…' : 'Connect to Town to chat.'
-  const chatMessages = realtime.chatMessages
+  const ownPublicId = state.status === 'ready' ? state.overview.ownProfile?.publicId : undefined
+  const inTown = ['/town', '/shop', '/market'].includes(location.pathname)
+  const currentAreaId = inTown ? 'town' : ownPublicId ? `farm-${ownPublicId}` : null
+  const entryPointId = inTown ? resolveTownSpawnId(location.state) : 'chat-session'
+  const townConnection = useMemo(() => new AreaConnection({ areaId: areaId(currentAreaId ?? 'town'), entryPointId,
+    origin: window.location.origin, admit: (request, signal) => browserRealtimeApiClient.requestRealtimeAdmission(request, signal) }), [currentAreaId, entryPointId])
+  const enabled = (import.meta.env.MODE !== 'production' || import.meta.env.VITE_CACTIGROW_REALTIME_ENABLED === 'true')
+    && !(import.meta.env.DEV && new URLSearchParams(location.search).has('worldEdit'))
+  useEffect(() => {
+    if (enabled && playerId && ownPublicId && currentAreaId) townConnection.start()
+    return () => townConnection.stop()
+  }, [townConnection, enabled, playerId, ownPublicId, currentAreaId])
+  const realtime = useSyncExternalStore(townConnection.subscribe, townConnection.getSnapshot, getEmptyTownSnapshot)
+  const chatStatus = realtime.status === 'connected' ? 'Connected' : realtime.status === 'reconnecting' ? 'Reconnecting...' : 'Realtime chat unavailable.'
+  const history = useMemo(() => new ChatHistory(playerId), [playerId])
+  useEffect(() => history.attach(townConnection), [history, townConnection])
+  const chatMessages = useSyncExternalStore(history.subscribe, history.getSnapshot)
   const chatError = realtime.chatError ?? ''
 
   useEffect(() => {
@@ -68,8 +82,9 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const closeProfile = useCallback(() => setProfileTarget({ open: false }), [])
 
   return <SocialContext.Provider value={{ state, mutate, refresh, profileTarget,
-    openProfile, closeProfile, bindTownConnection, chatStatus, chatMessages,
+    openProfile, closeProfile, connection: townConnection, chatLocation: currentAreaId ? getChatLocation(currentAreaId) ?? null : null, chatConnected: realtime.status === 'connected', chatStatus, chatMessages,
     chatError, directRecipientPublicId, setDirectRecipient: setDirectRecipientPublicId,
+    sendPublicMessage: (channel, text) => townConnection.sendPublicMessage(channel, text),
     sendWorldMessage: (text) => townConnection?.sendWorldMessage(text) ?? false,
     sendDirectMessage: (text) => directRecipientPublicId ? townConnection?.sendDirectMessage(directRecipientPublicId, text) ?? false : false }}>
     {children}

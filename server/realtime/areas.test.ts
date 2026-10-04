@@ -4,7 +4,7 @@ import { assertValidArea, getAreaDefinition, isEntryPoint, TOWN_AREA, TOWN_ENTRY
 import { areaId, connectionGeneration, layerId, playerId, presenceId } from '../../shared/realtime/identifiers.ts'
 import { TOWN_WORLD_WIDTH, TOWN_WORLD_HEIGHT, TOWN_PLAYER_SPAWN, townWorldSpawns } from '../../src/game-world/townWorldLayout.ts'
 
-test('Town is the only active Area; unknown and inherited-property names are rejected', () => {
+test('Town is registered; unknown and inherited-property names are rejected', () => {
   assert.equal(getAreaDefinition('town'), TOWN_AREA)
   for (const id of ['forest', '', 'Town', '__proto__', 'constructor', null, 1]) assert.equal(getAreaDefinition(id), undefined)
 })

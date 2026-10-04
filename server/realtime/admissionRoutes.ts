@@ -1,3 +1,4 @@
+import { CHAT_DIRECTORY_NAME } from './ChatDirectory.ts'
 import type { ApiRequestContext } from '../api/router.ts'
 import type { AuthenticationConfigurationFactory } from '../auth/authentication.ts'
 import { authenticateRequest } from '../auth/authentication.ts'
@@ -35,7 +36,7 @@ export async function syncRealtimeSocial(context: ApiRequestContext, playerId: s
   if (env.CACTIGROW_REALTIME_ENABLED !== 'true' || !env.AREA_PRESENCE) return
   const profile = projection ?? await resolveSocial(context, playerId)
   if (!profile) throw ApiError.conflict('Choose a character name before entering Town.')
-  const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(areaCoordinatorName('town')))
+  const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(CHAT_DIRECTORY_NAME))
   const response = await stub.fetch(new Request('https://area.internal/social-sync', { method: 'POST',
     headers: { 'content-type': 'application/json' }, body: JSON.stringify({ playerId, ...profile }) }))
   if (!response.ok) throw ApiError.conflict('Realtime social state is temporarily unavailable.')
@@ -65,7 +66,9 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')
     if (!Number.isSafeInteger(sessionExpiry) || sessionExpiry <= now) throw ApiError.unauthenticated()
     const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(areaCoordinatorName(input.areaId)))
-    await syncRealtimeSocial(context, player.playerId, profile)
+    if (input.areaId.startsWith('farm-') && input.areaId !== `farm-${profile.publicId}`) throw ApiError.forbidden()
+    const synced = await stub.fetch(new Request('https://area.internal/social-sync', { method: 'POST', body: JSON.stringify({ playerId: player.playerId, ...profile }) }))
+    if (!synced.ok) throw ApiError.conflict('Realtime social state is unavailable.')
     const response = await stub.fetch(new Request('https://area.internal/tickets', { method: 'POST', headers: {
       'X-CactiGrow-Trusted-Scope': JSON.stringify({ areaId: input.areaId, entryPointId: input.entryPointId,
         playerId: player.playerId, publicId: profile.publicId, displayName: profile.displayName,

@@ -27,6 +27,8 @@ import { DevToolsService } from '../development/DevToolsService.ts'
 import { isDevCommand } from '../../shared/api/devToolsV1.ts'
 import { routeAdmin } from '../admin/routes.ts'
 import { readPlayerAuthorityRevision } from '../gameplay/playerAuthorityRevision.ts'
+import { MailService } from '../player/MailService.ts'
+import { isMailCommand } from '../../shared/api/mailV1.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -102,6 +104,24 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
   return async (context) => {
     const { request, env, requestId } = context
     const url = new URL(request.url)
+    if (url.pathname === '/api/v1/me/mail' || url.pathname === '/api/v1/me/mail/count') {
+      if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = new MailService(await context.database.getDatabase())
+        if (url.pathname.endsWith('/count')) {
+          if (request.method !== 'GET') throw ApiError.methodNotAllowed()
+          return successResponse(await service.unreadCount(player.playerId), requestId)
+        }
+        if (request.method === 'POST') {
+          const command = await readJson(request)
+          if (!isMailCommand(command)) throw ApiError.validation('Invalid mail command.')
+          return successResponse(await service.execute(player.playerId, command), requestId)
+        }
+        const inboxOffset = Number(url.searchParams.get('inboxOffset') ?? 0), sentOffset = Number(url.searchParams.get('sentOffset') ?? 0)
+        if (![inboxOffset, sentOffset].every(v => Number.isSafeInteger(v) && v >= 0 && v <= 10000)) throw ApiError.validation('Invalid mailbox page.')
+        return successResponse(await service.mailbox(player.playerId, inboxOffset, sentOffset), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
     if (url.pathname.startsWith('/api/v1/admin/')) return routeAdmin(context, readJson, dependencies.authenticationConfigurationFactory)
     if (url.pathname.startsWith('/api/v1/dev/')) {
       assertDevToolsEnvironment(env, request.url)

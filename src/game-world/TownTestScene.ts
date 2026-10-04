@@ -305,6 +305,7 @@ export class TownTestScene extends Phaser.Scene {
     this.wasd = this.input.keyboard.addKeys({ up: 'W', down: 'S', left: 'A', right: 'D', interact: 'E' }) as typeof this.wasd
     const releaseKeyboardFocus = bindWorldKeyboardFocus(this.game.canvas, this.input.keyboard)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, releaseKeyboardFocus)
+    this.events.once(Phaser.Scenes.Events.DESTROY, releaseKeyboardFocus)
     this.wasd.interact.on('down', () => { if (this.editor?.getSnapshot().mode !== 'edit' && this.canAcceptKeyboardInput()) this.activateNearestInteraction() })
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.editor?.getSnapshot().mode === 'edit') {

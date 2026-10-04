@@ -149,7 +149,7 @@ export class AreaConnection {
     }
     if (!this.self) { this.fail(false); return }
     if (message.type === 'error') {
-      if (message.code === 'CHAT_UNAVAILABLE') { this.chatError = 'That player is unavailable.'; this.publish(); return }
+      if (message.code === 'CHAT_UNAVAILABLE') { this.chatError = 'Message unavailable. Check recipient availability, blocks or the send limit; use Mail for offline delivery.'; this.publish(); return }
       this.fail(message.retryable); return
     }
     if (message.type === 'chat') {
@@ -199,6 +199,12 @@ export class AreaConnection {
     if (this.send({ v: 1, type: 'move', ...sample })) { this.sequence++; this.lastSent = sample; this.lastSentAt = now }
   }
 
+  sendPublicMessage(channel: 'local' | 'town' | 'world', text: string): boolean {
+    const cleaned = text.trim()
+    if (!cleaned) return false
+    this.chatError = null
+    return this.send({ v: 1, type: 'chat', channel, text: cleaned })
+  }
   sendWorldMessage(text: string): boolean {
     const cleaned = text.trim()
     if (!cleaned) return false

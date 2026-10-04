@@ -1,6 +1,6 @@
 import { createContext } from 'react'
 
-export type SocialPanelTab = 'friends' | 'messages' | 'world-chat'
+export type SocialPanelTab = 'friends' | 'messages' | 'world-chat' | 'local-chat' | 'town-chat'
 
 export interface SocialPanelContextValue {
   open: boolean

@@ -1,3 +1,6 @@
+import { getChatLocation, sharesChatScope } from '../../shared/realtime/chatLocation.ts'
+import type { PublicChatMessageV1 } from '../../shared/realtime/protocolV1.ts'
+import type { Membership } from './presenceState.ts'
 import type { AreaDefinition } from '../../shared/realtime/areas.ts'
 import { layerId, presenceId, type LayerId } from '../../shared/realtime/identifiers.ts'
 import { MAX_CLIENT_FRAME_BYTES, MAX_SERVER_FRAME_BYTES, parseClientMessageText, type ServerMessageV1 } from '../../shared/realtime/protocolV1.ts'
@@ -20,6 +23,7 @@ export interface CoordinatorPorts {
   save(checkpoint: Checkpoint): void // Synchronous owner-local storage; never external I/O.
   isBlocked?(blockerPlayerId: string, blockedPublicId: string): boolean
   removeSocial?(playerId: string): void
+  routeChat?(sender: Membership, message: PublicChatMessageV1): void
   diagnostic(event: string, fields: { areaId: string; population: number; reason?: string; layerId?: string }): void
 }
 type Delta = ServerMessageV1 extends infer M ? M extends ServerMessageV1 ? Omit<M, 'v' | 'eventSequence'> : never : never
@@ -196,29 +200,39 @@ export class AreaCoordinator {
       this.sendChat(socket, message.channel, message.text, message.recipientPublicId)
     }
   }
-  private sendChat(socket: PresenceSocket, channel: 'world' | 'direct', text: string, recipientPublicId?: string): void {
+  private sendChat(socket: PresenceSocket, channel: PublicChatMessageV1['channel'], text: string, recipientPublicId?: string): void {
     const connection = this.own(socket)
     if (!connection) return
     const sender = connection.member
-    let recipients: PresenceSocket[]
-    if (channel === 'world') recipients = [...this.connections]
-      .filter(([, candidate]) => candidate.member.layerId === sender.layerId
-        && !this.ports.isBlocked?.(candidate.member.playerId, sender.publicId)).map(([candidate]) => candidate)
-    else {
-      if (!recipientPublicId || recipientPublicId === sender.publicId) {
-        this.send(socket, { type: 'error', code: 'CHAT_UNAVAILABLE', retryable: false })
-        return
-      }
-      const [recipientEntry] = [...this.connections].filter(([, candidate]) => candidate.member.publicId === recipientPublicId)
-      if (!recipientEntry || this.ports.isBlocked?.(sender.playerId, recipientPublicId)
-        || this.ports.isBlocked?.(recipientEntry[1].member.playerId, sender.publicId)) {
-        this.send(socket, { type: 'error', code: 'CHAT_UNAVAILABLE', retryable: false }); return
-      }
-      recipients = [socket, recipientEntry[0]]
+    const location = getChatLocation(sender.areaId)
+    if (!text.trim() || channel === 'town' && !location?.town || channel === 'direct' && (!recipientPublicId || recipientPublicId === sender.publicId)) {
+      this.chatUnavailable(sender.playerId); return
     }
-    const message = { id: this.ports.uuid(), channel, senderPublicId: sender.publicId,
-      senderDisplayName: sender.displayName ?? 'Grower', ...(recipientPublicId ? { recipientPublicId } : {}), text, sentAt: this.now() } as const
-    for (const recipient of recipients) this.send(recipient, { type: 'chat', message })
+    const message: PublicChatMessageV1 = { id: this.ports.uuid(), channel, senderPublicId: sender.publicId,
+      senderDisplayName: sender.displayName ?? 'Grower', ...(recipientPublicId ? { recipientPublicId } : {}), text: text.trim(), sentAt: this.now() }
+    if (this.ports.routeChat) { this.ports.routeChat(sender, message); return }
+    // Synchronous test/local fallback retains area-wide routing, independent of rendering Layers.
+    if (channel === 'direct') {
+      const recipient = [...this.connections].find(([, c]) => c.member.publicId === recipientPublicId)
+      if (!recipient || this.ports.isBlocked?.(sender.playerId, recipientPublicId!) || this.ports.isBlocked?.(recipient[1].member.playerId, sender.publicId)) { this.chatUnavailable(sender.playerId); return }
+      if (this.send(recipient[0], { type: 'chat', message })) this.send(socket, { type: 'chat', message })
+    } else this.deliverChat(message, sender.areaId)
+  }
+  chatUnavailable(playerId: string): void {
+    for (const [socket, connection] of this.connections) if (connection.member.playerId === playerId) this.send(socket, { type: 'error', code: 'CHAT_UNAVAILABLE', retryable: false })
+  }
+  deliverChat(message: PublicChatMessageV1, senderAreaId: string, targetPresenceId?: string, echo = false): number {
+    const senderLocation = getChatLocation(senderAreaId), recipientLocation = getChatLocation(this.state.area.areaId)
+    if (message.channel !== 'direct' && (!senderLocation || !recipientLocation || !sharesChatScope(message.channel, senderLocation, recipientLocation))) return 0
+    let delivered = 0
+    for (const [socket, connection] of [...this.connections]) {
+      const member = connection.member
+      if (targetPresenceId && member.presenceId !== targetPresenceId) continue
+      if (message.channel === 'direct' && member.publicId !== (echo ? message.senderPublicId : message.recipientPublicId)) continue
+      if (this.ports.isBlocked?.(member.playerId, message.senderPublicId)) continue
+      if (this.send(socket, { type: 'chat', message })) delivered++
+    }
+    return delivered
   }
   private violation(socket: PresenceSocket, connection: SocketAttachment, code: 'INVALID_MESSAGE' | 'UNSUPPORTED_VERSION'): void {
     this.log('protocol_violation', code)

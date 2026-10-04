@@ -1,4 +1,4 @@
-import { areaId, isSequence, type AreaId } from './identifiers.ts'
+import { areaId, isCanonicalUuid, isSequence, type AreaId } from './identifiers.ts'
 
 export interface Position { readonly x: number; readonly y: number }
 export interface AreaDefinition {
@@ -33,6 +33,11 @@ export const TOWN_AREA: AreaDefinition = {
 
 const areas: readonly AreaDefinition[] = [TOWN_AREA]
 export function getAreaDefinition(id: unknown): AreaDefinition | undefined {
+  // A private Farm is a distinct chat Area, not a shared Farm channel or visit admission.
+  // No Farm remote rendering or movement simulation is enabled by this definition.
+  if (typeof id === 'string' && id.startsWith('farm-') && isCanonicalUuid(id.slice(5))) return {
+    ...TOWN_AREA, areaId: areaId(id), entryPoints: { 'chat-session': { x: 0, y: 0 } }, layerCapacity: 1, populationLimit: 1,
+  }
   return typeof id === 'string' ? areas.find((area) => area.areaId === id) : undefined
 }
 export function isPosition(value: unknown): value is Position {

@@ -54,7 +54,7 @@ export function GameHeader() {
     if (chat.activeTab === 'friends') chat.setActiveTab('world-chat')
     if (isWorld) chat.setChatDockExpanded(!chat.chatDockExpanded)
     else if (chat.open) chat.closePanel()
-    else chat.openPanel(chat.activeTab === 'messages' ? 'messages' : 'world-chat')
+    else chat.openPanel(chat.activeTab === 'friends' ? 'world-chat' : chat.activeTab)
   }
   return <header {...worldInputBoundary} className="game-header" inert={feature !== null}>
     <a className="skip-link" href="#main-content">Skip to game</a>

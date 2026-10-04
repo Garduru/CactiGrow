@@ -50,7 +50,7 @@ export function FarmWorldPage() {
         <FarmWorldHost projection={projection} onIntent={handleIntent} spawnId={spawnId} />
         {social.chatDockExpanded && (
           <InGameChatHud
-            mode={social.activeTab === 'messages' ? 'messages' : 'world-chat'}
+            mode={social.activeTab === 'friends' ? 'world-chat' : social.activeTab}
             onModeChange={social.setActiveTab}
           />
         )}

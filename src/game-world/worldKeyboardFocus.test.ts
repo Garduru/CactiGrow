@@ -35,3 +35,20 @@ test('editable UI owns typing before Phaser capture; held keys reset and canvas 
   assert.equal(gameplay, 1, 'modal blocks world shortcuts even if focus is temporarily on canvas')
   dialog.remove(); cleanup(); dom.window.close()
 })
+
+test('focus events during Phaser destruction do not access a destroyed keyboard manager', () => {
+  const dom = new JSDOM('<canvas tabindex="0"></canvas><input>')
+  const errors: unknown[] = []
+  dom.window.addEventListener('error', event => { errors.push(event.error); event.preventDefault() })
+  let resets = 0
+  const keyboard: Parameters<typeof bindWorldKeyboardFocus>[1] = {
+    enabled: true, manager: { enabled: true }, resetKeys() { resets++ },
+  }
+  const cleanup = bindWorldKeyboardFocus(dom.window.document.querySelector('canvas')!, keyboard)
+  keyboard.manager = null
+  dom.window.document.querySelector('input')!.focus()
+  dom.window.document.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'w', bubbles: true }))
+  assert.equal(resets, 0)
+  assert.deepEqual(errors, [])
+  cleanup(); cleanup(); dom.window.close()
+})

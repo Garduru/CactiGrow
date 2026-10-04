@@ -21,7 +21,7 @@ export interface PublicPresenceV1 extends MovementSample {
 }
 export interface PublicChatMessageV1 {
   readonly id: string
-  readonly channel: 'world' | 'direct'
+  readonly channel: 'local' | 'town' | 'world' | 'direct'
   readonly senderPublicId: string
   readonly senderDisplayName: string
   readonly recipientPublicId?: string
@@ -37,7 +37,7 @@ export interface ConnectionLimitsV1 {
 export type ClientMessageV1 =
   | { readonly v: 1; readonly type: 'hello'; readonly ticket: string }
   | ({ readonly v: 1; readonly type: 'move' } & MovementSample)
-  | { readonly v: 1; readonly type: 'chat'; readonly channel: 'world' | 'direct'; readonly recipientPublicId?: string; readonly text: string }
+  | { readonly v: 1; readonly type: 'chat'; readonly channel: 'local' | 'town' | 'world' | 'direct'; readonly recipientPublicId?: string; readonly text: string }
   | { readonly v: 1; readonly type: 'ping'; readonly sequence: number }
   | { readonly v: 1; readonly type: 'leave' }
 
@@ -81,7 +81,7 @@ export function isClientMessageV1(value: unknown): value is ClientMessageV1 {
   switch (value.type) {
     case 'hello': return hasExactKeys(value, ['v', 'type', 'ticket']) && isBoundedText(value.ticket, 256)
     case 'move': return hasExactKeys(value, ['v', 'type', 'sequence', 'position', 'facing', 'movement']) && validMovementFields(value)
-    case 'chat': return (value.channel === 'world' && hasExactKeys(value, ['v', 'type', 'channel', 'text'])
+    case 'chat': return (['local', 'town', 'world'].includes(value.channel as string) && hasExactKeys(value, ['v', 'type', 'channel', 'text'])
       || value.channel === 'direct' && hasExactKeys(value, ['v', 'type', 'channel', 'recipientPublicId', 'text'])
         && isCanonicalUuid(value.recipientPublicId)) && isBoundedText(value.text, 500)
     case 'ping': return hasExactKeys(value, ['v', 'type', 'sequence']) && isSequence(value.sequence)
@@ -96,12 +96,12 @@ function isLimits(value: unknown): value is ConnectionLimitsV1 {
     && (value.staleAfterMs as number) > (value.heartbeatIntervalMs as number)
 }
 function isPublicChatMessage(value: unknown): value is PublicChatMessageV1 {
-  if (!isRecord(value) || !['world', 'direct'].includes(value.channel as string)) return false
-  const keys = value.channel === 'world'
+  if (!isRecord(value) || !['local', 'town', 'world', 'direct'].includes(value.channel as string)) return false
+  const keys = value.channel !== 'direct'
     ? ['id', 'channel', 'senderPublicId', 'senderDisplayName', 'text', 'sentAt']
     : ['id', 'channel', 'senderPublicId', 'senderDisplayName', 'recipientPublicId', 'text', 'sentAt']
   return hasExactKeys(value, keys) && isCanonicalUuid(value.id) && isCanonicalUuid(value.senderPublicId)
-    && (value.channel === 'world' || isCanonicalUuid(value.recipientPublicId))
+    && (value.channel !== 'direct' || isCanonicalUuid(value.recipientPublicId))
     && isBoundedText(value.senderDisplayName, 20) && isBoundedText(value.text, 500)
     && isSequence(value.sentAt)
 }

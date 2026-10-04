@@ -1,5 +1,5 @@
 import { buyShopSeeds, buyMarketplaceListing, cancelMarketplaceListing } from './commerceTransactions.ts'
-import { assertSpecimenUnprotected } from './specimenCommerceEligibility.ts'
+import { assertSpecimenUnprotected, assertSpecimenNotInMail } from './specimenCommerceEligibility.ts'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import {
@@ -337,6 +337,7 @@ export class GrowerAlphaService {
   private async loadOwnedPlant(tx: Transaction, playerId: string, specimenId: string): Promise<CollectedPlant> {
     const [specimen] = await tx.select().from(plantSpecimens).where(and(eq(plantSpecimens.ownerPlayerId, playerId), eq(plantSpecimens.id, specimenId))).for('update').limit(1)
     if (!specimen || specimen.lifecycleStatus !== 'owned' || !specimen.collectedAt) throw new ApiError('SPECIMEN_NOT_FOUND', 404, 'The owned specimen was not found.')
+    await assertSpecimenNotInMail(tx, specimen.id)
     const [[line], [profile], seedRows, variants] = await Promise.all([
       tx.select().from(cloneLines).where(eq(cloneLines.id, specimen.cloneLineId)).limit(1),
       tx.select().from(geneticProfiles).where(eq(geneticProfiles.cloneLineId, specimen.cloneLineId)).limit(1),

@@ -1763,3 +1763,38 @@ button, input, select { font-family: var(--cg-font-ui); }
 .collection-research-action small { color: var(--cg-text-muted); font-size: 11px; }
 .garden-selection-bar { position: sticky; bottom: 0; }
 .collection-tools button:disabled, .collection-favorite button:disabled, .collection-pagination button:disabled { opacity: .55; cursor: default; }
+
+/* Compact social/mail surfaces retain the existing world and single-row HUD. */
+.recipient-search { min-width: 0; padding: 5px; }
+.recipient-search form { display: flex; gap: 5px; min-width: 0; }
+.recipient-search input { min-width: 0; width: 100%; }
+.recipient-search__results { display: flex; flex-wrap: wrap; gap: 4px; max-height: 96px; overflow: auto; }
+.world-chat-hud__tabs button { padding-inline: 8px; }
+.world-chat-hud .chat-conversation__thread { display: flex; flex-direction: column; min-height: 0; }
+.world-chat-hud .chat-conversation__messages { flex: 1; min-height: 0; overflow: auto; }
+.world-chat-hud .chat-conversation__people { max-height: 44px; }
+.chat-conversation__composer, .recipient-search { flex-shrink: 0; }
+.chat-conversation__messages span, .mail-message__body p, .mail-review p { overflow-wrap: anywhere; white-space: pre-wrap; }
+.mail-page { min-width: 0; max-width: 720px; margin-inline: auto; }
+.mail-page nav, .mail-pagination { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 10px; }
+.mail-page button, .mail-page input, .mail-page select, .mail-page textarea, .recipient-search input, .recipient-search button { min-height: 40px; color: var(--cg-text); background: var(--cg-surface-raised); border: 1px solid var(--cg-border-strong); border-radius: 7px; padding: 8px; }
+.mail-page button[aria-current='page'] { border-color: var(--cg-accent); }
+.mail-page :disabled { opacity: .55; cursor: not-allowed; }
+.mail-compose label { display: grid; gap: 4px; margin-block: 10px; }
+.mail-compose input, .mail-compose select, .mail-compose textarea { width: 100%; min-width: 0; max-width: 100%; font: inherit; }
+.mail-message { border: 1px solid var(--cg-border); border-radius: 8px; overflow: hidden; margin-block: 8px; }
+.mail-message--unread { border-color: var(--cg-accent); }
+.mail-message__summary { display: grid; gap: 4px; width: 100%; text-align: left; overflow-wrap: anywhere; }
+.mail-message__summary time, .mail-message__summary span { color: var(--cg-text-muted); font-size: 12px; }
+.mail-message__body { padding: 10px; }
+.mail-badge { border-radius: 12px; padding: 1px 6px; margin-left: 6px; background: var(--cg-accent); color: var(--cg-text); font-size: 11px; }
+.feature-panel--mail .feature-panel__content { overflow-x: hidden; overscroll-behavior: contain; }
+@media (max-width: 620px), (pointer: coarse) {
+  .mail-page input, .mail-page select, .mail-page textarea, .recipient-search input { font-size: 16px; }
+  .mail-page button, .recipient-search button { min-height: 44px; }
+  .world-chat-hud { max-height: calc(var(--chat-viewport-height, 100%) - 12px); bottom: calc(var(--chat-keyboard-inset, 0px) + max(6px, env(safe-area-inset-bottom))); }
+}
+
+.feature-overlay--mail { top: var(--admin-viewport-top, 0px); left: var(--admin-viewport-left, 0px); right: auto; width: var(--admin-viewport-width, 100%); height: var(--admin-viewport-height, 100dvh); grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); overflow: hidden; overscroll-behavior: none; padding-top: max(var(--admin-hud-space, 14px), env(safe-area-inset-top)); }
+.chat-conversation__thread { display: flex; flex-direction: column; }
+.chat-conversation__messages { flex: 1; }

@@ -50,6 +50,13 @@
       "when": 1791019051730,
       "tag": "0006_admin_roles_audit_v1",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791102809332,
+      "tag": "0007_hard_supreme_intelligence",
+      "breakpoints": true
     }
   ]
 }

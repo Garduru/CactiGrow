@@ -14,6 +14,7 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
   install('IS_REACT_ACT_ENVIRONMENT', true)
   install('ResizeObserver', class { observe() {} disconnect() {} })
   dom.window.HTMLElement.prototype.scrollIntoView = () => {}
+  dom.window.scrollTo = () => {}
   dom.window.matchMedia = () => ({ matches: false }) as MediaQueryList
   const records = { worlds: [] as { emitIntent: (intent: { type: string; locationId: string }) => void; world: string; x: number; y: number; destroyed: boolean; destroy(): void }[], starts: 0, stops: 0, bootstrap: 0, social: 0, signouts: 0, snapshots: 0 }
   Object.defineProperty(dom.window.navigator, 'clipboard', { value: { async writeText(value: string) { assert.equal(JSON.parse(value).panel, 'devtools'); records.snapshots++ } } })
@@ -35,6 +36,8 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
       if (init?.method === 'POST' && JSON.parse(String(init.body)).type === 'accept-friend') { overview.friends.push(incoming); overview.incomingRequests = [] }
       data = overview
     } else if (url.endsWith('/shop')) data = { projectionVersion: 1, maxQuantity: 100, items: [{ id: 'san-pedro-seed', speciesId: 'echinopsis-pachanoi', name: 'San Pedro seeds', description: 'Normal species seeds.', price: 25 }] }
+    else if (url.endsWith('/mail/count')) data = {unreadCount:2}
+    else if (url.includes('/mail?')) data = {projectionVersion:1,unreadCount:2,inbox:[],sent:[],hasMoreInbox:false,hasMoreSent:false}
     else if (url.endsWith('/dev/session')) data = { environment: 'development', version: 'test-build', playerId: own.publicId }
     else if (url.includes('/marketplace?')) data = { projectionVersion: 1, hasMore: false, listings: [] }
     else if (url.includes('/players/search?q=')) data = {projectionVersion:1,results:[{projectionVersion:1,profile:{...friend,publicId:'00000000-0000-4000-8000-000000000004',displayName:'Test Delta'},relationship:{isSelf:false,areFriends:false,request:overview.outgoingRequests.length?'outgoing':null,blockedByMe:false,blocksMe:false}}]}
@@ -135,8 +138,9 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
       await act(async () => categoryButton.click())
       if (category === 'Game') assert.doesNotMatch(document.querySelector('.menu-dropdown__items')!.textContent!, /Mail/)
       await assertUiInputContained('.menu-dropdown__items button')
-      const item = [...document.querySelectorAll<HTMLElement>('.menu-dropdown__items button')].find((item) => item.textContent === label)!
+      const item = [...document.querySelectorAll<HTMLElement>('.menu-dropdown__items button')].find((item) => label === 'Mail' ? item.textContent?.startsWith('Mail') : item.textContent === label)!
       assert.ok(item, label)
+      if (label === 'Mail') assert.equal(item.querySelector('.mail-badge')?.getAttribute('aria-label'), '2 unread messages')
       await act(async () => item.click())
       assert.equal(document.querySelector('.menu-dropdown'), null)
       assert.ok(document.querySelector('.feature-panel'))

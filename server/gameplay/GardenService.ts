@@ -1,3 +1,4 @@
+import { assertSpecimenNotInMail } from './specimenCommerceEligibility.ts'
 import { and, eq } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { gameplayCommandReceipts, marketplaceListings, plantSpecimens, playerGardenDisplays, playerGardenSpecimens, playerGrowerEvents, playerGrowerState } from '../db/schema/index.ts'
@@ -59,6 +60,7 @@ export class GardenService {
         } else {
           const [specimen] = await tx.select().from(plantSpecimens).where(and(eq(plantSpecimens.ownerPlayerId, playerId), eq(plantSpecimens.id, command.specimenId))).for('update').limit(1)
           if (!specimen || specimen.lifecycleStatus !== 'owned') throw new ApiError('SPECIMEN_NOT_FOUND', 404, 'The collected specimen was not found.')
+          await assertSpecimenNotInMail(tx, specimen.id)
           if (command.type === 'assign-display') {
             await tx.delete(playerGardenDisplays).where(and(eq(playerGardenDisplays.playerId, playerId), eq(playerGardenDisplays.specimenId, command.specimenId)))
             await tx.insert(playerGardenDisplays).values({ playerId, slotId: command.slotId, specimenId: command.specimenId }).onConflictDoUpdate({ target: [playerGardenDisplays.playerId, playerGardenDisplays.slotId], set: { specimenId: command.specimenId, updatedAt: new Date() } })

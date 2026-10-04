@@ -1,3 +1,4 @@
+import type { ChatLocation, PublicChatChannel } from '../../../shared/realtime/chatLocation'
 import { createContext } from 'react'
 import type { SocialCommandV1, SocialOverviewV1 } from '../../../shared/api/socialV1'
 import type { AreaConnection } from '../../services/realtime/AreaConnection'
@@ -13,7 +14,10 @@ export interface SocialContextValue {
   profileTarget: ProfileTarget
   openProfile(publicId: string | null): void
   closeProfile(): void
-  bindTownConnection(connection: AreaConnection | null): void
+  connection: AreaConnection
+  chatLocation: ChatLocation | null
+  chatConnected: boolean
+  sendPublicMessage(channel: PublicChatChannel, text: string): boolean
   chatStatus: string
   chatError: string
   chatMessages: readonly PublicChatMessageV1[]

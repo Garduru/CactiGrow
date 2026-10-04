@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "test:reconciliation": "node --experimental-strip-types --test src/app/playerAuthorityReconciliation.test.ts",
+    "test:chat": "node --experimental-strip-types --test --test-isolation=none server/realtime/chatScopes.test.ts server/realtime/admission.runtime.test.ts src/features/social/chatViewport.test.ts",
+    "test:mail": "node --experimental-strip-types --test shared/api/mailV1.test.ts server/player/mail.integration.test.mjs",
+    "mail:rollout": "node --experimental-strip-types scripts/mail-rollout.ts",
+    "test:social:viewport": "node --experimental-strip-types --test src/features/social/social.viewport.test.mjs",
     "admin:owner": "node --experimental-strip-types scripts/admin-owner.ts",
     "admin:bootstrap-owner": "node --experimental-strip-types scripts/admin-owner.ts",
     "test:admin": "node --experimental-strip-types --test --test-isolation=none server/admin/admin.test.ts src/features/admin/admin.runtime.test.mjs src/features/admin/admin.viewport.test.mjs",

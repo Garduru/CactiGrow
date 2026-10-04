@@ -2,17 +2,16 @@ import { useState } from 'react'
 import { LocationHeader } from '../../components/ui/LocationHeader'
 import { ChatConversation } from './ChatConversation'
 
-type ChatMode = 'world-chat' | 'messages'
+type ChatMode = 'world-chat' | 'messages' | 'local-chat' | 'town-chat'
 
 export function ChatPage({ selectedMode }: { selectedMode?: ChatMode }) {
   const [mode, setMode] = useState<ChatMode>('world-chat')
   const activeMode = selectedMode ?? mode
 
   return <section className="social-page chat-page" aria-labelledby="chat-title">
-    <LocationHeader eyebrow="Social" title="Chat" titleId="chat-title" subtitle="Town World Chat and live Direct Messages." />
+    <LocationHeader eyebrow="Social" title="Chat" titleId="chat-title" subtitle="Local, Town, Zone-wide World chat and live Direct Messages." />
     {!selectedMode && <nav className="social-switcher social-switcher--chat" aria-label="Chat modes">
-      <button type="button" aria-current={mode === 'world-chat' ? 'page' : undefined} className={mode === 'world-chat' ? 'social-switcher__item social-switcher__item--active' : 'social-switcher__item'} onClick={() => setMode('world-chat')}>World</button>
-      <button type="button" aria-current={mode === 'messages' ? 'page' : undefined} className={mode === 'messages' ? 'social-switcher__item social-switcher__item--active' : 'social-switcher__item'} onClick={() => setMode('messages')}>Direct Messages</button>
+      {(['local-chat', 'town-chat', 'world-chat', 'messages'] as const).map(channel => <button key={channel} type="button" aria-current={mode === channel ? 'page' : undefined} className={mode === channel ? 'social-switcher__item social-switcher__item--active' : 'social-switcher__item'} onClick={() => setMode(channel)}>{channel === 'messages' ? 'DM' : channel === 'local-chat' ? 'Local' : channel === 'town-chat' ? 'Town' : 'World'}</button>)}
     </nav>}
     <ChatConversation mode={activeMode} />
   </section>

@@ -17,7 +17,7 @@ export function TownWorldPage() {
   const { openFeature } = useFeaturePanel()
   const location = useLocation()
   const spawnId = resolveTownSpawnId(location.state)
-  const { connection, status, enabled } = useTownPresence(spawnId)
+  const { connection, status, enabled } = useTownPresence()
   const social = useSocialPanel()
   const socialState = useSocialState()
   const openProfile = socialState.openProfile
@@ -45,7 +45,7 @@ export function TownWorldPage() {
         <PhaserWorldHost projection={townWorldProjection} onIntent={handleIntent} createGame={createGame} world="town" />
         {social.chatDockExpanded && (
           <InGameChatHud
-            mode={social.activeTab === 'messages' ? 'messages' : 'world-chat'}
+            mode={social.activeTab === 'friends' ? 'world-chat' : social.activeTab}
             onModeChange={social.setActiveTab}
           />
         )}

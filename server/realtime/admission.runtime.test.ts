@@ -7,7 +7,7 @@ import { isServerMessageV1, type ServerMessageV1 } from '../../shared/realtime/p
 
 const issuer = 'https://test.cloudflareaccess.com', audience = 'a'.repeat(64)
 const baseBody = { v: 1, areaId: 'town', entryPointId: 'farm-arrival' }
-async function setup(t: test.TestContext) {
+async function setup(t: test.TestContext, blocked = true) {
   const keys = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify'])
   const jwk = { ...await crypto.subtle.exportKey('jwk', keys.publicKey), kid: 'test', alg: 'RS256' }
   // Only the in-memory harness replaces key fetching and the database resolver. Production authentication/router are reused.
@@ -26,7 +26,7 @@ async function setup(t: test.TestContext) {
       identityProvider: new CloudflareAccessIdentityProvider(new CloudflareAccessJwtVerifier('${issuer}', '${audience}', async () => Response.json({ keys: [${JSON.stringify(jwk)}] }))),
       createPlayerIdentityResolver: async () => ({ resolve: async identity => ({ playerId: identity.subject === 'bad' ? 'invalid' : '00000000-0000-4000-8000-' + (identity.subject === 'a' ? '000000000001' : '000000000002') }) })
     }), resolveRealtimePlayerSocial: async (_context, playerId) => ({ publicId: playerId, displayName: playerId.endsWith('1') ? 'Saguaro One' : 'Saguaro Two',
-      blockedPublicIds: playerId.endsWith('2') ? ['00000000-0000-4000-8000-000000000001'] : [] }) })
+      blockedPublicIds: ${blocked} && playerId.endsWith('2') ? ['00000000-0000-4000-8000-000000000001'] : [] }) })
     export default { async fetch(request, env) {
       const url = new URL(request.url)
       const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName('area:v1:town'))
@@ -193,4 +193,35 @@ test('L3 credentials survive actual idle reconstruction without enabling consume
   const next = await h.credentials(jwt, { ...baseBody, reconnectToken: credential.reconnectToken })
   const b = client(await h.upgrade(next)); await b.until(() => b.messages.length > 0)
   b.socket.close()
+})
+
+
+test('Chat V2 actual Worker/DO routes Farm/Town World and DM; Local/Town are isolated and departure fences membership', { timeout: 20_000 }, async t => {
+  const h = await setup(t, false)
+  const publicIdA = '00000000-0000-4000-8000-000000000001', publicIdB = '00000000-0000-4000-8000-000000000002'
+  const farm = { v: 1, areaId: `farm-${publicIdA}`, entryPointId: 'chat-session' }
+  assert.equal((await h.issue(await h.token('b'), farm)).status, 403, 'Farm chat admission is owner scoped')
+  const a = client(await h.upgrade(await h.credentials(await h.token('a'), farm)))
+  const b = client(await h.upgrade(await h.credentials(await h.token('b'))))
+  await a.until(() => a.messages.some(m => m.type === 'welcome')); await b.until(() => b.messages.some(m => m.type === 'welcome'))
+  const send = (who: typeof a, channel: string, text: string, recipientPublicId?: string) => who.socket.send(JSON.stringify({ v: 1, type: 'chat', channel, text, ...(recipientPublicId ? { recipientPublicId } : {}) }))
+  const received = (who: typeof a, text: string) => who.messages.some(m => m.type === 'chat' && m.message.text === text)
+  send(a, 'local', 'private farm local'); await a.until(() => received(a, 'private farm local')); assert.equal(received(b, 'private farm local'), false)
+  send(a, 'world', 'same zone world'); await b.until(() => received(b, 'same zone world')); await a.until(() => received(a, 'same zone world'))
+  send(a, 'direct', 'farm to town direct', publicIdB); await b.until(() => received(b, 'farm to town direct')); await a.until(() => received(a, 'farm to town direct'))
+  send(b, 'direct', 'town to farm direct', publicIdA); await a.until(() => received(a, 'town to farm direct')); await b.until(() => received(b, 'town to farm direct'))
+  send(b, 'town', 'town only'); await b.until(() => received(b, 'town only')); assert.equal(received(a, 'town only'), false)
+  send(b, 'local', 'town area only'); await b.until(() => received(b, 'town area only')); assert.equal(received(a, 'town area only'), false)
+  // A's fifth message is an invalid Town membership attempt, independent of send-rate handling.
+  send(a, 'town', 'farm cannot town'); await a.until(() => a.messages.some(m => m.type === 'error')); assert.equal(received(b, 'farm cannot town'), false)
+  a.socket.send(JSON.stringify({v:1,type:'leave'})); await new Promise(resolve => setTimeout(resolve,100))
+  await new Promise(resolve => setTimeout(resolve,2000)) // New send-rate window, not a fake online status.
+  const before = b.messages.length
+  send(b, 'direct', 'offline must fail', publicIdA); await b.until(() => b.messages.slice(before).some(m => m.type === 'error'))
+  assert.equal(received(b, 'offline must fail'), false, 'Offline DMs never get a delivered sender echo')
+  const moved = client(await h.upgrade(await h.credentials(await h.token('a'))))
+  await moved.until(() => moved.messages.some(m => m.type === 'welcome'))
+  send(b, 'town', 'both in town'); await moved.until(() => received(moved, 'both in town'))
+  send(b, 'local', 'both local town'); await moved.until(() => received(moved, 'both local town'))
+  moved.socket.close(); b.socket.close()
 })
