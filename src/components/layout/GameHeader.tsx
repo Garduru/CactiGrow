@@ -61,7 +61,7 @@ export function GameHeader() {
     <div className="game-header__inner">
       <div className="game-header__left">
         <button type="button" className="game-header__brand" aria-label={collapsed ? 'Expand HUD' : 'Collapse HUD'} aria-expanded={!collapsed} aria-controls="hud-controls"
-          onClick={() => { setCollapsed(!collapsed); setMenuOpen(false) }}><img src="/cactigrow-logo.png" alt="CactiGrow by CactiSwap" /></button>
+          onClick={() => { setCollapsed(!collapsed); setMenuOpen(false) }}><img src="/assets/branding/cactigrow-logo.png" alt="CactiGrow" width="1536" height="1024" /></button>
         <button hidden={collapsed} className="hud-control game-header__chat" type="button" onClick={toggleChat} aria-label="Chat" aria-expanded={isWorld ? chat.chatDockExpanded : chat.open}>Chat</button>
       </div>
       <div id="hud-controls" className="game-header__controls" hidden={collapsed}>

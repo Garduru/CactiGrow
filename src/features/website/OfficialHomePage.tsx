@@ -19,7 +19,7 @@ export function OfficialHomePage() {
     <div className="official-site">
       <a className="skip-link" href="#website-main">Skip to content</a>
       <header className="official-site__header">
-        <Link to="/" aria-label="CactiGrow home"><img className="official-site__logo" src="/cactigrow-logo.png" alt="CactiGrow by CactiSwap" width="154" /></Link>
+        <Link to="/" aria-label="CactiGrow home"><img className="official-site__logo" src="/assets/branding/cactigrow-logo.png" alt="CactiGrow" width="1536" height="1024" /></Link>
         <nav aria-label="Website navigation"><Link className="official-site__header-play" to={play}>Play CactiGrow <span aria-hidden="true">↗</span></Link></nav>
       </header>
       <main id="website-main">

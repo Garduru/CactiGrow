@@ -100,6 +100,9 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
     assert.equal(world.destroyed, false)
     assert.equal(records.bootstrap, before.bootstrap + 1)
     assert.ok(document.querySelector('.game-header__left button[aria-label="Chat"]'))
+    const logo = document.querySelector('.game-header__brand img')!
+    assert.equal(logo.getAttribute('src'), '/assets/branding/cactigrow-logo.png')
+    assert.equal(logo.getAttribute('alt'), 'CactiGrow')
     assert.ok(document.querySelector('.game-header__center button[aria-label="Open own profile"]'))
     assert.ok(document.querySelector('.game-header__center button[aria-label="Inventory"]'))
     assert.ok(document.querySelector('.game-header__right .world-nav__control'))
