@@ -25,7 +25,6 @@ export function MenuDropdown({ onDismiss }: { onDismiss(): void }) {
         {category === 'Other' && <>
           <button type="button" onClick={() => launch('help')}>Help</button>
           <button type="button" onClick={() => launch('settings')}>Settings</button>
-          <a href="https://cactiswap.com" target="_blank" rel="noopener noreferrer" onClick={onDismiss}>Visit CactiSwap</a>
           <button type="button" onClick={() => launch('signout')}>Sign Out</button>
           {devToolsAvailable() && <button type="button" onClick={() => launch('devtools')}>Developer Tools</button>}
           {staff?.permissions.includes('admin.access') && <button type="button" onClick={() => launch('admintools')}>Admin Tools</button>}

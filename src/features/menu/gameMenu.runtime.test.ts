@@ -210,10 +210,8 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
     assert.ok(document.querySelector('#world-chat-hud'), 'closing feature leaves chat open')
     await click('button[aria-label="Menu"]')
     await click('.menu-dropdown section:last-child > button')
-    const link = document.querySelector('.menu-dropdown a')!
-    assert.equal(link.getAttribute('href'), 'https://cactiswap.com')
-    assert.equal(link.getAttribute('target'), '_blank')
-    assert.equal(link.getAttribute('rel'), 'noopener noreferrer')
+    assert.equal(document.querySelector('.menu-dropdown a'), null)
+    assert.deepEqual([...document.querySelectorAll('.menu-dropdown__items button')].map((button) => button.textContent), ['Help', 'Settings', 'Sign Out', 'Developer Tools'])
     assert.equal(document.querySelector('.menu-dropdown__items')?.lastElementChild?.textContent, 'Developer Tools')
     await click('button[aria-label="Menu"]')
     await launch('Other', 'Developer Tools')

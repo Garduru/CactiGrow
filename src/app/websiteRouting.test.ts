@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { mkdir, writeFile, unlink } from 'node:fs/promises'
+import { mkdir, writeFile, unlink, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
@@ -28,6 +28,12 @@ test('Public homepage renders outside authentication; direct game routes retain 
   `, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, jsx: 'automatic', platform: 'node', format: 'esm', packages: 'external',
     // Phaser is a browser renderer; this test exercises routing/access, not canvas rendering.
     plugins: [{ name: 'browser-renderer-placeholder', setup(plugin) {
+      // Chat history is a browser-only external store. Supply its snapshot to this
+      // SSR routing harness without changing the production social implementation.
+      plugin.onLoad({ filter: /[/\\]SocialContext\.tsx$/ }, async ({ path }) => ({
+        contents: (await readFile(path, 'utf8')).replace('useSyncExternalStore(history.subscribe, history.getSnapshot)', 'useSyncExternalStore(history.subscribe, history.getSnapshot, history.getSnapshot)'),
+        loader: 'tsx',
+      }))
       plugin.onResolve({ filter: /^phaser$/ }, () => ({ path: 'phaser', namespace: 'renderer-test' }))
       plugin.onLoad({ filter: /.*/, namespace: 'renderer-test' }, () => ({ contents: 'export default { Scene: class {} }' }))
     } }],
@@ -37,7 +43,11 @@ test('Public homepage renders outside authentication; direct game routes retain 
   const homepage: string = render('/')
   assert.match(homepage, /cactigrow-logo.png/)
   assert.match(homepage, /href="\/play"/)
-  assert.match(homepage, /PLAY NOW/)
+  assert.match(homepage, /Play CactiGrow/)
+  assert.match(homepage, /Grow a collection/)
+  for (const pillar of ['Cultivate', 'Research', 'Explore', 'Connect']) assert.match(homepage, new RegExp(`<h2>${pillar}</h2>`))
+  assert.doesNotMatch(homepage, /The game|A world worth/)
+  assert.match(render('/?account=A'), /href="\/play\?account=A"/)
   assert.doesNotMatch(homepage, /Establishing your secure session|game-header|Tokens/)
   for (const route of ['/play', '/town', '/nursery', '/garden', '/inventory', '/friends', '/profile', '/settings', '/home', '/lab', '/mail', '/shop', '/market', '/farm', '/world-preview', '/collection', '/marketplace']) {
     assert.match(render(route), /Establishing your secure session/, route)
