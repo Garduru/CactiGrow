@@ -6,17 +6,17 @@ import type { WorldLocationId, WorldLocationProjection } from '../../game-world/
 
 type OpenSurface = 'travel' | null
 
-interface WorldNavProps {
-  sceneName: 'Farm' | 'Town'
-  destinations?: readonly WorldLocationProjection[]
-  onTravel?: (locationId: WorldLocationId) => void
+interface WorldNavProps<T extends string> {
+  sceneName: string
+  destinations?: readonly (Pick<WorldLocationProjection, 'displayName' | 'travelLabel'> & { id: T })[]
+  onTravel?: (locationId: T) => void
 }
 
-export function WorldNav({
+export function WorldNav<T extends string = WorldLocationId>({
   sceneName,
   destinations,
   onTravel,
-}: WorldNavProps) {
+}: WorldNavProps<T>) {
   const { travelHost } = useFeaturePanel()
   const [openSurface, setOpenSurface] = useState<OpenSurface>(null)
   const containerRef = useRef<HTMLElement>(null)
@@ -58,6 +58,7 @@ export function WorldNav({
             </button>
             {openSurface === 'travel' && (
               <div className="world-nav__popover world-travel" id="world-travel-menu" aria-label={`${sceneName} travel destinations`}>
+                {!destinations.length && <p>Visit a major destination to unlock Travel.</p>}
                 {destinations.map((destination) => (
                   <button
                     key={destination.id}

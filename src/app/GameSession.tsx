@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom'
+import { WorldLocationProvider } from '../game-world/WorldLocationProvider'
 import { PlayerBootstrapProvider } from './PlayerBootstrapProvider'
 import { DeploymentAccessBoundary } from './DeploymentAccessBoundary'
 import { PlantLifecycleProvider } from './PlantLifecycleProvider'
@@ -21,7 +22,7 @@ import { MailStatusProvider } from '../features/mail/mailStatus'
 export function GameSession() {
   return (
     <PlayerBootstrapProvider>
-      <SocialProvider>
+      <WorldLocationProvider><SocialProvider>
         <DeploymentAccessBoundary>
           <PlantLifecycleProvider><GardenAuthorityProvider><GrowerAuthorityProvider><GameStateProvider>
             <PlayerAuthorityReconciler />
@@ -34,7 +35,7 @@ export function GameSession() {
             </SocialPanelProvider></FeaturePanelProvider></AdminAccessProvider></MailStatusProvider>
           </GameStateProvider></GrowerAuthorityProvider></GardenAuthorityProvider></PlantLifecycleProvider>
         </DeploymentAccessBoundary>
-      </SocialProvider>
+      </SocialProvider></WorldLocationProvider>
     </PlayerBootstrapProvider>
   )
 }

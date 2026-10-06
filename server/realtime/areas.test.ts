@@ -14,9 +14,11 @@ test('Town shared coordinates preserve the existing world and all authored entri
   assert.deepEqual(TOWN_AREA.bounds, { minX: 0, minY: 0, maxX: 2200, maxY: 1500 })
   assert.deepEqual(TOWN_PLAYER_SPAWN, { x: 1100, y: 1280 })
   assert.deepEqual(townWorldSpawns, { 'farm-arrival': { x: 1100, y: 1280 }, 'shop-exterior': { x: 650, y: 560 }, 'marketplace-exterior': { x: 1510, y: 590 } })
-  assert.deepEqual(TOWN_AREA.entryPoints, townWorldSpawns)
+  for (const [id, point] of Object.entries(townWorldSpawns)) assert.deepEqual(TOWN_AREA.entryPoints[id], point)
+  assert.deepEqual(TOWN_AREA.entryPoints['from-path-2'], TOWN_PLAYER_SPAWN)
   for (const id of Object.keys(TOWN_ENTRY_POINTS)) assert.equal(isEntryPoint(TOWN_AREA, id), true)
-  for (const id of ['default', 'constructor', '__proto__', null]) assert.equal(isEntryPoint(TOWN_AREA, id), false)
+  assert.equal(isEntryPoint(TOWN_AREA, 'default'), true)
+  for (const id of ['missing-entry', 'constructor', '__proto__', null]) assert.equal(isEntryPoint(TOWN_AREA, id), false)
 })
 test('Area configuration validates capacities, coordinates, versions, and movement settings', () => {
   assert.doesNotThrow(() => assertValidArea(TOWN_AREA))

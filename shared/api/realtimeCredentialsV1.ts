@@ -6,15 +6,16 @@ export const TICKET_PROTOCOL_PREFIX = 'cactigrow.ticket.'
 export const isRealtimeCredential = (value: unknown): value is string => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value)
 
 /** L3 extension of the L1 admission contract. Credentials must stay private to this client. */
-export interface RealtimeCredentialsRequestV1 extends RealtimeAdmissionRequestV1 { readonly reconnectToken?: string }
+export interface RealtimeCredentialsRequestV1 extends RealtimeAdmissionRequestV1 { readonly reconnectToken?: string; readonly worldFoundation?: true }
 export interface RealtimeCredentialsResponseV1 extends RealtimeAdmissionResponseV1 {
   readonly reconnectToken: string
   readonly authorizationExpiresAt: string
 }
 export function isRealtimeCredentialsRequestV1(value: unknown): value is RealtimeCredentialsRequestV1 {
   if (!isRecord(value)) return false
-  const { reconnectToken, ...base } = value
+  const { reconnectToken, worldFoundation, ...base } = value
   return isRealtimeAdmissionRequestV1(base) && (!Object.hasOwn(value, 'reconnectToken') || isRealtimeCredential(reconnectToken))
+    && (!Object.hasOwn(value, 'worldFoundation') || worldFoundation === true)
 }
 export function isRealtimeCredentialsResponseV1(value: unknown): value is RealtimeCredentialsResponseV1 {
   if (!isRecord(value) || !hasExactKeys(value, ['v', 'areaId', 'socketPath', 'ticket', 'expiresAt', 'reconnectToken', 'authorizationExpiresAt'])) return false

@@ -1,4 +1,6 @@
 import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV1 } from '../../../shared/api/commerceV1.ts'
+import { isWorldLocation } from '../../../shared/world/world.ts'
+import type { WorldLocation } from '../../../shared/world/types.ts'
 import { isAdminSession, isAdminPlayer, isAdminInspection, isAdminListing, isAdminAudit, isAdminResult, isAdminRoleEntry, isAdminSpecimen, adminPageValidator, type AdminSession, type AdminMutation, type AdminAction } from '../../../shared/api/adminV1.ts'
 import { isDevCommandResult, isDevSpecimenDiagnostics, type DevCommand, type DevCommandResult, type DevSpecimenDiagnostics } from '../../../shared/api/devToolsV1.ts'
 import type { ApiEnvelope } from '../../../shared/api/envelope.ts'
@@ -74,6 +76,13 @@ function isEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 }
 
 export class CactiGrowApiClient {
+  getWorld(signal?: AbortSignal): Promise<WorldLocation> { return this.execute('/api/v1/me/world', { method: 'GET', signal }, isWorldLocation, 'world location') }
+  travelWorld(travelDestinationId: string, expectedRevision: number, commandId: string): Promise<WorldLocation> {
+    return this.execute('/api/v1/me/world', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ v: 1, travelDestinationId, expectedRevision, commandId }) }, isWorldLocation, 'world location')
+  }
+  transitionWorld(exitId: string, expectedRevision: number, commandId: string): Promise<WorldLocation> {
+    return this.execute('/api/v1/me/world', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ v: 1, exitId, expectedRevision, commandId }) }, isWorldLocation, 'world location')
+  }
   async getUnreadMailCount(signal?: AbortSignal): Promise<{ unreadCount: number }> {
     return this.execute('/api/v1/me/mail/count', { method: 'GET', signal },
       (v): v is { unreadCount: number } => !!v && typeof v === 'object' && Number.isSafeInteger((v as { unreadCount?: unknown }).unreadCount) && ((v as { unreadCount: number }).unreadCount >= 0), 'unread mail count')

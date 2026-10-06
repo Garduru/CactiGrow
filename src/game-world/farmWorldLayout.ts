@@ -1,7 +1,8 @@
 import type { FarmWorldLocationId, FarmWorldSpawnId } from './worldTypes'
+import { findArea } from '../../shared/world/world.ts'
 
-export const FARM_WORLD_WIDTH = 3000
-export const FARM_WORLD_HEIGHT = 1900
+export const FARM_WORLD_WIDTH = findArea('player-farm')!.width
+export const FARM_WORLD_HEIGHT = findArea('player-farm')!.height
 export const FARM_PLAYER_SPAWN = { x: 1500, y: 1500 } as const
 export const FARM_TOWN_ROAD_RETURN_SPAWN = { x: 1500, y: 1660 } as const
 export const NURSERY_PATH_ENDPOINT = { x: 680, y: 555 } as const

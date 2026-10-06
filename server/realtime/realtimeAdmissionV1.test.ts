@@ -12,7 +12,7 @@ test('Admission accepts configured Area entry points and a minimal response', ()
 })
 test('Admission rejects unknown Areas, entries, versions, identity claims, and malformed shapes', () => {
   for (const value of [null, [], {}, { ...request, v: 2 }, { ...request, areaId: 'forest' }, { ...request, areaId: '__proto__' },
-    { ...request, entryPointId: 'default' }, { ...request, entryPointId: 'constructor' },
+    { ...request, entryPointId: 'missing-entry' }, { ...request, entryPointId: 'constructor' },
     { ...request, playerId: 'forged' }, { ...request, layerId: 'forged' }, { ...request, generation: 1 }]) {
     assert.equal(isRealtimeAdmissionRequestV1(value), false)
   }

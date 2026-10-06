@@ -1,12 +1,9 @@
-import { isCanonicalUuid } from './identifiers.ts'
+import { areaFromRuntime, zoneName } from '../world/world.ts'
 
 export interface ChatLocation { areaId: string; areaName: string; zoneId: string; zoneName: string; town: boolean }
-// Temporary topology only. Future registered Areas can supply their own Zone mapping here.
-export const STARTER_ZONE = { zoneId: 'starter-zone', zoneName: 'Starter Zone' } as const
 export function getChatLocation(areaId: string): ChatLocation | undefined {
-  if (areaId === 'town') return { ...STARTER_ZONE, areaId, areaName: 'Town', town: true }
-  if (areaId.startsWith('farm-') && isCanonicalUuid(areaId.slice(5))) return { ...STARTER_ZONE, areaId, areaName: 'Farm', town: false }
-  return undefined
+  const area = areaFromRuntime(areaId)
+  return area ? { areaId, areaName: area.displayName, zoneId: area.zoneId, zoneName: zoneName(area.zoneId), town: area.areaType === 'town' } : undefined
 }
 export type PublicChatChannel = 'local' | 'town' | 'world'
 export function sharesChatScope(channel: PublicChatChannel, sender: ChatLocation, recipient: ChatLocation): boolean {

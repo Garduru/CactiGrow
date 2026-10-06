@@ -21,8 +21,9 @@ import { OfficialHomePage } from '../features/website/OfficialHomePage'
 import { CANONICAL_FARM_PATH } from './farmReturnNavigation'
 import { FeatureContent } from '../features/menu/FeatureContent'
 
-const FarmWorldPage = lazy(() => import('../game-world/FarmWorldPage').then((module) => ({ default: module.FarmWorldPage })))
-const TownWorldPage = lazy(() => import('../game-world/TownWorldPage').then((module) => ({ default: module.TownWorldPage })))
+const FarmWorldPage = import.meta.env.MODE !== 'staging' ? lazy(() => import('../game-world/FarmWorldPage').then((module) => ({ default: module.FarmWorldPage }))) : null
+const TownWorldPage = import.meta.env.MODE !== 'staging' ? lazy(() => import('../game-world/TownWorldPage').then((module) => ({ default: module.TownWorldPage }))) : null
+const LdtkWorldPage = import.meta.env.MODE === 'staging' ? lazy(() => import('../game-world/LdtkWorldPage').then(m => ({ default: m.LdtkWorldPage }))) : null
 
 export function AppRouter() {
   return <BrowserRouter><AppRoutes /></BrowserRouter>
@@ -34,10 +35,11 @@ export function AppRoutes() {
       <Route path="/" element={<OfficialHomePage />} />
       <Route path="/auth/reset-password" element={<PlayerLogin />} />
       <Route element={<GameSession />}>
-        <Route path={CANONICAL_FARM_PATH} element={<Suspense fallback={<p className="world-page__loading">Loading Farm…</p>}><FarmWorldPage /></Suspense>} />
+        {LdtkWorldPage && <Route path="/world" element={<Suspense fallback={<p>Loading world…</p>}><LdtkWorldPage /></Suspense>} />}
+        <Route path={CANONICAL_FARM_PATH} element={FarmWorldPage ? <Suspense fallback={<p className="world-page__loading">Loading Farm…</p>}><FarmWorldPage /></Suspense> : <LegacyRedirect to="/world" />} />
         <Route path="/farm" element={<LegacyRedirect to={CANONICAL_FARM_PATH} />} />
         <Route path="/world-preview" element={<LegacyRedirect to={CANONICAL_FARM_PATH} />} />
-        <Route path="/town" element={<Suspense fallback={<p className="world-page__loading">Loading Town renderer…</p>}><TownWorldPage /></Suspense>} />
+        <Route path="/town" element={TownWorldPage ? <Suspense fallback={<p className="world-page__loading">Loading Town renderer…</p>}><TownWorldPage /></Suspense> : <LegacyRedirect to="/world" />} />
         <Route path="/collection" element={<LegacyRedirect to="/garden" />} />
         <Route path="/marketplace" element={<LegacyRedirect to="/market" />} />
         <Route element={<PageLayout />}>

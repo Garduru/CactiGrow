@@ -1,4 +1,5 @@
 import { CHAT_DIRECTORY_NAME } from './ChatDirectory.ts'
+import { WorldService } from '../world/WorldService.ts'
 import type { ApiRequestContext } from '../api/router.ts'
 import type { AuthenticationConfigurationFactory } from '../auth/authentication.ts'
 import { authenticateRequest } from '../auth/authentication.ts'
@@ -61,6 +62,11 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
     if (!profile) throw ApiError.conflict('Choose a character name before entering Town.')
     const input = await readJson(request)
     if (!isRealtimeCredentialsRequestV1(input)) throw ApiError.validation('Invalid realtime admission request.')
+    if (input.worldFoundation || input.areaId !== 'town' && !input.areaId.startsWith('farm-')) {
+      if (!input.worldFoundation || !['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.forbidden()
+      const location = await new WorldService(await context.database.getDatabase()).read(player.playerId)
+      if (input.areaId !== location.runtimeAreaId || input.entryPointId !== location.entryId) throw ApiError.forbidden()
+    }
     const now = Date.now()
     const sessionExpiry = player.authorizationExpiresAt === undefined && ['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT)
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')

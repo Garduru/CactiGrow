@@ -29,6 +29,7 @@ import { routeAdmin } from '../admin/routes.ts'
 import { readPlayerAuthorityRevision } from '../gameplay/playerAuthorityRevision.ts'
 import { MailService } from '../player/MailService.ts'
 import { isMailCommand } from '../../shared/api/mailV1.ts'
+import { WorldService } from '../world/WorldService.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -104,6 +105,22 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
   return async (context) => {
     const { request, env, requestId } = context
     const url = new URL(request.url)
+    if (url.pathname === '/api/v1/me/world') {
+      if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
+      if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = new WorldService(await context.database.getDatabase())
+        if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
+        const raw = await readJson(request)
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw ApiError.validation('Invalid exit command.')
+        const c = raw as Record<string, unknown>
+        const keys = Object.keys(c).sort().join(',')
+        const destination = keys === 'commandId,exitId,expectedRevision,v' ? c.exitId : keys === 'commandId,expectedRevision,travelDestinationId,v' ? c.travelDestinationId : undefined
+        if (c.v !== 1 || !isCanonicalUuid(c.commandId) || typeof destination !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(destination)
+          || !Number.isSafeInteger(c.expectedRevision) || (c.expectedRevision as number) < 0) throw ApiError.validation('Invalid world command.')
+        return successResponse(await service.transition(player.playerId, c as unknown as import('../world/WorldService.ts').ExitCommand | import('../world/WorldService.ts').TravelCommand), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
     if (url.pathname === '/api/v1/me/mail' || url.pathname === '/api/v1/me/mail/count') {
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       return withAuthenticatedPlayer(context, async ({ player }) => {

@@ -2,7 +2,7 @@ import type { FarmInteriorLocationId, FarmWorldSpawnId, TownInteriorLocationId, 
 
 export const CANONICAL_FARM_PATH = '/play' as const
 export const TOWN_WORLD_RETURN_PATH = '/town' as const
-export type InteriorReturnPath = typeof CANONICAL_FARM_PATH | typeof TOWN_WORLD_RETURN_PATH
+export type InteriorReturnPath = typeof CANONICAL_FARM_PATH | typeof TOWN_WORLD_RETURN_PATH | '/world'
 
 export type WorldReturnNavigationState =
   | { worldReturnTo: typeof CANONICAL_FARM_PATH; worldSpawn: FarmWorldSpawnId }
@@ -59,6 +59,7 @@ export function resolveTownSpawnId(state: unknown): TownWorldSpawnId {
 }
 
 export function resolveFarmReturnPath(state: unknown): InteriorReturnPath {
+  if (import.meta.env.MODE === 'staging' && typeof state === 'object' && state !== null && 'worldReturnTo' in state && state.worldReturnTo === '/world') return '/world'
   if (typeof state === 'object' && state !== null && 'worldReturnTo' in state && state.worldReturnTo === TOWN_WORLD_RETURN_PATH) return TOWN_WORLD_RETURN_PATH
   return CANONICAL_FARM_PATH
 }

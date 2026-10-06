@@ -3,10 +3,12 @@ import { FarmTestScene } from './FarmTestScene'
 import type { WorldBridge } from './WorldBridge'
 import type { FarmWorldSpawnId } from './worldTypes'
 import type { WorldEditorController } from './editor/worldEditorState'
+import type { FoundationSceneOptions } from './AreaExitController'
 
 export interface FarmWorldGameOptions {
   spawnId: FarmWorldSpawnId
   editor?: WorldEditorController
+  foundation?: FoundationSceneOptions
 }
 
 export function createFarmWorldGame(parent: HTMLElement, bridge: WorldBridge, options: FarmWorldGameOptions) {

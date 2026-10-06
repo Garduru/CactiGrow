@@ -56,7 +56,7 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
   `, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, write: false, format: 'esm', platform: 'node', jsx: 'automatic', packages: 'external', loader: { '.css': 'empty' },
     define: { 'import.meta.env': JSON.stringify({ MODE: 'development', DEV: false }) },
     plugins: [{ name: 'world-runtime-fixtures', setup(plugin) {
-      plugin.onResolve({ filter: /\/create(Farm|Town)WorldGame$/ }, (args) => ({ path: args.path.includes('Farm') ? 'Farm' : 'Town', namespace: 'world-test' }))
+      plugin.onResolve({ filter: /\/create(Farm|Town|Ldtk)WorldGame$/ }, (args) => ({ path: args.path.includes('Farm') ? 'Farm' : args.path.includes('Town') ? 'Town' : 'Ldtk', namespace: 'world-test' }))
       plugin.onLoad({ filter: /.*/, namespace: 'world-test' }, (args) => ({ contents: `export function create${args.path}WorldGame(_parent,bridge){const record={emitIntent:(intent)=>bridge.emitIntent(intent),world:'${args.path}',x:1234,y:567,destroyed:false,destroy(){this.destroyed=true}};globalThis.menuTestRecords.worlds.push(record);return record}` }))
       plugin.onResolve({ filter: /\/neonAuthentication$/ }, () => ({ path: 'auth', namespace: 'auth-test' }))
       plugin.onLoad({ filter: /.*/, namespace: 'auth-test' }, () => ({ contents: `export const neonAuth={signOut:async()=>{globalThis.menuTestRecords.signouts++;return {error:{message:'Simulated offline logout'}}}};export const getPlayerCredentials=async()=>undefined;` }))

@@ -1,4 +1,7 @@
+import { createPlayerCharacter } from './PlayerCharacter'
+import { configureGameplayCamera } from './gameplayCamera'
 import { NavigationMap } from './navigation/NavigationMap'
+import { bindFoundationExits, type FoundationSceneOptions } from './AreaExitController'
 import { registerWorldDiagnostics } from '../features/devtools/worldDiagnostics'
 import { getWorldEditor } from './editor/worldEditorState'
 import { NavigationController } from './navigation/NavigationController'
@@ -92,11 +95,13 @@ export class FarmTestScene extends Phaser.Scene {
   private pinchStartZoom = 1
   private cameraDebugText: Phaser.GameObjects.Text | null = null
 
-  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: FarmWorldSpawnId; editor?: WorldEditorController }) {
+  private readonly foundation?: FoundationSceneOptions
+  constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: FarmWorldSpawnId; editor?: WorldEditorController; foundation?: FoundationSceneOptions }) {
     super('farm-graybox')
     this.bridge = bridge
     this.debugWorld = debugWorld
-    this.playerSpawn = options.editor?.getSnapshot().objects.flatMap((object) => object.returnSpawn?.id === options.spawnId ? [object.returnSpawn] : [])[0] ?? farmWorldSpawns[options.spawnId]
+    this.foundation = options.foundation
+    this.playerSpawn = options.foundation?.position ?? options.editor?.getSnapshot().objects.flatMap((object) => object.returnSpawn?.id === options.spawnId ? [object.returnSpawn] : [])[0] ?? farmWorldSpawns[options.spawnId]
     this.editor = options.editor
   }
 
@@ -123,6 +128,7 @@ export class FarmTestScene extends Phaser.Scene {
     this.configureCamera()
     if (this.editor) this.setupEditor()
     this.rebuildNavigation()
+    bindFoundationExits(this, this.player, this.foundation)
     if (this.debugWorld) this.setDevelopmentDebug(true)
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
@@ -136,6 +142,7 @@ export class FarmTestScene extends Phaser.Scene {
       })
     })
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unsubscribeProjection?.())
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.unsubscribeProjection?.())
     if (import.meta.env.MODE === 'development' || import.meta.env.MODE === 'staging') {
       const sessionId = crypto.randomUUID()
       const unregister = registerWorldDiagnostics({
@@ -150,6 +157,7 @@ export class FarmTestScene extends Phaser.Scene {
         setDebugVisible: visible => this.setDevelopmentDebug(visible),
       })
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, unregister)
+      this.events.once(Phaser.Scenes.Events.DESTROY, unregister)
     }
   }
 
@@ -186,6 +194,7 @@ export class FarmTestScene extends Phaser.Scene {
 
   update(time: number, delta = 1000 / 60) {
     const body = this.player.body as Phaser.Physics.Arcade.Body
+    if (this.foundation?.pending()) { body.setVelocity(0); this.navigation.cancel(); return }
     this.updateCameraZoom()
     if (this.editor?.getSnapshot().mode === 'edit') { body.setVelocity(0); this.navigation.cancel(); return }
     if (!this.canAcceptKeyboardInput()) {
@@ -280,6 +289,7 @@ export class FarmTestScene extends Phaser.Scene {
       const location = locations.find((candidate) => candidate.id === layout.id)
       if (!location) return
       const progressLabel = this.drawLocationGraybox(layout)
+      if (this.foundation && layout.visualKind === 'town-exit') return
       const prompt = this.add.text(layout.approachX, layout.approachY + 74, this.getPromptText(location), {
         color: '#fff3dc', backgroundColor: '#211710ee', fontFamily: 'system-ui', fontSize: '18px',
         padding: { x: 14, y: 9 }, align: 'center',
@@ -353,11 +363,7 @@ export class FarmTestScene extends Phaser.Scene {
 
   private createPlayer() {
     // This development silhouette communicates art scale; its 27px gameplay body is unchanged.
-    const visuals: Phaser.GameObjects.GameObject[] = [
-      this.add.rectangle(0, -18, 34, 62, 0xb85e3d).setStrokeStyle(4, 0x2b1a13),
-      this.add.circle(0, -61, 20, 0xd39a6b).setStrokeStyle(4, 0x2b1a13),
-    ]
-    this.player = this.add.container(this.playerSpawn.x, this.playerSpawn.y, visuals).setSize(54, 54).setDepth(WORLD_DEPTH.localPlayer)
+    this.player = createPlayerCharacter(this, this.playerSpawn.x, this.playerSpawn.y)
     this.physics.add.existing(this.player)
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setCircle(27).setCollideWorldBounds(true)
@@ -407,13 +413,14 @@ export class FarmTestScene extends Phaser.Scene {
       this.game.canvas.removeEventListener('pointercancel', cancelGesture)
     })
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _currentlyOver: Phaser.GameObjects.GameObject[], _deltaX: number, deltaY: number) => {
-      this.setUserZoom(this.targetCameraZoom * Math.exp(-deltaY * 0.0012))
+      this.setUserZoom((this.foundation ? this.cameras.main.zoom : this.targetCameraZoom) * Math.exp(-deltaY * 0.0012))
     })
     this.game.canvas.tabIndex = 0
     this.game.canvas.setAttribute('aria-label', 'Interactive Farm graybox. Use arrow keys or WASD to move and E to enter a nearby location.')
   }
 
   private configureCamera() {
+    if (this.foundation) { configureGameplayCamera(this, this.player, this.foundation.camera ?? {}); return }
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1)
     const resize = (size: Phaser.Structs.Size) => {
       const shortestSide = Math.min(size.width, size.height)
@@ -473,7 +480,7 @@ export class FarmTestScene extends Phaser.Scene {
     this.pendingWorldTap = null
     this.navigation.cancel()
     this.pinchStartDistance = Phaser.Math.Distance.Between(pointers[0].x, pointers[0].y, pointers[1].x, pointers[1].y)
-    this.pinchStartZoom = this.targetCameraZoom
+    this.pinchStartZoom = this.foundation ? this.cameras.main.zoom : this.targetCameraZoom
   }
 
   private updatePinch() {
@@ -519,10 +526,16 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private setUserZoom(zoom: number) {
+    if (this.foundation) {
+      const value = Phaser.Math.Clamp(zoom, .72, MAX_CAMERA_ZOOM)
+      if (this.foundation.camera) this.foundation.camera.zoom = value
+      this.cameras.main.setZoom(value); return
+    }
     this.targetCameraZoom = Phaser.Math.Clamp(zoom, this.fitCameraZoom, MAX_CAMERA_ZOOM)
   }
 
   private updateCameraZoom() {
+    if (this.foundation) return
     const camera = this.cameras.main
     if (Math.abs(camera.zoom - this.targetCameraZoom) > 0.001) camera.setZoom(Phaser.Math.Linear(camera.zoom, this.targetCameraZoom, 0.18))
     if (this.cameraDebugText) this.cameraDebugText.setText(`Zoom ${camera.zoom.toFixed(2)}  Default ${this.baseCameraZoom.toFixed(2)}  Fit ${this.fitCameraZoom.toFixed(2)}  Max ${MAX_CAMERA_ZOOM.toFixed(2)}`)

@@ -1,4 +1,5 @@
 import { ChatHistory } from './ChatHistory'
+import { useWorldLocation } from '../../game-world/WorldLocationContext'
 import { useLocation } from 'react-router-dom'
 import { browserRealtimeApiClient } from '../../services/api/browserApiClient'
 import { areaId } from '../../../shared/realtime/identifiers'
@@ -28,10 +29,11 @@ export function SocialProvider({ children }: { children: ReactNode }) {
     ? loadedSocial.state : { status: 'loading' }
   const ownPublicId = state.status === 'ready' ? state.overview.ownProfile?.publicId : undefined
   const inTown = ['/town', '/shop', '/market'].includes(location.pathname)
-  const currentAreaId = inTown ? 'town' : ownPublicId ? `farm-${ownPublicId}` : null
-  const entryPointId = inTown ? resolveTownSpawnId(location.state) : 'chat-session'
+  const world = useWorldLocation()
+  const currentAreaId = world.active ? world.location?.runtimeAreaId ?? null : inTown ? 'town' : ownPublicId ? `farm-${ownPublicId}` : null
+  const entryPointId = world.active ? world.location?.entryId ?? 'default' : inTown ? resolveTownSpawnId(location.state) : 'chat-session'
   const townConnection = useMemo(() => new AreaConnection({ areaId: areaId(currentAreaId ?? 'town'), entryPointId,
-    origin: window.location.origin, admit: (request, signal) => browserRealtimeApiClient.requestRealtimeAdmission(request, signal) }), [currentAreaId, entryPointId])
+    origin: window.location.origin, admit: (request, signal) => browserRealtimeApiClient.requestRealtimeAdmission(world.active ? { ...request, worldFoundation: true } : request, signal) }), [currentAreaId, entryPointId, world.active])
   const enabled = (import.meta.env.MODE !== 'production' || import.meta.env.VITE_CACTIGROW_REALTIME_ENABLED === 'true')
     && !(import.meta.env.DEV && new URLSearchParams(location.search).has('worldEdit'))
   useEffect(() => {

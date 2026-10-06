@@ -27,7 +27,7 @@ export function GameHeader() {
   const tokens = grower.state.authority === 'server'
     ? grower.state.status === 'ready' ? grower.state.projection.player.tokenBalance : null
     : state.player.tokens
-  const isWorld = ['/play', '/town'].includes(location.pathname)
+  const isWorld = ['/play', '/town', '/world'].includes(location.pathname)
 
   useEffect(() => {
     if (!menuOpen) return

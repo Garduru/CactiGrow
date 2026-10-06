@@ -4,11 +4,13 @@ import type { WorldBridge } from './WorldBridge'
 import type { TownWorldSpawnId } from './worldTypes'
 import type { WorldEditorController } from './editor/worldEditorState'
 import type { AreaConnection } from '../services/realtime/AreaConnection'
+import type { FoundationSceneOptions } from './AreaExitController'
 
 export interface TownWorldGameOptions {
   spawnId: TownWorldSpawnId
   editor?: WorldEditorController
   connection?: AreaConnection
+  foundation?: FoundationSceneOptions
 }
 
 export function createTownWorldGame(parent: HTMLElement, bridge: WorldBridge, options: TownWorldGameOptions) {

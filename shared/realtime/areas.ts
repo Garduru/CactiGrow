@@ -1,4 +1,5 @@
 import { areaId, isCanonicalUuid, isSequence, type AreaId } from './identifiers.ts'
+import { areaFromRuntime, findArea } from '../world/world.ts'
 
 export interface Position { readonly x: number; readonly y: number }
 export interface AreaDefinition {
@@ -13,8 +14,8 @@ export interface AreaDefinition {
 }
 
 // Authored Town coordinates, shared with the existing renderer without retuning.
-export const TOWN_WORLD_WIDTH = 2200
-export const TOWN_WORLD_HEIGHT = 1500
+export const TOWN_WORLD_WIDTH = findArea('town-p1')!.width
+export const TOWN_WORLD_HEIGHT = findArea('town-p1')!.height
 export const TOWN_PLAYER_SPAWN = { x: 1100, y: 1280 } as const
 export const TOWN_ENTRY_POINTS = {
   'farm-arrival': TOWN_PLAYER_SPAWN,
@@ -25,7 +26,7 @@ export const TOWN_ENTRY_POINTS = {
 export const TOWN_AREA: AreaDefinition = {
   areaId: areaId('town'), coordinateVersion: 1,
   bounds: { minX: 0, minY: 0, maxX: TOWN_WORLD_WIDTH, maxY: TOWN_WORLD_HEIGHT },
-  entryPoints: TOWN_ENTRY_POINTS,
+  entryPoints: { ...TOWN_ENTRY_POINTS, ...Object.fromEntries(findArea('town-p1')!.spawns.map(s => [s.entryId, { x: s.x, y: s.y }])) },
   // Provisional operational limits, not demonstrated realtime performance.
   layerCapacity: 32, populationLimit: 128, emptyLayerRetentionMs: 30_000,
   movement: { speed: 245, maxUpdatesPerSecond: 10, positionTolerance: 2 },
@@ -36,9 +37,15 @@ export function getAreaDefinition(id: unknown): AreaDefinition | undefined {
   // A private Farm is a distinct chat Area, not a shared Farm channel or visit admission.
   // No Farm remote rendering or movement simulation is enabled by this definition.
   if (typeof id === 'string' && id.startsWith('farm-') && isCanonicalUuid(id.slice(5))) return {
-    ...TOWN_AREA, areaId: areaId(id), entryPoints: { 'chat-session': { x: 0, y: 0 } }, layerCapacity: 1, populationLimit: 1,
+    ...TOWN_AREA, areaId: areaId(id), bounds: { minX: 0, minY: 0, maxX: findArea('player-farm')!.width, maxY: findArea('player-farm')!.height },
+    entryPoints: { 'chat-session': { x: 0, y: 0 }, ...Object.fromEntries(findArea('player-farm')!.spawns.map(s => [s.entryId, { x: s.x, y: s.y }])) }, layerCapacity: 1, populationLimit: 1,
   }
-  return typeof id === 'string' ? areas.find((area) => area.areaId === id) : undefined
+  if (typeof id !== 'string') return undefined
+  const existing = areas.find((area) => area.areaId === id)
+  if (existing) return existing
+  const authored = areaFromRuntime(id)
+  return authored ? { ...TOWN_AREA, areaId: areaId(id), bounds: { minX: 0, minY: 0, maxX: authored.width, maxY: authored.height },
+    entryPoints: Object.fromEntries(authored.spawns.map(s => [s.entryId, { x: s.x, y: s.y }])) } : undefined
 }
 export function isPosition(value: unknown): value is Position {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
