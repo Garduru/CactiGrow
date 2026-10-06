@@ -1,4 +1,6 @@
 import { Outlet } from 'react-router-dom'
+import { StartingProvider } from '../features/starting/StartingProvider'
+import { StartingObjective } from '../features/starting/StartingObjective'
 import { WorldLocationProvider } from '../game-world/WorldLocationProvider'
 import { PlayerBootstrapProvider } from './PlayerBootstrapProvider'
 import { DeploymentAccessBoundary } from './DeploymentAccessBoundary'
@@ -22,7 +24,7 @@ import { MailStatusProvider } from '../features/mail/mailStatus'
 export function GameSession() {
   return (
     <PlayerBootstrapProvider>
-      <WorldLocationProvider><SocialProvider>
+      <WorldLocationProvider><SocialProvider><StartingProvider>
         <DeploymentAccessBoundary>
           <PlantLifecycleProvider><GardenAuthorityProvider><GrowerAuthorityProvider><GameStateProvider>
             <PlayerAuthorityReconciler />
@@ -35,12 +37,12 @@ export function GameSession() {
             </SocialPanelProvider></FeaturePanelProvider></AdminAccessProvider></MailStatusProvider>
           </GameStateProvider></GrowerAuthorityProvider></GardenAuthorityProvider></PlantLifecycleProvider>
         </DeploymentAccessBoundary>
-      </SocialProvider></WorldLocationProvider>
+      </StartingProvider></SocialProvider></WorldLocationProvider>
     </PlayerBootstrapProvider>
   )
 }
 
 function GameMain() {
   const menu = useFeaturePanel()
-  return <main id="main-content" className="game-main" inert={menu.feature !== null && !(menu.feature === 'devtools' && menu.worldPreview)}><Outlet /></main>
+  return <main id="main-content" className="game-main" inert={menu.feature !== null && !(menu.feature === 'devtools' && menu.worldPreview)}><StartingObjective /><Outlet /></main>
 }

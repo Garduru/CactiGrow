@@ -363,7 +363,7 @@ export class FarmTestScene extends Phaser.Scene {
 
   private createPlayer() {
     // This development silhouette communicates art scale; its 27px gameplay body is unchanged.
-    this.player = createPlayerCharacter(this, this.playerSpawn.x, this.playerSpawn.y)
+    this.player = createPlayerCharacter(this, this.playerSpawn.x, this.playerSpawn.y, this.foundation?.appearance)
     this.physics.add.existing(this.player)
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setCircle(27).setCollideWorldBounds(true)

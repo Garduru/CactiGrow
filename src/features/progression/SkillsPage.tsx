@@ -2,10 +2,13 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { GameCard } from '../../components/ui/GameCard'
 import { useGameState } from '../../game/useGameState'
 import { getProgressionSnapshot } from './progressionModel'
-import { skillDefinitions } from './skillDefinitions'
+import { harvestingSkillDefinition, skillDefinitions } from './skillDefinitions'
+import { useStartingExperience } from '../starting/StartingContext'
 
 export function SkillsPage() {
   const { state } = useGameState()
+  const tutorial = useStartingExperience()
+  const visibleSkills = tutorial.active && tutorial.state ? [...skillDefinitions, harvestingSkillDefinition] : skillDefinitions
 
   return (
     <section aria-labelledby="skills-title">
@@ -13,8 +16,8 @@ export function SkillsPage() {
       <p>Each skill advances independently through its own experience.</p>
 
       <div className="skills-grid">
-        {skillDefinitions.map((skill) => {
-          const progression = getProgressionSnapshot(state.player.skills[skill.id].xp)
+        {visibleSkills.map((skill) => {
+          const progression = getProgressionSnapshot(skill.id === 'harvesting' ? tutorial.state?.harvestingXp ?? 0 : state.player.skills[skill.id].xp)
           return (
             <GameCard className="skill-card" key={skill.id}>
               <header>

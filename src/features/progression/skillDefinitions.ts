@@ -7,6 +7,9 @@ export interface SkillDefinition {
   description: string
 }
 
+// Starting Experience uses server checkpoint XP; existing skill columns and unlocks stay intact.
+export const harvestingSkillDefinition = { id: 'harvesting', name: 'Harvesting', shortName: 'Harvest', description: 'Careful collection of wild cactus seed material with an equipped harvesting tool.' } as const
+
 export const skillDefinitions: readonly SkillDefinition[] = [
   {
     id: 'cultivation',

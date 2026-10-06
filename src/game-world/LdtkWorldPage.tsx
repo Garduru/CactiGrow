@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { authoredRoadExit, discoveredTravelAreas, findArea, zoneName } from '../../shared/world/world.ts'
 import { WorldNav } from '../components/layout/WorldNav'
@@ -22,6 +22,8 @@ import { PhaserWorldCanvas } from './PhaserWorldHost'
 import { farmWorldSpawns } from './farmWorldLayout'
 import type { WorldBridge } from './WorldBridge'
 import type { WorldIntent } from './worldTypes'
+import { useStartingExperience } from '../features/starting/StartingContext'
+import { WorldTutorialDialog } from '../features/starting/WorldTutorialDialog'
 function roadLabel(areaId: string) {
   const exit = authoredRoadExit(findArea(areaId)!)
   return `Road to ${exit?.targetAreaId ? findArea(exit.targetAreaId)?.displayName ?? 'unavailable route' : 'unavailable route'}`
@@ -31,6 +33,10 @@ const foundationTownProjection = { ...townWorldProjection, locations: townWorldP
 export function LdtkWorldPage() {
   const world = useWorldLocation(), social = useSocialState(), dock = useSocialPanel(), route = useLocation(), navigate = useNavigate()
   const { state } = useGameState(), lifecycle = usePlantLifecycle(), garden = useGardenAuthority(), panels = useFeaturePanel()
+  const tutorial = useStartingExperience(), [interaction, setInteraction] = useState<string | null>(null)
+  const interactionRef = useRef(interaction), tutorialRef = useRef(tutorial)
+  useEffect(() => { interactionRef.current = interaction; tutorialRef.current = tutorial }, [interaction, tutorial])
+  const appearanceSkin = tutorial.state?.appearance.skin, appearanceShirt = tutorial.state?.appearance.shirt
   const actions = useRef(world)
   const camera = useRef<GameplayCameraState>({})
   useEffect(() => { actions.current = world }, [world])
@@ -44,11 +50,11 @@ export function LdtkWorldPage() {
   const position = area?.areaType === 'farm' && route.state?.worldSpawn && route.state.worldRevision === location?.revision ? farmWorldSpawns[resolveFarmSpawnId(route.state)] : location?.position
   const createGame = useCallback((parent: HTMLElement, bridge: WorldBridge) => {
     if (!area || !position) throw new Error('World location unavailable.')
-    const foundation = { area, position, camera: camera.current, debug: import.meta.env.MODE === 'staging' && new URLSearchParams(route.search).has('worldDebug'), pending: () => actions.current.pending, onExit: (id: string) => { void actions.current.transition(id) } }
+    const foundation = { area, position, camera: camera.current, appearance: appearanceSkin == null || appearanceShirt == null ? undefined : { skin: appearanceSkin, shirt: appearanceShirt }, onInteract: (id: string) => setInteraction(id), tutorialPot: () => tutorialRef.current.state?.pot ?? null, debug: import.meta.env.MODE === 'staging' && new URLSearchParams(route.search).has('worldDebug'), pending: () => actions.current.pending || !!interactionRef.current || tutorialRef.current.pending, onExit: (id: string) => { void actions.current.transition(id) } }
     if (area.areaType === 'farm') return createFarmWorldGame(parent, bridge, { spawnId: 'default', foundation })
     if (area.areaType === 'town') return createTownWorldGame(parent, bridge, { spawnId: 'farm-arrival', connection: social.connection, foundation })
     return createLdtkWorldGame(parent, foundation)
-  }, [area, position, social.connection, route.search])
+  }, [area, position, social.connection, route.search, appearanceSkin, appearanceShirt])
   const intent = useCallback((intent: WorldIntent) => {
     if (intent.type === 'OPEN_PLAYER_PROFILE') { social.openProfile(intent.publicId); return }
     if (area?.areaType === 'farm') {
@@ -69,6 +75,7 @@ export function LdtkWorldPage() {
       <PhaserWorldCanvas projection={projection} onIntent={intent} createGame={createGame} />
       <div className="town-multiplayer-status" role="status">{world.pending ? 'Travelling…' : world.error || `${zoneName(area.zoneId)} · ${area.displayName}`}{world.error && <button onClick={world.reload}>Reload location</button>}</div>
       {dock.chatDockExpanded && <InGameChatHud mode={dock.activeTab === 'friends' ? 'world-chat' : dock.activeTab} onModeChange={dock.setActiveTab} />}
+      {interaction && area.interactables?.find(e => e.entityId === interaction) && <WorldTutorialDialog key={interaction} entity={area.interactables.find(e => e.entityId === interaction)!} close={() => setInteraction(null)} />}
     </div>
   </section>
 }

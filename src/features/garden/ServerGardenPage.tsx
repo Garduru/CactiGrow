@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { GARDEN_DISPLAY_SLOT_IDS } from '../../types/garden'
 import { usePlantLifecycle } from '../../app/usePlantLifecycle'
+import { useStartingExperience } from '../starting/StartingContext'
 import { getSpeciesById } from '../../data/species'
 import { PlantVisual } from '../../components/ui/PlantVisual'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -26,6 +27,7 @@ import { getLevelFromXp } from '../progression/progressionModel'
 
 export function ServerGardenPage() {
   const { state } = usePlantLifecycle()
+  const tutorial = useStartingExperience()
   const garden = useGardenAuthority()
   const game = useGameState()
   const [selectedSpecimenId, setSelectedSpecimenId] = useState<string | null>(null)
@@ -106,6 +108,7 @@ export function ServerGardenPage() {
             {selected && <span className="garden-specimen__check" aria-hidden="true">&#10003;</span>}
             <strong>{species?.commonName ?? 'Unknown cactus'}</strong><em>{species?.scientificName}</em>
             <span className="garden-specimen__id">Specimen {specimen.specimenId.slice(0, 8)}</span>
+            {tutorial.state?.tutorialParentIds.includes(specimen.specimenId) && <span className="garden-specimen__listed">Tutorial specimen · research / practice only</span>}
             {plant.isListedForSale && <span className="garden-specimen__listed">Listed on Marketplace</span>}
             <CollectionKnowledge plant={plant} research={game.state.geneticsResearch} level={level} />
           </button>

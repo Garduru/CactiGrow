@@ -4,10 +4,13 @@ import { usePlayerBootstrap } from './usePlayerBootstrap'
 import { PlayerLogin } from '../features/authentication/PlayerLogin'
 import { useSocialState } from '../features/social/useSocialState'
 import { useState } from 'react'
+import { useStartingExperience } from '../features/starting/StartingContext'
+import { AppearanceSetup } from '../features/starting/AppearanceSetup'
 
 export function DeploymentAccessBoundary({ children }: { children: ReactNode }) {
   const bootstrap = usePlayerBootstrap()
   const social = useSocialState()
+  const tutorial = useStartingExperience()
   if (getDeploymentMode() === 'development' && bootstrap.status !== 'authenticated') return children
 
   if (bootstrap.status === 'loading') {
@@ -23,6 +26,8 @@ export function DeploymentAccessBoundary({ children }: { children: ReactNode }) 
   if (social.state.status === 'loading') return <main className="deployment-access-state" aria-live="polite"><h1>CactiGrow</h1><p>Loading your player profile…</p></main>
   if (social.state.status === 'error') return <main className="deployment-access-state" role="alert"><h1>Profile unavailable</h1><p>{social.state.message}</p><button type="button" onClick={social.refresh}>Retry</button></main>
   if (!social.state.overview.ownProfile) return <CharacterNameOnboarding />
+  if (tutorial.active && !tutorial.state) return <main className="deployment-access-state" role="status"><p>{tutorial.error || 'Preparing your adventure…'}</p>{tutorial.error && <button onClick={() => { void tutorial.refresh() }}>Retry</button>}</main>
+  if (tutorial.active && tutorial.state && !tutorial.state.appearanceComplete) return <AppearanceSetup />
   return children
 }
 

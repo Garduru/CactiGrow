@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:starting": "node --experimental-strip-types --test shared/api/startingExperienceV1.test.ts server/starting/starting.integration.test.mjs",
     "test:reconciliation": "node --experimental-strip-types --test src/app/playerAuthorityReconciliation.test.ts",
     "test:chat": "node --experimental-strip-types --test --test-isolation=none server/realtime/chatScopes.test.ts server/realtime/admission.runtime.test.ts src/features/social/chatViewport.test.ts",
     "test:mail": "node --experimental-strip-types --test shared/api/mailV1.test.ts server/player/mail.integration.test.mjs",

@@ -2,6 +2,7 @@ import type Phaser from 'phaser'
 import type { WorldArea, WorldExit, WorldPoint } from '../../shared/world/types.ts'
 import { findArea } from '../../shared/world/world.ts'
 import type { GameplayCameraState } from './gameplayCamera'
+import type { CharacterAppearance, StartingExperienceV1 } from '../../shared/api/startingExperienceV1.ts'
 
 /** Player center enters an authored opening; no click or point-radius interaction. */
 export function insideExit(position: WorldPoint, exit: WorldExit, margin = 0) {
@@ -20,7 +21,7 @@ export class AreaExitController {
     }
   }
 }
-export interface FoundationSceneOptions { position: WorldPoint; area: WorldArea; onExit(id: string): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean }
+export interface FoundationSceneOptions { position: WorldPoint; area: WorldArea; onExit(id: string): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean; appearance?: CharacterAppearance; onInteract?(id: string): void; tutorialPot?(): StartingExperienceV1['pot'] }
 export function drawFoundationExitDebug(scene: Phaser.Scene, options: FoundationSceneOptions) {
   if (!options.debug) return
   for (const exit of options.area.exits) {

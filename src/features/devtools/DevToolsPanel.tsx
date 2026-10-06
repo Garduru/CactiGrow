@@ -1,4 +1,5 @@
 import { useWorldLocation } from '../../game-world/WorldLocationContext'
+import { StartingDevInspection } from '../starting/StartingDevInspection'
 import { findArea, WORLD } from '../../../shared/world/world'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -135,6 +136,7 @@ function DevToolsContent() {
   return <div className="dev-tools">
     <nav className="dev-tools__nav" aria-label="Developer tool sections">{sections.map(item => <button key={item} aria-pressed={item === section} onClick={() => setSection(item)}>{item}</button>)}</nav>
     <div className="dev-tools__body">
+      <StartingDevInspection />
       <p className="dev-tools__status">{getDeploymentMode()} · {authorityReady ? 'Authoritative gameplay' : 'Read-only prototype / loading'} · {session ? 'Developer API authenticated' : sessionError || 'Checking developer API…'}</p>
       {(section === 'World' || section === 'Visual Testing') && <button aria-pressed={worldPreview} onClick={() => setWorldPreview(!worldPreview)}>{worldPreview ? 'Return to modal panel' : 'Dock panel for world preview'}</button>}
       {!authorityReady && <p>Gameplay mutations require the existing server-lifecycle session. For local development, open the bookmarked <code>/play?developmentIdentity=account-a&amp;e1Lifecycle=server</code> using the isolated local launcher.</p>}

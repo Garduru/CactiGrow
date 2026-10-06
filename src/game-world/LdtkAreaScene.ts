@@ -14,18 +14,34 @@ export class LdtkAreaScene extends Phaser.Scene {
   private keys!: Record<string, Phaser.Input.Keyboard.Key>
   private exits!: AreaExitController
   private touch: { id: number; x: number; y: number; worldX: number; worldY: number } | null = null
+  private interaction: string | null = null
+  private potPlant?: Phaser.GameObjects.Image
   constructor(options: FoundationSceneOptions) { super('ldtk-area'); this.options = options }
+  preload() {
+    for (const layer of this.options.area.visualLayers ?? []) if (!this.textures.exists(`terrain:${layer.tileset.uid}`)) this.load.image(`terrain:${layer.tileset.uid}`, layer.tileset.path)
+    if (this.options.area.interactables?.some(e => e.kind === 'harvestable')) this.load.image('tutorial-san-pedro', '/assets/plants/species/echinopsis-pachanoi/plant-echinopsis-pachanoi-mature-base-v01.webp')
+    if (this.options.area.interactables?.some(e => e.kind === 'tutorial-pot')) for (const stage of ['seedling','developing','mature']) this.load.image(`pot-${stage}`, `/assets/plants/species/echinopsis-pachanoi/plant-echinopsis-pachanoi-${stage}-base-v01.webp`)
+  }
   create() {
     const { area, position, onExit } = this.options
     this.physics.world.setBounds(0, 0, area.width, area.height)
     this.cameras.main.setBounds(0, 0, area.width, area.height)
     this.add.rectangle(area.width / 2, area.height / 2, area.width, area.height, 0x65523d)
+    for (const layer of [...(area.visualLayers ?? [])].sort((a,b) => (a.name === 'Ground' ? 0 : 1) - (b.name === 'Ground' ? 0 : 1))) {
+      const key = `terrain:${layer.tileset.uid}`, texture = this.textures.get(key)
+      for (const tile of layer.tiles) {
+        const frame = `${tile.sourceX}:${tile.sourceY}`
+        // Inset sampling keeps painted atlas dividers out of the gameplay tiles.
+        if (!texture.has(frame)) texture.add(frame, 0, tile.sourceX + 2, tile.sourceY + 2, layer.tileset.tileSize - 4, layer.tileset.tileSize - 4)
+        this.add.image(tile.x + layer.offsetX + layer.cellWidth/2, tile.y + layer.offsetY + layer.cellHeight/2, key, frame).setDisplaySize(layer.cellWidth + .5, layer.cellHeight + .5).setFlipX(!!(tile.flip & 1)).setFlipY(!!(tile.flip & 2))
+      }
+    }
     const walls = this.physics.add.staticGroup()
     for (const o of area.collision) {
-      const rect = this.add.rectangle(o.x, o.y, o.width, o.height, 0x29231e)
+      const rect = this.add.rectangle(o.x, o.y, o.width, o.height, 0x29231e, area.visualLayers?.length && !this.options.debug ? 0 : 1)
       this.physics.add.existing(rect, true); walls.add(rect)
     }
-    this.player = createPlayerCharacter(this, position.x, position.y)
+    this.player = createPlayerCharacter(this, position.x, position.y, this.options.appearance)
     this.physics.add.existing(this.player)
     const body = this.player.body as Phaser.Physics.Arcade.Body
     // Normalized geometry uses the established Farm/Town gameplay body and speed.
@@ -33,6 +49,15 @@ export class LdtkAreaScene extends Phaser.Scene {
     if (this.options.debug) this.player.add(this.add.circle(0, 0, 27, 0xf5d18a).setName('player-debug-body'))
     this.physics.add.collider(this.player, walls)
     this.navigation = new NavigationController(new NavigationMap(area.width, area.height, area.collision))
+    for (const entity of area.interactables ?? []) {
+      if (entity.kind === 'npc') createPlayerCharacter(this, entity.x, entity.y, { skin: 2, shirt: 1 })
+      else if (entity.kind === 'harvestable') this.add.image(entity.x, entity.y, 'tutorial-san-pedro').setOrigin(.5,1).setScale(150 / this.textures.get('tutorial-san-pedro').getSourceImage().height).setDepth(110)
+      else {
+        this.add.container(entity.x,entity.y,[this.add.ellipse(0,12,76,25,0x543728),this.add.rectangle(0,-2,62,42,0xad6241).setStrokeStyle(4,0x573626),this.add.ellipse(0,-23,74,24,0x543728).setStrokeStyle(4,0xd28e5f)]).setDepth(110)
+        this.potPlant = this.add.image(entity.x,entity.y-16,'pot-seedling').setOrigin(.5,1).setDepth(111).setVisible(false)
+      }
+      this.add.text(entity.x, entity.y + 32, entity.displayName, {fontSize:'15px',fontFamily:'system-ui',color:'#fff3dc',backgroundColor:'#39281edd',padding:{x:7,y:4}}).setOrigin(.5,0).setDepth(140)
+    }
     this.exits = new AreaExitController(area, onExit)
     drawFoundationExitDebug(this, this.options)
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>
@@ -40,7 +65,10 @@ export class LdtkAreaScene extends Phaser.Scene {
     this.events.once('shutdown', release); this.events.once('destroy', release)
     this.game.canvas.tabIndex = 0
     const accept = (x: number, y: number) => {
-      if (!this.options.pending()) this.navigation.move(this.player, { x, y })
+      if (this.options.pending()) return
+      const entity = area.interactables?.find(e => Math.hypot(e.x - x,e.y - y) < 95)
+      this.interaction = entity?.entityId ?? null
+      this.navigation.move(this.player, entity ? { x: entity.x, y: entity.y + 65 } : { x, y })
     }
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       this.game.canvas.focus()
@@ -60,12 +88,23 @@ export class LdtkAreaScene extends Phaser.Scene {
   }
   update(time: number, delta = 1000 / 60) {
     if (!this.player) return
+    const pot = this.options.tutorialPot?.()
+    if (this.potPlant) {
+      this.potPlant.setVisible(!!pot && !pot.collectedAt)
+      if (pot && !pot.collectedAt) {
+        const progress = (Date.now()-Date.parse(pot.plantedAt))/(Date.parse(pot.readyAt)-Date.parse(pot.plantedAt)), key = progress < .33 ? 'pot-seedling' : progress < .85 ? 'pot-developing' : 'pot-mature'
+        if (this.potPlant.texture.key !== key) this.potPlant.setTexture(key)
+        this.potPlant.setScale(110 / this.potPlant.texture.getSourceImage().height)
+      }
+    }
     const body = this.player.body as Phaser.Physics.Arcade.Body
     if (this.options.pending() || !canUseWorldKeyboard(this.game.canvas)) { body.setVelocity(0); return }
     const x = Number(this.keys.D.isDown || this.keys.RIGHT.isDown) - Number(this.keys.A.isDown || this.keys.LEFT.isDown)
     const y = Number(this.keys.S.isDown || this.keys.DOWN.isDown) - Number(this.keys.W.isDown || this.keys.UP.isDown)
-    if (x || y) { this.navigation.cancel(); const v = new Phaser.Math.Vector2(x, y).normalize().scale(245); body.setVelocity(v.x, v.y) }
+    if (x || y) { this.interaction = null; this.navigation.cancel(); const v = new Phaser.Math.Vector2(x, y).normalize().scale(245); body.setVelocity(v.x, v.y) }
     else { const v = this.navigation.update(this.player, delta, 245, time); body.setVelocity(v.x, v.y) }
     this.exits.update(this.player)
+    const target = this.options.area.interactables?.find(e => e.entityId === this.interaction)
+    if (target && Math.hypot(this.player.x-target.x,this.player.y-target.y) <= 115) { this.interaction = null; this.navigation.cancel(); body.setVelocity(0); this.options.onInteract?.(target.entityId) }
   }
 }

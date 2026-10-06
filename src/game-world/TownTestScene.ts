@@ -268,7 +268,7 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   private createPlayer() {
-    this.player = createPlayerCharacter(this, this.playerSpawn.x, this.playerSpawn.y)
+    this.player = createPlayerCharacter(this, this.playerSpawn.x, this.playerSpawn.y, this.foundation?.appearance)
     this.physics.add.existing(this.player)
     const body = this.player.body as Phaser.Physics.Arcade.Body
     body.setCircle(27).setCollideWorldBounds(true)
@@ -278,11 +278,11 @@ export class TownTestScene extends Phaser.Scene {
   private setupPresence() {
     const connection = this.connection
     if (!connection) return
-    const remotes = new RemotePlayers((presence) => this.add.container(presence.position.x, presence.position.y, [
+    const remotes = new RemotePlayers((presence) => (presence.appearance === 'placeholder' ? this.add.container(presence.position.x, presence.position.y, [
       this.add.rectangle(0, -18, 34, 62, 0x58806b).setStrokeStyle(4, 0x2b1a13),
       this.add.circle(0, -61, 20, 0xd39a6b).setStrokeStyle(4, 0x2b1a13),
-      this.add.text(0, -96, presence.label, { color: '#fff3dc', fontFamily: 'system-ui', fontSize: '14px' }).setOrigin(0.5),
-    ]).setDepth(WORLD_DEPTH.remotePlayers))
+    ]) : createPlayerCharacter(this, presence.position.x, presence.position.y, presence.appearance))
+      .add(this.add.text(0, -96, presence.label, { color: '#fff3dc', fontFamily: 'system-ui', fontSize: '14px' }).setOrigin(.5)).setDepth(WORLD_DEPTH.remotePlayers))
     this.remotePlayers = remotes
     const refresh = () => remotes.sync(connection.getSnapshot().remotes, performance.now())
     const unsubscribe = connection.subscribe(refresh)
