@@ -45,7 +45,7 @@ export async function verifyStartingUi({ database, playerId, handleApiRequest, c
       const e=await page.evaluate(id=>window.fixtureGame.scene.getScenes(true)[0].options.area.interactables.find(e=>e.entityId===id),entityId)
       await walk({x:e.x,y:e.y+65});const target=await page.evaluate(e=>{const s=window.fixtureGame.scene.getScenes(true)[0],c=s.cameras.main,b=s.game.canvas.getBoundingClientRect();return {x:b.x+(e.x-c.worldView.x)*c.zoom,y:b.y+(e.y-c.worldView.y)*c.zoom}},e);await page.mouse.click(target.x,target.y);await page.getByRole('dialog').waitFor({state:'visible'})
     }
-    const exit=async(id,area)=>{const target=await page.evaluate(id=>window.fixtureGame.scene.getScenes(true)[0].options.area.exits.find(e=>e.exitId===id),id);await page.locator('canvas').focus();await page.evaluate(p=>{const s=window.fixtureGame.scene.getScenes(true)[0];s.navigation.move(s.player,{x:p.x,y:p.y})},target);await ready(area)}
+    const exit=async(id,area)=>{const target=await page.evaluate(id=>{const s=window.fixtureGame.scene.getScenes(true)[0];return (s.options?.area??s.foundation.area).exits.find(e=>e.exitId===id)},id);await page.locator('canvas').focus();await page.evaluate(p=>{const s=window.fixtureGame.scene.getScenes(true)[0];s.navigation.move(s.player,{x:p.x,y:p.y})},target);await ready(area)}
     await interact('mara-guide');await page.getByRole('button',{name:'Accept Field Knife',exact:true}).click()
     await page.getByRole('button',{name:'Open Inventory',exact:true}).click();await page.getByRole('button',{name:'Equip Field Knife',exact:true}).click();await page.getByRole('button',{name:'Close feature panel',exact:true}).click()
     await interact('first-san-pedro');await page.getByRole('button',{name:'Harvest seeds · +10 Harvesting XP',exact:true}).click()
@@ -63,8 +63,12 @@ export async function verifyStartingUi({ database, playerId, handleApiRequest, c
     await page.getByRole('button',{name:'Visit Breeding',exact:true}).click();await page.getByLabel('Parent A',{exact:true}).selectOption({index:1});await page.getByLabel('Parent B',{exact:true}).selectOption({index:1});await page.getByRole('button',{name:'Breed practice offspring',exact:true}).click()
     await page.getByLabel('Current tutorial objective').waitFor({state:'hidden'});await page.reload();await page.getByLabel('Current tutorial objective').waitFor({state:'hidden'})
     await page.screenshot({path:'.wrangler/starting-browser/farm-complete.png'})
+    await page.goto(`http://127.0.0.1:${server.address().port}/world`);await ready('player-farm');await exit('to-cross-path-1','cross-path-1');await exit('to-path-1','path-1');await interact('path-1-pot')
+    await page.getByRole('button',{name:'Travel',exact:true}).click();await page.getByRole('button',{name:'Farm',exact:true}).click();await ready('player-farm')
+    assert.equal(await page.getByRole('dialog').count(),0,'Travel closes the previous Area interaction')
+    await walk({x:1500,y:1570})
     assert.deepEqual(errors,[])
-    await writeFile('.wrangler/starting-browser/acceptance.json',JSON.stringify({fullApp:true,freshPlayer:true,appearance:true,tool:true,harvest:true,pot45s:true,refreshResume:true,farmNurseryGardenResearchBreeding:true,mobileWidths:[320,360,390],errors},null,2))
+    await writeFile('.wrangler/starting-browser/acceptance.json',JSON.stringify({fullApp:true,freshPlayer:true,appearance:true,tool:true,harvest:true,pot45s:true,refreshResume:true,farmNurseryGardenResearchBreeding:true,travelClosesInteraction:true,mobileWidths:[320,360,390],errors},null,2))
   }catch(e){await page?.screenshot({path:'.wrangler/starting-browser/failure.png'});await writeFile('.wrangler/starting-browser/failure.json',JSON.stringify({text:await page?.locator('body').innerText(),errors,error:e.message},null,2));throw e}
   finally{await browser.close();await new Promise(r=>server.close(r))}
 }

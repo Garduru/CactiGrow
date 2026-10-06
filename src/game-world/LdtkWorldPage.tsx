@@ -70,7 +70,7 @@ export function LdtkWorldPage() {
   return <section className="world-page" aria-label={`${zoneName(area.zoneId)} · ${area.displayName}`}>
     <WorldNav<string> sceneName={area.displayName}
       destinations={[...(area.areaType === 'farm' ? farm.locations.filter(l => l.id !== 'town') : []), ...discoveredTravelAreas(location).map(a => ({ id: `world:${a.travelDestinationId}`, displayName: a.travelDisplayName ?? a.displayName }))]}
-      onTravel={id => { if (id.startsWith('world:')) void world.travel(id.slice(6)); else intent({ type: 'ENTER_LOCATION', locationId: id as WorldLocationId }) }} />
+      onTravel={id => { interactionRef.current = null; setInteraction(null); if (id.startsWith('world:')) void world.travel(id.slice(6)); else intent({ type: 'ENTER_LOCATION', locationId: id as WorldLocationId }) }} />
     <div className="world-page__viewport">
       <PhaserWorldCanvas projection={projection} onIntent={intent} createGame={createGame} />
       <div className="town-multiplayer-status" role="status">{world.pending ? 'Travelling…' : world.error || `${zoneName(area.zoneId)} · ${area.displayName}`}{world.error && <button onClick={world.reload}>Reload location</button>}</div>
