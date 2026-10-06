@@ -51,20 +51,44 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
         const iid = text(e.iid)
         if (entities.has(iid)) throw new Error('Duplicate entity IID.')
         entities.set(iid, { areaId, levelIid: text(l.iid), layerIid: text(layer.iid), entity: e })
-        if (!['AreaSpawn', 'AreaExit'].includes(text(e.__identifier))) continue
+        if (!['AreaSpawn', 'AreaExit', 'TutorialNpc', 'HarvestablePlant', 'TutorialPot'].includes(text(e.__identifier))) continue
         const ef = fields(e.fieldInstances), px = list(e.px)
         const authored = { x: number(px[0]) + number(layer.__pxTotalOffsetX), y: number(px[1]) + number(layer.__pxTotalOffsetY) }
         if (!lockedTemplate && (ef.runtimeX != null || ef.runtimeY != null)) throw new Error('Runtime entity overrides are reserved for locked Farm/Town templates.')
         const { x, y } = lockedTemplate ? { x: ef.runtimeX == null ? authored.x : number(ef.runtimeX), y: ef.runtimeY == null ? authored.y : number(ef.runtimeY) } : topologyToRuntime(area, authored)
         if ((ef.runtimeX == null) !== (ef.runtimeY == null) || x < 0 || y < 0 || x >= width || y >= height) throw new Error(`Invalid entity position in ${areaId}`)
         if (e.__identifier === 'AreaSpawn') area.spawns.push({ entryId: id(ef.entryId), x, y })
-        else {
+        else if (e.__identifier !== 'AreaExit') {
+          if (lockedTemplate || typeof ef.tutorial !== 'boolean') throw new Error('Invalid tutorial interaction.')
+          const kind = e.__identifier === 'TutorialNpc' ? 'npc' : e.__identifier === 'HarvestablePlant' ? 'harvestable' : 'tutorial-pot'
+          const entity = { entityId: id(ef.entityId), kind, displayName: text(ef.displayName), tutorial: ef.tutorial, x, y } as NonNullable<WorldArea['interactables']>[number]
+          if (kind === 'harvestable') {
+            entity.speciesId = id(ef.speciesId); entity.seedYield = number(ef.seedYield)
+            if (entity.seedYield < 1 || entity.seedYield > 10 || ef.respawn !== 'once-per-player') throw new Error('Invalid controlled harvest reward.')
+            entity.respawn = 'once-per-player'
+          }
+          area.interactables ??= []; area.interactables.push(entity)
+        } else {
           if (typeof ef.blocked !== 'boolean') throw new Error('Exit requires blocked boolean.')
           const size = lockedTemplate ? { x: number(ef.runtimeWidth), y: number(ef.runtimeHeight) } : topologyToRuntime(area, { x: number(e.width), y: number(e.height) })
           if (!lockedTemplate && (ef.runtimeWidth != null || ef.runtimeHeight != null)) throw new Error('Runtime trigger overrides are reserved for locked Farm/Town templates.')
           if (list(e.__pivot).some(v => v !== .5) || size.x <= 0 || size.y <= 0 || x - size.x / 2 < 0 || y - size.y / 2 < 0 || x + size.x / 2 > width || y + size.y / 2 > height) throw new Error(`Invalid exit trigger bounds in ${areaId}`)
           area.exits.push({ exitId: id(ef.exitId), x, y, width: size.x, height: size.y, blocked: ef.blocked, targetAreaId: null, targetEntryId: null, futureDestinationLabel: ef.futureDestinationLabel == null ? null : text(ef.futureDestinationLabel) })
         }
+      }
+      if (layer.__type === 'Tiles') {
+        if (lockedTemplate || !['Ground','Decorations'].includes(text(layer.__identifier))) throw new Error('Unexpected visual layer.')
+        const tileset = list(record(project.defs).tilesets).map(record).find(t => t.uid === layer.__tilesetDefUid)
+        if (!tileset || typeof tileset.relPath !== 'string' || !/^\.\.\/public\/assets\/[a-z0-9/-]+\.png$/.test(tileset.relPath)) throw new Error('Tileset must reference a bundled world asset.')
+        const tileSize = number(tileset.tileGridSize), grid = number(layer.__gridSize), textureWidth = number(tileset.pxWid), textureHeight = number(tileset.pxHei)
+        if (grid < 1 || tileSize < 1) throw new Error('Invalid visual tile size.')
+        const cell = topologyToRuntime(area, { x: grid, y: grid }), offset = topologyToRuntime(area, { x: number(layer.__pxTotalOffsetX), y: number(layer.__pxTotalOffsetY) })
+        const tiles = list(layer.gridTiles).map(record).map(t => {
+          const px = list(t.px), src = list(t.src), position = topologyToRuntime(area, { x: number(px[0]), y: number(px[1]) }), sourceX = number(src[0]), sourceY = number(src[1]), flip = number(t.f)
+          if (position.x < 0 || position.y < 0 || position.x + cell.x > width || position.y + cell.y > height || sourceX < 0 || sourceY < 0 || sourceX + tileSize > textureWidth || sourceY + tileSize > textureHeight || flip < 0 || flip > 3) throw new Error('Invalid visual tile bounds.')
+          return { ...position, sourceX, sourceY, flip }
+        })
+        area.visualLayers ??= []; area.visualLayers.push({ name: layer.__identifier as 'Ground' | 'Decorations', tileset: { uid: number(tileset.uid), path: tileset.relPath.replace('../public',''), tileSize, width: textureWidth, height: textureHeight }, gridWidth: number(layer.__cWid), gridHeight: number(layer.__cHei), cellWidth: cell.x, cellHeight: cell.y, offsetX: offset.x, offsetY: offset.y, tiles })
       }
       if (layer.__type === 'IntGrid') {
         const grid = number(layer.__gridSize), cw = number(layer.__cWid), ch = number(layer.__cHei), csv = list(layer.intGridCsv)
@@ -92,6 +116,7 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
     if (a.travelDestinationId ? !a.spawns.some(s => s.entryId === a.travelSpawnId) : a.travelSpawnId != null) throw new Error(`Invalid Travel spawn in ${a.areaId}`)
     if (new Set(a.spawns.map(s => s.entryId)).size !== a.spawns.length || !a.spawns.some(s => s.entryId === 'default')) throw new Error(`Duplicate/missing entries in ${a.areaId}`)
     if (new Set(a.exits.map(e => e.exitId)).size !== a.exits.length) throw new Error('Duplicate exit ID.')
+    if (new Set(a.interactables?.map(e => e.entityId)).size !== (a.interactables?.length ?? 0)) throw new Error('Duplicate interaction ID.')
     for (const exit of a.exits) {
       const source = [...entities.values()].find(e => e.areaId === a.areaId && e.entity.__identifier === 'AreaExit' && fields(e.entity.fieldInstances).exitId === exit.exitId)!
       const ref = fields(source.entity.fieldInstances).targetEntry
