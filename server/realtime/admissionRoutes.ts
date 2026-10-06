@@ -69,7 +69,8 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
       if (input.areaId !== location.runtimeAreaId || input.entryPointId !== location.entryId) throw ApiError.forbidden()
     }
     const now = Date.now()
-    const appearance = env.CACTIGROW_ENVIRONMENT === 'staging' ? (await new StartingExperienceService(await context.database.getDatabase()).read(player.playerId)).appearance : undefined
+    const starting = env.CACTIGROW_ENVIRONMENT === 'staging' ? await new StartingExperienceService(await context.database.getDatabase()).read(player.playerId) : null
+    const appearance = starting && !starting.compatibilityComplete && starting.appearanceComplete ? starting.appearance : undefined
     const sessionExpiry = player.authorizationExpiresAt === undefined && ['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT)
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')
     if (!Number.isSafeInteger(sessionExpiry) || sessionExpiry <= now) throw ApiError.unauthenticated()
