@@ -3,6 +3,7 @@ import { isCanonicalUuid, isGeneration, isSequence, type AreaId, type LayerId, t
 import { hasExactKeys, isMovementSample, isRecord } from '../../shared/realtime/protocolV1.ts'
 import type { AreaPresenceState, Membership, MembershipKey } from './presenceState.ts'
 import { assignLayer } from './layerAssignment.ts'
+import { isCharacterAppearance, type CharacterAppearance } from '../../shared/api/startingExperienceV1.ts'
 
 /** Server-only capability input. L3 must authenticate and authorize BEFORE calling. */
 export interface TrustedAdmission {
@@ -10,6 +11,7 @@ export interface TrustedAdmission {
   readonly playerId: PlayerId
   readonly publicId?: string
   readonly displayName?: string
+  readonly appearance?: CharacterAppearance
   readonly entryPointId: string
   readonly authorizationExpiresAt: number
   readonly recentLayerId?: LayerId
@@ -44,12 +46,14 @@ export function isTrustedAdmission(value: unknown, area: AreaDefinition, now: nu
   const keys = ['areaId', 'playerId', 'entryPointId', 'authorizationExpiresAt']
   if (Object.hasOwn(value, 'publicId')) keys.push('publicId')
   if (Object.hasOwn(value, 'displayName')) keys.push('displayName')
+  if (Object.hasOwn(value, 'appearance')) keys.push('appearance')
   if (Object.hasOwn(value, 'recentLayerId')) keys.push('recentLayerId')
   if (Object.hasOwn(value, 'replace')) keys.push('replace')
   return hasExactKeys(value, keys) && value.areaId === area.areaId && isCanonicalUuid(value.playerId)
     && isEntryPoint(area, value.entryPointId) && isSequence(value.authorizationExpiresAt) && value.authorizationExpiresAt > now
     && (!Object.hasOwn(value, 'publicId') || isCanonicalUuid(value.publicId))
     && (!Object.hasOwn(value, 'displayName') || (typeof value.displayName === 'string' && value.displayName.length >= 3 && value.displayName.length <= 20))
+    && (!Object.hasOwn(value, 'appearance') || isCharacterAppearance(value.appearance))
     && (!Object.hasOwn(value, 'recentLayerId') || isCanonicalUuid(value.recentLayerId))
     && (!Object.hasOwn(value, 'replace') || (isMembershipKey(value.replace)
       && value.replace.areaId === area.areaId && value.replace.playerId === value.playerId))
@@ -104,11 +108,12 @@ export function isSocketAttachment(value: unknown, area: AreaDefinition, now: nu
   const member = value.member
   const baseMemberKeys = ['areaId', 'layerId', 'playerId', 'presenceId', 'generation', 'joinedAt', 'updatedAt', 'sample']
   const legacyMember = isRecord(member) && hasExactKeys(member, baseMemberKeys)
-  const namedMember = isRecord(member) && hasExactKeys(member, [...baseMemberKeys, 'publicId', 'displayName'])
+  const namedMember = isRecord(member) && hasExactKeys(member, [...baseMemberKeys, 'publicId', 'displayName', ...(Object.hasOwn(member,'appearance') ? ['appearance'] : [])])
   if (!isRecord(member) || (!legacyMember && !namedMember)
     || !isMembershipKey({ areaId: member.areaId, layerId: member.layerId, playerId: member.playerId, presenceId: member.presenceId, generation: member.generation })
     || member.areaId !== area.areaId || !isSequence(member.joinedAt) || !isSequence(member.updatedAt)
     || (namedMember && (!isCanonicalUuid(member.publicId) || typeof member.displayName !== 'string' || member.displayName.length < 3 || member.displayName.length > 20))
+    || (Object.hasOwn(member, 'appearance') && !isCharacterAppearance(member.appearance))
     || member.joinedAt > member.updatedAt || member.updatedAt > now || !isMovementSample(member.sample) || !isWithinArea(area, member.sample.position)) return false
   return [value.authorizationExpiresAt, value.lastSeen, value.eventSequence, value.windowStart, value.messages, value.movements, value.outputBytes, value.invalidMessages].every(isSequence)
     && (value.authorizationExpiresAt as number) > now && (value.lastSeen as number) <= now

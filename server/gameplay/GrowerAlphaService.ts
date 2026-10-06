@@ -1,5 +1,6 @@
 import { buyShopSeeds, buyMarketplaceListing, cancelMarketplaceListing } from './commerceTransactions.ts'
 import { assertSpecimenUnprotected, assertSpecimenNotInMail } from './specimenCommerceEligibility.ts'
+import { TUTORIAL_ORIGIN } from '../starting/startingState.ts'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import {
@@ -271,6 +272,8 @@ export class GrowerAlphaService {
       return
     }
     if (command.type === 'collect-tissue-sample') {
+      const [line] = await tx.select({ origin: cloneLines.originType }).from(plantSpecimens).innerJoin(cloneLines, eq(plantSpecimens.cloneLineId,cloneLines.id)).where(and(eq(plantSpecimens.id,command.specimenId),eq(plantSpecimens.ownerPlayerId,playerId))).limit(1)
+      if (line?.origin === TUTORIAL_ORIGIN) throw conflict('CONFLICT','Tutorial specimens support observation and practice breeding. Use normal specimens for tissue sampling.')
       const plant = await this.loadOwnedPlant(tx, playerId, command.specimenId)
       const [[profile], [state]] = await Promise.all([
         tx.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1),

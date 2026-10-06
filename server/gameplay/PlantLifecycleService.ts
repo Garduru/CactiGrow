@@ -1,4 +1,5 @@
 import { assertSpecimenNotInMail } from './specimenCommerceEligibility.ts'
+import { loadStartingState, TUTORIAL_ORIGIN } from '../starting/startingState.ts'
 import { and, isNull, eq, inArray, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings, mailMessages, nurseryOccupancies, plantSpecimens, playerGrowerEvents, playerGrowerState, playerOnboarding, playerPlantLifecycleVersions, playerSeedStacks } from '../db/schema/index.ts'
@@ -215,6 +216,15 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       const activeListings = await tx.select({ specimenId: marketplaceListings.specimenId }).from(marketplaceListings).where(and(inArray(marketplaceListings.specimenId, [first.id, second.id]), eq(marketplaceListings.status, 'active')))
       if (activeListings.length) throw safeConflict('CONFLICT', 'Listed specimens cannot breed.')
       const lines = await tx.select().from(cloneLines).where(inArray(cloneLines.id, [first.cloneLineId, second.cloneLineId]))
+      const tutorialParents = lines.filter(line => line.originType === TUTORIAL_ORIGIN)
+      if (tutorialParents.length) {
+        const [owner] = await tx.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1)
+        if (!owner) throw safeConflict('CONFLICT', 'Tutorial onboarding is unavailable.')
+        const tutorial = await loadStartingState(tx, playerId, owner.profileId)
+        if (tutorial.farmStage !== 'breeding' || tutorialParents.length !== 2 || tutorial.tutorialParentIds[0] !== first.id || tutorial.tutorialParentIds[1] !== second.id) throw safeConflict('CONFLICT', 'Choose the two guided tutorial parents in the shown order.')
+        const [previous] = await tx.select({ id: bredSeeds.id }).from(bredSeeds).where(and(eq(bredSeeds.ownerPlayerId, playerId), eq(bredSeeds.parent1SpecimenId, first.id), eq(bredSeeds.parent2SpecimenId, second.id))).limit(1)
+        if (previous) throw safeConflict('CONFLICT', 'Tutorial breeding has already produced its one practice seed.')
+      }
       const profiles = await tx.select().from(geneticProfiles).where(inArray(geneticProfiles.cloneLineId, [first.cloneLineId, second.cloneLineId]))
       const previousSeeds = await tx.select().from(bredSeeds).where(inArray(bredSeeds.cloneLineId, [first.cloneLineId, second.cloneLineId]))
       const variants = await tx.select().from(cloneLineVariants).where(inArray(cloneLineVariants.cloneLineId, [first.cloneLineId, second.cloneLineId]))
@@ -231,7 +241,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       const offspring = createBredSeed(firstParent, secondParent, createdAt.getTime(), random, this.createId, this.createId)
       if (!offspring) throw safeConflict('INVALID_COMMAND', 'The selected parents are not eligible or genus-compatible.')
       if (!getSpeciesById(firstParent.speciesId) || !getSpeciesById(secondParent.speciesId)) throw new ApiError('UNKNOWN_SPECIES', 400, 'The parent species are unavailable.')
-      await tx.insert(cloneLines).values({ id: offspring.cloneLineId, speciesId: offspring.speciesId, originType: 'bred-seed', originPlayerId: playerId, establishedAt: createdAt, geneticRepresentationVersion: GENETIC_REPRESENTATION_VERSION, visualDerivationVersion: VISUAL_DERIVATION_VERSION, createdAt })
+      await tx.insert(cloneLines).values({ id: offspring.cloneLineId, speciesId: offspring.speciesId, originType: tutorialParents.length ? TUTORIAL_ORIGIN : 'bred-seed', originPlayerId: playerId, establishedAt: createdAt, geneticRepresentationVersion: GENETIC_REPRESENTATION_VERSION, visualDerivationVersion: VISUAL_DERIVATION_VERSION, createdAt })
       await tx.insert(geneticProfiles).values({ cloneLineId: offspring.cloneLineId, ...offspring.genetics, establishmentRuleVersion: GENETIC_ESTABLISHMENT_RULE_VERSION, createdAt })
       for (const variant of offspring.specialVariants) await tx.insert(cloneLineVariants).values({ cloneLineId: offspring.cloneLineId, variantId: variant.variantId, origin: variant.origin, establishedAt: createdAt })
       await tx.insert(bredSeeds).values({ id: offspring.id, ownerPlayerId: playerId, cloneLineId: offspring.cloneLineId, parent1SpecimenId: first.id, parent2SpecimenId: second.id, parent1SpeciesId: firstParent.speciesId, parent2SpeciesId: secondParent.speciesId, isHybrid: offspring.isHybrid, geneticFeatures: offspring.geneticFeatures, status: 'available', createdAt })
@@ -255,6 +265,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       const [profile] = await tx.select().from(geneticProfiles).where(eq(geneticProfiles.cloneLineId, seed.cloneLineId)).limit(1)
       const variants = await tx.select().from(cloneLineVariants).where(eq(cloneLineVariants.cloneLineId, seed.cloneLineId))
       if (!line || !profile) throw new Error('The bred seed has incomplete genetic identity.')
+      if (line.originType === TUTORIAL_ORIGIN) throw safeConflict('CONFLICT', 'This practice offspring demonstrates inheritance. Use normal seeds for continued cultivation.')
       const [treatmentRow] = await tx.select().from(bredSeedTreatments).where(and(eq(bredSeedTreatments.ownerPlayerId, playerId), eq(bredSeedTreatments.seedId, seed.id))).for('update').limit(1)
       let effectiveProfile = profile
       if (treatmentRow) {

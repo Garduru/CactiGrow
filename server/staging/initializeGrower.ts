@@ -8,6 +8,7 @@ import { createGeneticsLabState } from '../../src/features/lab/labModel.ts'
 import { createPropertyState } from '../../src/features/property/propertyModel.ts'
 import { createAchievementProgress } from '../../src/features/achievements/achievementsModel.ts'
 import { createSpeciesDiscoveries } from '../../src/features/journal/journalModel.ts'
+import { STARTING_PROFILE } from '../starting/startingState.ts'
 
 export const GROWER_ALPHA_PROFILE = {
   id: 'grower-alpha-v1',
@@ -22,7 +23,7 @@ export const GROWER_ALPHA_PROFILE = {
 // Called only after staging Access JWT verification and durable player resolution.
 // The unique onboarding row serializes concurrent first requests. An existing
 // gameplay footprint is never mistaken for a fresh player, even with zero seeds.
-export async function initializeStagingGrower(database: CactiGrowDatabase, playerId: string): Promise<void> {
+export async function initializeStagingGrower(database: CactiGrowDatabase, playerId: string, startingExperience = false): Promise<void> {
   await database.transaction(async (transaction) => {
     const created = await transaction.insert(playerOnboarding).values({
       playerId,
@@ -48,6 +49,8 @@ export async function initializeStagingGrower(database: CactiGrowDatabase, playe
       transaction.select({ playerId: gameplayCommandReceipts.playerId }).from(gameplayCommandReceipts).where(eq(gameplayCommandReceipts.playerId, playerId)).limit(1),
     ])
     if (footprints.some((rows) => rows.length > 0)) return
+
+    if (startingExperience) await transaction.update(playerOnboarding).set({ profileId: STARTING_PROFILE }).where(eq(playerOnboarding.playerId, playerId))
 
     await transaction.insert(playerSeedStacks).values(GROWER_ALPHA_PROFILE.starterSeeds.map((seed) => ({
       playerId, speciesId: seed.speciesId, quantity: seed.quantity, version: 1,

@@ -30,6 +30,8 @@ import { readPlayerAuthorityRevision } from '../gameplay/playerAuthorityRevision
 import { MailService } from '../player/MailService.ts'
 import { isMailCommand } from '../../shared/api/mailV1.ts'
 import { WorldService } from '../world/WorldService.ts'
+import { StartingExperienceService } from '../starting/StartingExperienceService.ts'
+import { isStartingCommand } from '../../shared/api/startingExperienceV1.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -105,6 +107,17 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
   return async (context) => {
     const { request, env, requestId } = context
     const url = new URL(request.url)
+    if (url.pathname === '/api/v1/me/starting-experience') {
+      if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
+      if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = new StartingExperienceService(await context.database.getDatabase())
+        if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
+        const command = await readJson(request)
+        if (!isStartingCommand(command)) throw ApiError.validation('Invalid tutorial command.')
+        return successResponse(await service.execute(player.playerId, command), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
     if (url.pathname === '/api/v1/me/world') {
       if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()

@@ -4,6 +4,7 @@ import { playerGrowerEvents, playerOnboarding, playerProfiles } from '../db/sche
 import { ApiError } from '../api/errors.ts'
 import { WORLD, findArea, initialLocation, isWorldLocation, runtimeAreaId } from '../../shared/world/world.ts'
 import type { WorldLocation } from '../../shared/world/types.ts'
+import { progressWorldTutorial } from '../starting/startingState.ts'
 
 export interface ExitCommand { v: 1; exitId: string; expectedRevision: number; commandId: string }
 export interface TravelCommand { v: 1; travelDestinationId: string; expectedRevision: number; commandId: string }
@@ -70,6 +71,7 @@ export class WorldService {
       }
       const current = await this.load(tx, playerId, publicId)
       const location = 'exitId' in command ? resolveExit(current, command, publicId) : resolveTravel(current, command, publicId)
+      await progressWorldTutorial(tx, playerId, current.areaId, location.areaId, 'exitId' in command, command.commandId)
       await tx.insert(playerGrowerEvents).values({ id: crypto.randomUUID(), playerId, eventType: EVENT, sourceCommandId: command.commandId, occurredAt: new Date(), payload: { ...location, ...('exitId' in command ? { exitId: command.exitId } : { travelDestinationId: command.travelDestinationId }), expectedRevision: command.expectedRevision } })
       return location
     })

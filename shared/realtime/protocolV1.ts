@@ -1,5 +1,6 @@
 import { getAreaDefinition, isPosition, isWithinArea, type Position } from './areas.ts'
 import { isCanonicalUuid, isGeneration, isSequence, type AreaId, type ConnectionGeneration, type LayerId, type PresenceId } from './identifiers.ts'
+import { isCharacterAppearance, type CharacterAppearance } from '../api/startingExperienceV1.ts'
 
 export const REALTIME_PROTOCOL_VERSION = 1 as const
 export const MAX_CLIENT_FRAME_BYTES = 1024
@@ -17,7 +18,7 @@ export interface PublicPresenceV1 extends MovementSample {
   readonly publicId: string
   readonly generation: ConnectionGeneration
   readonly label: string
-  readonly appearance: 'placeholder'
+  readonly appearance: 'placeholder' | CharacterAppearance
 }
 export interface PublicChatMessageV1 {
   readonly id: string
@@ -74,7 +75,7 @@ function validMovementFields(value: Record<string, unknown>): boolean {
 export function isPublicPresenceV1(value: unknown): value is PublicPresenceV1 {
   return isRecord(value) && hasExactKeys(value, ['presenceId', 'publicId', 'generation', 'label', 'appearance', 'sequence', 'position', 'facing', 'movement'])
     && isCanonicalUuid(value.presenceId) && isCanonicalUuid(value.publicId) && isGeneration(value.generation) && isBoundedText(value.label, 20)
-    && value.appearance === 'placeholder' && validMovementFields(value)
+    && (value.appearance === 'placeholder' || isCharacterAppearance(value.appearance)) && validMovementFields(value)
 }
 export function isClientMessageV1(value: unknown): value is ClientMessageV1 {
   if (!isRecord(value) || value.v !== REALTIME_PROTOCOL_VERSION) return false

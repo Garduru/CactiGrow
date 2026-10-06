@@ -12,6 +12,7 @@ import { areaCoordinatorName } from './runtimeContracts.ts'
 import { CONNECTION_TTL_MS } from './admissionTickets.ts'
 import { eq } from 'drizzle-orm'
 import { playerBlocks, playerProfiles } from '../db/schema/index.ts'
+import { StartingExperienceService } from '../starting/StartingExperienceService.ts'
 
 export interface RealtimePlayerSocialProjection {
   displayName: string
@@ -68,6 +69,7 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
       if (input.areaId !== location.runtimeAreaId || input.entryPointId !== location.entryId) throw ApiError.forbidden()
     }
     const now = Date.now()
+    const appearance = env.CACTIGROW_ENVIRONMENT === 'staging' ? (await new StartingExperienceService(await context.database.getDatabase()).read(player.playerId)).appearance : undefined
     const sessionExpiry = player.authorizationExpiresAt === undefined && ['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT)
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')
     if (!Number.isSafeInteger(sessionExpiry) || sessionExpiry <= now) throw ApiError.unauthenticated()
@@ -78,6 +80,7 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
     const response = await stub.fetch(new Request('https://area.internal/tickets', { method: 'POST', headers: {
       'X-CactiGrow-Trusted-Scope': JSON.stringify({ areaId: input.areaId, entryPointId: input.entryPointId,
         playerId: player.playerId, publicId: profile.publicId, displayName: profile.displayName,
+        ...(appearance ? { appearance } : {}),
         authorizationExpiresAt: Math.min(sessionExpiry, now + CONNECTION_TTL_MS),
         ...(input.reconnectToken ? { reconnectToken: input.reconnectToken } : {}) }),
     } }))

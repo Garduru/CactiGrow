@@ -91,7 +91,7 @@ export async function authenticateRequest(
   // Onboarding follows verified provider identity and internal player resolution.
   // The existing durable marker prevents repeat grants.
   if (['staging', 'production'].includes(getRuntimeMetadata(context.env).environment)) {
-    await initializeStagingGrower(await context.database.getDatabase(), playerIdentity.playerId)
+    await initializeStagingGrower(await context.database.getDatabase(), playerIdentity.playerId, getRuntimeMetadata(context.env).environment === 'staging')
   }
 
   return {

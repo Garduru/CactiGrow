@@ -2,6 +2,7 @@ import { assertValidArea, isEntryPoint, isWithinArea, type AreaDefinition } from
 import { connectionGeneration, isCanonicalUuid, isSequence, type AreaId, type ConnectionGeneration, type LayerId, type PlayerId, type PresenceId } from '../../shared/realtime/identifiers.ts'
 import { isMovementSample, type MovementSample, type PublicPresenceV1 } from '../../shared/realtime/protocolV1.ts'
 import { assignLayer, isRetired, type LayerPopulation } from './layerAssignment.ts'
+import type { CharacterAppearance } from '../../shared/api/startingExperienceV1.ts'
 
 export interface MembershipKey {
   readonly areaId: AreaId
@@ -11,6 +12,7 @@ export interface MembershipKey {
   readonly generation: ConnectionGeneration
 }
 export interface Membership extends MembershipKey {
+  readonly appearance?: CharacterAppearance
   readonly publicId: string
   readonly displayName: string
   readonly joinedAt: number
@@ -34,6 +36,7 @@ export type PresenceFailure = 'AREA_FULL' | 'DUPLICATE_PRESENCE' | 'IDENTIFIER_C
 export type PresenceTransition = { readonly ok: true; readonly state: AreaPresenceState; readonly membership: Membership }
   | { readonly ok: false; readonly code: PresenceFailure; readonly state: AreaPresenceState }
 export interface JoinPresence {
+  readonly appearance?: CharacterAppearance
   readonly playerId: PlayerId
   readonly publicId?: string
   readonly displayName?: string
@@ -89,6 +92,7 @@ export function joinPresence(state: AreaPresenceState, input: JoinPresence, now:
   const membership: Membership = {
     areaId: state.area.areaId, layerId, playerId: input.playerId, presenceId: input.presenceId,
     publicId: input.publicId ?? input.presenceId, displayName: input.displayName ?? 'Grower',
+    ...(input.appearance ? { appearance: input.appearance } : {}),
     generation: connectionGeneration(state.nextGeneration), joinedAt: now, updatedAt: now,
     sample: { sequence: 0, position: { ...state.area.entryPoints[input.entryPointId] }, facing: 'south', movement: 'stopped' },
   }
@@ -103,7 +107,7 @@ export function joinPresence(state: AreaPresenceState, input: JoinPresence, now:
  * A client UUID, generation, or boolean does not authorize calling this function.
  */
 export function replaceAuthorizedConnection(state: AreaPresenceState, previous: MembershipKey, now: number,
-  social?: Pick<Membership, 'publicId' | 'displayName'>): PresenceTransition {
+  social?: Pick<Membership, 'publicId' | 'displayName' | 'appearance'>): PresenceTransition {
   assertTime(state, now)
   const member = currentMember(state, previous)
   if (!member) return fail(state, 'STALE_CONNECTION')
@@ -143,7 +147,7 @@ export function retireEmptyLayers(state: AreaPresenceState, now: number): AreaPr
 /** Explicit whitelist: never spread a membership, account, or gameplay object onto the wire. */
 export function toPublicPresence(member: Membership): PublicPresenceV1 {
   return {
-    presenceId: member.presenceId, publicId: member.publicId ?? member.presenceId, generation: member.generation, label: member.displayName ?? 'Grower', appearance: 'placeholder',
+    presenceId: member.presenceId, publicId: member.publicId ?? member.presenceId, generation: member.generation, label: member.displayName ?? 'Grower', appearance: member.appearance ?? 'placeholder',
     sequence: member.sample.sequence, position: { x: member.sample.position.x, y: member.sample.position.y },
     facing: member.sample.facing, movement: member.sample.movement,
   }

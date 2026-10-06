@@ -133,8 +133,8 @@ export class AreaCoordinator {
     const previous = input.replace && [...this.connections].find(([, value]) => sameOwner(value.member, input.replace!))
     const result = input.replace
       ? replaceAuthorizedConnection(this.state, input.replace, now, { publicId: input.publicId ?? input.replace.presenceId,
-        displayName: input.displayName ?? 'Grower' })
-      : joinPresence(this.state, { playerId: input.playerId, publicId: input.publicId, displayName: input.displayName,
+        displayName: input.displayName ?? 'Grower', ...(input.appearance ? { appearance: input.appearance } : {}) })
+      : joinPresence(this.state, { playerId: input.playerId, publicId: input.publicId, displayName: input.displayName, ...(input.appearance ? { appearance: input.appearance } : {}),
         entryPointId: input.entryPointId,
         presenceId: presenceId(this.ports.uuid()), newLayerId: layerId(this.ports.uuid()), recentLayerId: input.recentLayerId }, now)
     if (!result.ok) { this.log('admission_rejected', result.code); return { ok: false, code: result.code } }
