@@ -102,7 +102,11 @@ export class StartingExperienceService {
             state.tutorialSeedAvailable = true; state.harvestingXp += 10; state.spawnStage = 'plant-pot'
             // A confirmed tutorial reset must not mint the ordinary economic reward again.
             // Retain historical checkpoints as its provenance instead of guessing which stacked seeds were spent.
-            const [reward] = await tx.select({ id: playerGrowerEvents.id }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, STARTING_EVENT), sql`(${playerGrowerEvents.payload}->>'harvestingXp')::integer > 0`)).limit(1)
+            const [reward] = await tx.select({ id: playerGrowerEvents.id }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, STARTING_EVENT),
+              // Legacy controlled-harvest checkpoints retain stage/reservation/pot provenance.
+              // Wild XP saved in the same skill must never suppress this once-account tutorial credit.
+              sql`${playerGrowerEvents.payload}->>'compatibilityComplete' = 'false'`,
+              sql`(${playerGrowerEvents.payload}->>'tutorialSeedAvailable' = 'true' OR ${playerGrowerEvents.payload}->>'spawnStage' IN ('plant-pot','collect-pot','collect-ready','leave-zone') OR jsonb_typeof(${playerGrowerEvents.payload}->'pot') = 'object')`)).limit(1)
             if (!reward) await tx.insert(playerSeedStacks).values({ playerId, speciesId: TUTORIAL_SPECIES, quantity: 2 }).onConflictDoUpdate({ target: [playerSeedStacks.playerId, playerSeedStacks.speciesId], set: { quantity: sql`${playerSeedStacks.quantity} + 2`, version: sql`${playerSeedStacks.version} + 1`, updatedAt: this.now() } })
             await this.incrementLifecycle(tx, playerId)
           } else if (command.type === 'plant-pot') {

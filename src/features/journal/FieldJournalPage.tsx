@@ -2,6 +2,7 @@ import { ProgressBar } from '../../components/ui/ProgressBar'
 import { species } from '../../data/species'
 import { useGameState } from '../../game/useGameState'
 import { discoverySourceLabels, getDiscoveredSpeciesCount, getJournalCompletion, getShinyDiscoveryCount } from './journalModel'
+import { ExplorationJournal } from '../exploration/ExplorationJournal'
 
 export function FieldJournalPage() {
   const { state } = useGameState()
@@ -67,6 +68,7 @@ export function FieldJournalPage() {
           )
         })}
       </div>
+      <ExplorationJournal />
     </section>
   )
 }

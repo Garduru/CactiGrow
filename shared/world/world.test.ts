@@ -8,12 +8,13 @@ import { resolveExit, resolveTravel } from '../../server/world/WorldService.ts'
 import { getChatLocation, sharesChatScope } from '../realtime/chatLocation.ts'
 import { NavigationMap } from '../../src/game-world/navigation/NavigationMap.ts'
 import { AreaExitController, insideExit } from '../../src/game-world/AreaExitController.ts'
+import { originalWorldArea } from './explorationTestHelpers.ts'
 const source = () => JSON.parse(readFileSync('world/cactigrow-world.ldtk', 'utf8'))
 const owner = '00000000-0000-4000-8000-000000000001'
 
 test('Art Direction V1 preserves the accepted Starting Experience authority and original three desert Areas', () => {
   const world = parseWorld(source())
-  const authority = {...world,areas:world.areas.map(({visualLayers,...area}) => { void visualLayers; return area })}
+  const authority = {...world,areas:world.areas.map(originalWorldArea).map(({visualLayers,...area}) => { void visualLayers; return area })}
   // Captured from the current milestone baseline (LDtk49b3fa3a69ab74a9), before
   // art changes: every ID, entity, collision rectangle, spawn, exit and dimension.
   assert.equal(createHash('sha256').update(JSON.stringify(authority)).digest('hex'),'e22e312aaa92f0696e79a163b8f0b3a4016a1e099bdf4e5f8b84cdd11d07c8b6')

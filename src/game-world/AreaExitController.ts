@@ -4,6 +4,8 @@ import type { WorldArea, WorldExit, WorldPoint } from '../../shared/world/types.
 import { findArea } from '../../shared/world/world.ts'
 import type { GameplayCameraState } from './gameplayCamera'
 import type { CharacterAppearance, StartingExperienceV1 } from '../../shared/api/startingExperienceV1.ts'
+import type { ExplorationProjectionV1 } from '../../shared/api/explorationV1.ts'
+import type { Facing, PublicPresenceV1 } from '../../shared/realtime/protocolV1.ts'
 
 /** Player center enters an authored opening; no click or point-radius interaction. */
 export function insideExit(position: WorldPoint, exit: WorldExit, margin = 0) {
@@ -22,7 +24,8 @@ export class AreaExitController {
     }
   }
 }
-export interface FoundationSceneOptions { minimap?: LocalMinimapStore; tutorialNow?(): number; position: WorldPoint; area: WorldArea; onExit(id: string): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean; appearance?: CharacterAppearance; onInteract?(id: string): void; guidance?(): string | null; tutorialPot?(): StartingExperienceV1['pot'] }
+export interface FoundationPresenceConnection { getSnapshot(): { readonly remotes: readonly PublicPresenceV1[] }; subscribe(listener: () => void): () => void; sampleMovement(position: WorldPoint, facing: Facing, moving: boolean): void }
+export interface FoundationSceneOptions { minimap?: LocalMinimapStore; tutorialNow?(): number; position: WorldPoint; area: WorldArea; onExit(id: string): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean; appearance?: CharacterAppearance; onInteract?(id: string, position?: WorldPoint): void; onDiscover?(id: string, position: WorldPoint): boolean; exploration?(): ExplorationProjectionV1 | null; explorationNow?(): number; connection?: FoundationPresenceConnection; guidance?(): string | null; tutorialPot?(): StartingExperienceV1['pot'] }
 export function drawFoundationExitDebug(scene: Phaser.Scene, options: FoundationSceneOptions) {
   if (!options.debug) return
   for (const exit of options.area.exits) {

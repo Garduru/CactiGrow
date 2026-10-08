@@ -2,6 +2,7 @@ import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV
 import { isWorldLocation } from '../../../shared/world/world.ts'
 import { isStartingExperience, type StartingCommand, type StartingExperienceV1 } from '../../../shared/api/startingExperienceV1.ts'
 import { isStartingResetResult, type StartingResetCommand } from '../../../shared/api/startingResetV1.ts'
+import { isExplorationResultV1, type ExplorationCommandV1, type ExplorationDevCommandV1, type ExplorationResultV1, type ExplorationRestoreCommandV1 } from '../../../shared/api/explorationV1.ts'
 import type { WorldLocation } from '../../../shared/world/types.ts'
 import { isAdminSession, isAdminPlayer, isAdminInspection, isAdminListing, isAdminAudit, isAdminResult, isAdminRoleEntry, isAdminSpecimen, adminPageValidator, type AdminSession, type AdminMutation, type AdminAction } from '../../../shared/api/adminV1.ts'
 import { isDevCommandResult, isDevSpecimenDiagnostics, type DevCommand, type DevCommandResult, type DevSpecimenDiagnostics } from '../../../shared/api/devToolsV1.ts'
@@ -78,6 +79,10 @@ function isEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 }
 
 export class CactiGrowApiClient {
+  getExploration(signal?: AbortSignal): Promise<ExplorationResultV1> { return this.execute('/api/v1/me/exploration', { method: 'GET', signal }, isExplorationResultV1, 'exploration') }
+  restoreExplorationEntry(command: ExplorationRestoreCommandV1, signal?: AbortSignal): Promise<ExplorationResultV1> { return this.execute('/api/v1/me/exploration/entry', { method: 'POST', signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isExplorationResultV1, 'exploration entry') }
+  explorationCommand(command: ExplorationCommandV1): Promise<ExplorationResultV1> { return this.execute('/api/v1/me/exploration', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isExplorationResultV1, 'exploration') }
+  resetExploration(command: ExplorationDevCommandV1): Promise<ExplorationResultV1> { return this.execute('/api/v1/dev/exploration', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isExplorationResultV1, 'developer exploration') }
   getStartingExperience(signal?: AbortSignal): Promise<StartingExperienceV1> { return this.execute('/api/v1/me/starting-experience', { method: 'GET', signal }, isStartingExperience, 'starting experience') }
   startingCommand(command: StartingCommand): Promise<StartingExperienceV1> { return this.execute('/api/v1/me/starting-experience', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isStartingExperience, 'starting experience') }
   getWorld(signal?: AbortSignal): Promise<WorldLocation> { return this.execute('/api/v1/me/world', { method: 'GET', signal }, isWorldLocation, 'world location') }

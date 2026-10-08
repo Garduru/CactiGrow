@@ -23,7 +23,8 @@ export function visualStageFromProgress(progress: number, isMature: boolean): Vi
   return 'seedling'
 }
 
-export function createPlantVisualDescriptor(plant: Plant | PlantSpecimenV1 | PlantSpecimenV2, visualStage: VisualGrowthStage = 'mature', options?: { variegationPattern?: VariegationPattern }): PlantVisualDescriptor {
+type PlantVisualSource = Pick<Plant, 'id' | 'speciesId' | 'cloneLineId' | 'geneticFeatures' | 'specialVariants'> | Pick<PlantSpecimenV1 | PlantSpecimenV2, 'specimenId' | 'speciesId' | 'cloneLineId' | 'geneticFeatures' | 'specialVariants'>
+export function createPlantVisualDescriptor(plant: PlantVisualSource, visualStage: VisualGrowthStage = 'mature', options?: { variegationPattern?: VariegationPattern }): PlantVisualDescriptor {
   const specimenId = 'specimenId' in plant ? plant.specimenId : plant.id
   const speciesVisualKey = getSpeciesById(plant.speciesId)?.imageKey ?? plant.speciesId
   const features = getExpressedGeneticFeatures(plant.geneticFeatures)

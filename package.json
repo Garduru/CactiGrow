@@ -61,7 +61,9 @@
     "test:settlement": "node --experimental-strip-types --test shared/world/settlement.test.ts",
     "test:settlement:browser": "node --test src/game-world/settlement.browser.test.mjs",
     "test:basin-environment": "node --experimental-strip-types --test shared/world/basinEnvironment.test.mjs src/game-world/basinEnvironmentPresentation.test.ts",
-    "test:basin-environment:browser": "node --test src/game-world/basinEnvironment.browser.test.mjs"
+    "test:basin-environment:browser": "node --test src/game-world/basinEnvironment.browser.test.mjs",
+    "test:exploration": "node --experimental-strip-types --test --test-force-exit shared/world/basinExploration.test.mjs shared/api/explorationV1.test.ts server/exploration/explorationReach.test.ts server/exploration/exploration.integration.test.mjs src/features/exploration/explorationPresentation.test.ts",
+    "test:exploration:browser": "node --test src/features/exploration/exploration.browser.test.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.5.0-beta",

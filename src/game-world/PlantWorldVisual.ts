@@ -16,7 +16,7 @@ function resolveTextureKey(scene: Phaser.Scene, visual: GardenDisplayProjection[
   return compositionKey
 }
 
-export function createPlantWorldVisual(scene: Phaser.Scene, display: GardenDisplayProjection): Phaser.GameObjects.Container {
+export function createPlantWorldVisual(scene: Phaser.Scene, display: Pick<GardenDisplayProjection, 'x' | 'y' | 'visual'>): Phaser.GameObjects.Container {
   const { x, y, visual } = display
   const textureKey = resolveTextureKey(scene, visual)
   if (textureKey) {

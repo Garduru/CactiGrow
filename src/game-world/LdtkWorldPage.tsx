@@ -27,6 +27,9 @@ import type { WorldIntent } from './worldTypes'
 import { useTutorialGuidance } from '../features/starting/TutorialGuidanceContext'
 import { useStartingExperience } from '../features/starting/StartingContext'
 import { WorldTutorialDialog } from '../features/starting/WorldTutorialDialog'
+import { useExploration } from '../features/exploration/ExplorationContext'
+import { ExplorationNotice } from '../features/exploration/ExplorationNotice'
+import type { WorldPoint } from '../../shared/world/types.ts'
 function roadLabel(areaId: string) {
   const exit = authoredRoadExit(findArea(areaId)!)
   return `Road to ${exit?.targetAreaId ? findArea(exit.targetAreaId)?.displayName ?? 'unavailable route' : 'unavailable route'}`
@@ -37,6 +40,9 @@ export function LdtkWorldPage() {
   const world = useWorldLocation(), social = useSocialState(), dock = useSocialPanel(), route = useLocation(), navigate = useNavigate()
   const { state } = useGameState(), lifecycle = usePlantLifecycle(), garden = useGardenAuthority(), panels = useFeaturePanel()
   const tutorial = useStartingExperience(), [interaction, setInteraction] = useState<string | null>(null)
+  const exploration = useExploration(), explorationRef = useRef(exploration)
+  const fieldRequest = useRef(false)
+  useEffect(() => { explorationRef.current = exploration }, [exploration])
   const interactionRef = useRef(interaction), tutorialRef = useRef(tutorial)
   useEffect(() => { interactionRef.current = interaction; tutorialRef.current = tutorial }, [interaction, tutorial])
   const guidance = useTutorialGuidance(), guidanceRef = useRef(guidance.target)
@@ -61,7 +67,15 @@ export function LdtkWorldPage() {
   const position = area?.areaType === 'farm' && route.state?.worldSpawn && route.state.worldRevision === location?.revision ? farmWorldSpawns[resolveFarmSpawnId(route.state)] : location?.position
   const createGame = useCallback((parent: HTMLElement, bridge: WorldBridge) => {
     if (!area || !position) throw new Error('World location unavailable.')
-    const foundation = { minimap: minimapStore, tutorialNow: () => tutorialRef.current.now(), area, position, guidance: () => guidanceRef.current, camera: camera.current, appearance, onInteract: (id: string) => setInteraction(id), tutorialPot: () => tutorialRef.current.state?.pot ?? null, debug: import.meta.env.MODE === 'staging' && new URLSearchParams(route.search).has('worldDebug'), pending: () => actions.current.pending || !!interactionRef.current || tutorialRef.current.pending, onExit: (id: string) => { void actions.current.transition(id) } }
+    const foundation = { minimap: minimapStore, tutorialNow: () => tutorialRef.current.now(), area, position, guidance: () => guidanceRef.current, camera: camera.current, appearance,
+      connection: social.connection,
+      exploration: () => explorationRef.current.projection, explorationNow: () => explorationRef.current.now(),
+      onDiscover: (landmarkId: string, point: WorldPoint) => { if (fieldRequest.current || explorationRef.current.pending || actions.current.pending) return false; fieldRequest.current = true; void explorationRef.current.execute({ type: 'discover-landmark', landmarkId, position: point }).finally(() => { fieldRequest.current = false }); return true },
+      onInteract: (id: string, point?: WorldPoint) => {
+        const entity = area.interactables?.find(entity => entity.entityId === id)
+        if (entity && !entity.tutorial && point) { void explorationRef.current.execute({ type: entity.kind === 'inspectable' ? 'inspect' : 'harvest', entityId: id, position: point }); return }
+        setInteraction(id)
+      }, tutorialPot: () => tutorialRef.current.state?.pot ?? null, debug: import.meta.env.MODE === 'staging' && new URLSearchParams(route.search).has('worldDebug'), pending: () => actions.current.pending || !!interactionRef.current || tutorialRef.current.pending, onExit: (id: string) => { void actions.current.transition(id) } }
     if (area.areaType === 'farm') return createFarmWorldGame(parent, bridge, { spawnId: 'default', foundation })
     if (area.areaType === 'town') return createTownWorldGame(parent, bridge, { spawnId: 'farm-arrival', connection: social.connection, foundation })
     return createLdtkWorldGame(parent, foundation)
@@ -86,6 +100,7 @@ export function LdtkWorldPage() {
       <PhaserWorldCanvas projection={projection} onIntent={intent} createGame={createGame} />
       <div className="town-multiplayer-status" role="status">{world.pending ? 'Travelling…' : world.error || `${zoneName(area.zoneId)} · ${area.displayName}`}{world.error && <button onClick={world.reload}>Reload location</button>}</div>
       <LocalMinimap areaId={area.areaId} hidden={!!interaction || dock.chatDockExpanded || panels.feature !== null || world.pending} />
+      {!interaction && !dock.chatDockExpanded && panels.feature === null && <ExplorationNotice />}
       {dock.chatDockExpanded && <InGameChatHud mode={dock.activeTab === 'friends' ? 'world-chat' : dock.activeTab} onModeChange={dock.setActiveTab} />}
       {interaction && area.interactables?.find(e => e.entityId === interaction) && <WorldTutorialDialog key={interaction} entity={area.interactables.find(e => e.entityId === interaction)!} close={() => setInteraction(null)} />}
     </div>

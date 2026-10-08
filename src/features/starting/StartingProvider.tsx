@@ -43,5 +43,10 @@ export function StartingProvider({ children }: { children: ReactNode }) {
     catch (e) { if (identity.current === playerId) setError(e instanceof Error ? e.message : 'Tutorial action unavailable.'); return false }
     finally { busy.current = false; setPending(false) }
   }, [playerId, clock])
-  return <StartingContext.Provider value={{ now, active, state: loaded?.playerId === playerId ? loaded.state : null, error, pending, execute, refresh }}>{children}</StartingContext.Provider>
+  const applyProjection = useCallback((state: StartingExperienceV1) => {
+    if (!playerId) return
+    setLoaded(previous => previous?.playerId === playerId && previous.state.revision > state.revision ? previous : { playerId, state })
+    clock.sync(state.serverNow)
+  }, [playerId, clock])
+  return <StartingContext.Provider value={{ now, active, state: loaded?.playerId === playerId ? loaded.state : null, error, pending, execute, refresh, applyProjection }}>{children}</StartingContext.Provider>
 }

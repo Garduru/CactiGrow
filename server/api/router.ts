@@ -34,6 +34,8 @@ import { StartingExperienceService } from '../starting/StartingExperienceService
 import { StartingResetService } from '../starting/StartingResetService.ts'
 import { isStartingResetCommand } from '../../shared/api/startingResetV1.ts'
 import { isStartingCommand } from '../../shared/api/startingExperienceV1.ts'
+import { ExplorationService } from '../exploration/ExplorationService.ts'
+import { isExplorationCommandV1, isExplorationDevCommandV1, isExplorationRestoreCommandV1 } from '../../shared/api/explorationV1.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -120,6 +122,26 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
         return successResponse({ ...await service.execute(player.playerId, command), serverNow: new Date().toISOString() }, requestId)
       }, dependencies.authenticationConfigurationFactory)
     }
+    if (url.pathname === '/api/v1/me/exploration/entry') {
+      if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
+      if (request.method !== 'POST') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const command = await readJson(request)
+        if (!isExplorationRestoreCommandV1(command)) throw ApiError.validation('Invalid exploration entry command.')
+        return successResponse(await new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT }).restoreEntry(player.playerId, command), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
+    if (url.pathname === '/api/v1/me/exploration') {
+      if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
+      if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+        if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
+        const command = await readJson(request)
+        if (!isExplorationCommandV1(command)) throw ApiError.validation('Invalid exploration command.')
+        return successResponse(await service.execute(player.playerId, command), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
     if (url.pathname === '/api/v1/me/world') {
       if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
@@ -163,6 +185,14 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
           return successResponse({ ...getRuntimeMetadata(env), playerId: player.playerId }, requestId)
         }
         const service = new DevToolsService(await context.database.getDatabase(), getRuntimeMetadata(env).environment)
+        if (url.pathname === '/api/v1/dev/exploration') {
+          if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+          const exploration = new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+          if (request.method === 'GET') return successResponse(await exploration.inspect(player.playerId), requestId)
+          const command = await readJson(request)
+          if (!isExplorationDevCommandV1(command)) throw ApiError.validation('Invalid exploration development command.')
+          return successResponse(await exploration.reset(player.playerId, command), requestId)
+        }
         if (url.pathname === '/api/v1/dev/starting-experience/reset') {
           if (request.method !== 'POST') throw ApiError.methodNotAllowed()
           const body = await readJson(request)

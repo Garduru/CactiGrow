@@ -7,6 +7,7 @@ import { WORLD } from './generatedWorld.ts'
 import { NavigationMap } from '../../src/game-world/navigation/NavigationMap.ts'
 import { minimapSurfaces } from '../../src/game-world/localMinimap.ts'
 import { insideExit } from '../../src/game-world/AreaExitController.ts'
+import { originalDefinition } from './explorationTestHelpers.ts'
 
 const source=()=>JSON.parse(readFileSync('world/cactigrow-world.ldtk','utf8'))
 const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,x])=>[k,canonical(x)])):v
@@ -34,7 +35,7 @@ test('First Basin preserves four complete accepted Levels and every existing def
   const project=source()
   for(const[name,baseline]of Object.entries(BASELINE_LEVELS))assert.equal(hash(project.levels.find(l=>l.identifier===name)),baseline,name)
   for(const[group,baseline]of Object.entries(BASELINE_DEFS)){
-    const retained=project.defs[group].filter(d=>baseline.uids.includes(d.uid))
+    const retained=project.defs[group].filter(d=>baseline.uids.includes(d.uid)).map(originalDefinition)
     assert.deepEqual(retained.map(d=>d.uid),baseline.uids,group)
     assert.equal(hash(retained),baseline.hash,group)
   }

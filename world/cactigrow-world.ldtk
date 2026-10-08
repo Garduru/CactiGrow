@@ -11,7 +11,7 @@
   "iid": "727348e0-bde0-11f1-9dd1-ad2fbff7de78",
   "jsonVersion": "1.5.3",
   "appBuildId": 473703,
-  "nextUid": 196,
+  "nextUid": 214,
   "identifierStyle": "Capitalize",
   "toc": [
     {
@@ -4075,6 +4075,302 @@
             "allowedRefsEntityUid": null,
             "allowedRefTags": [],
             "tilesetUid": null
+          },
+          {
+            "identifier": "resourceType",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "String",
+            "uid": 196,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "rewardTable",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "String",
+            "uid": 197,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "minYield",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "Int",
+            "uid": 198,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "maxYield",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "Int",
+            "uid": 199,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "harvestingXp",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "Int",
+            "uid": 200,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "respawnSeconds",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "Int",
+            "uid": 201,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "requiredToolId",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "String",
+            "uid": 202,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "rareRollEligible",
+            "doc": "First Basin wild harvest configuration; unused by controlled tutorial harvesting.",
+            "__type": "Bool",
+            "uid": 203,
+            "type": "F_Bool",
+            "isArray": false,
+            "canBeNull": true,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
           }
         ]
       },
@@ -4192,6 +4488,378 @@
             "__type": "Bool",
             "uid": 117,
             "type": "F_Bool",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          }
+        ]
+      },
+      {
+        "identifier": "LandmarkRegion",
+        "uid": 204,
+        "tags": [
+          "first-basin-exploration-v1"
+        ],
+        "exportToToc": false,
+        "allowOutOfBounds": false,
+        "doc": "Player-center entry discovers a named landmark. Region geometry grants no movement, travel or collision authority.",
+        "width": 80,
+        "height": 64,
+        "resizableX": true,
+        "resizableY": true,
+        "minWidth": null,
+        "maxWidth": null,
+        "minHeight": null,
+        "maxHeight": null,
+        "keepAspectRatio": false,
+        "tileOpacity": 1,
+        "fillOpacity": 0.12,
+        "lineOpacity": 1,
+        "hollow": true,
+        "color": "#A5B86B",
+        "renderMode": "Rectangle",
+        "showName": true,
+        "tilesetId": null,
+        "tileRenderMode": "FitInside",
+        "tileRect": null,
+        "uiTileRect": null,
+        "nineSliceBorders": [],
+        "maxCount": 0,
+        "limitScope": "PerLevel",
+        "limitBehavior": "MoveLastOne",
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "fieldDefs": [
+          {
+            "identifier": "landmarkId",
+            "doc": null,
+            "__type": "String",
+            "uid": 205,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "displayName",
+            "doc": null,
+            "__type": "String",
+            "uid": 206,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "description",
+            "doc": null,
+            "__type": "String",
+            "uid": 207,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          }
+        ]
+      },
+      {
+        "identifier": "EnvironmentalInspectable",
+        "uid": 208,
+        "tags": [
+          "first-basin-exploration-v1"
+        ],
+        "exportToToc": false,
+        "allowOutOfBounds": false,
+        "doc": "Optional inspection of an existing environmental feature. No economic reward or new collision.",
+        "width": 32,
+        "height": 32,
+        "resizableX": false,
+        "resizableY": false,
+        "minWidth": null,
+        "maxWidth": null,
+        "minHeight": null,
+        "maxHeight": null,
+        "keepAspectRatio": false,
+        "tileOpacity": 1,
+        "fillOpacity": 1,
+        "lineOpacity": 1,
+        "hollow": false,
+        "color": "#B9AA87",
+        "renderMode": "Rectangle",
+        "showName": true,
+        "tilesetId": null,
+        "tileRenderMode": "FitInside",
+        "tileRect": null,
+        "uiTileRect": null,
+        "nineSliceBorders": [],
+        "maxCount": 0,
+        "limitScope": "PerLevel",
+        "limitBehavior": "MoveLastOne",
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "fieldDefs": [
+          {
+            "identifier": "entityId",
+            "doc": null,
+            "__type": "String",
+            "uid": 209,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "displayName",
+            "doc": null,
+            "__type": "String",
+            "uid": 210,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "tutorial",
+            "doc": null,
+            "__type": "Bool",
+            "uid": 211,
+            "type": "F_Bool",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "noteId",
+            "doc": null,
+            "__type": "String",
+            "uid": 212,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "description",
+            "doc": null,
+            "__type": "String",
+            "uid": 213,
+            "type": "F_String",
             "isArray": false,
             "canBeNull": false,
             "arrayMinLength": null,
@@ -39964,6 +40632,328 @@
               "width": 16,
               "__worldX": 128,
               "__worldY": 440
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                4,
+                11
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "cross-wild-san-pedro",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "cross-wild-san-pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild San Pedro",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild San Pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "echinopsis-pachanoi",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "echinopsis-pachanoi"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 600,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        600
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "46986f63-5af3-5f27-aaac-e22ac4cbb323",
+              "px": [
+                66,
+                188
+              ],
+              "width": 32,
+              "__worldX": 66,
+              "__worldY": 444
+            },
+            {
+              "__identifier": "EnvironmentalInspectable",
+              "__grid": [
+                10,
+                9
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#B9AA87",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 208,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "cross-trail-cairn",
+                  "defUid": 209,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "cross-trail-cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Junction Cairn",
+                  "defUid": 210,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Junction Cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 211,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "noteId",
+                  "__type": "String",
+                  "__value": "cross-trail-cairn-note",
+                  "defUid": 212,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "cross-trail-cairn-note"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "The stones mark the meeting of settled roads and the quieter Basin trail.",
+                  "defUid": 213,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "The stones mark the meeting of settled roads and the quieter Basin trail."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "dcd83c06-e03a-5636-aef6-66a682575ebf",
+              "px": [
+                174,
+                154
+              ],
+              "width": 32,
+              "__worldX": 174,
+              "__worldY": 410
             }
           ]
         },
@@ -52564,6 +53554,552 @@
               "width": 16,
               "__worldX": 128,
               "__worldY": 920
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                8,
+                9
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-3-wild-san-pedro",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-3-wild-san-pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild San Pedro",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild San Pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "echinopsis-pachanoi",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "echinopsis-pachanoi"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 900,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        900
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "58d35cb5-e126-5a79-ad46-582b72d650eb",
+              "px": [
+                130,
+                150
+              ],
+              "width": 32,
+              "__worldX": 130,
+              "__worldY": 662
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                6,
+                21
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-3-wild-peyote",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-3-wild-peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild Peyote",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild Peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "lophophora-williamsii",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "lophophora-williamsii"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 1200,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        1200
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "f48010a9-835f-5ddf-af82-31e0f094e8b3",
+              "px": [
+                100,
+                340
+              ],
+              "width": 32,
+              "__worldX": 100,
+              "__worldY": 852
+            },
+            {
+              "__identifier": "EnvironmentalInspectable",
+              "__grid": [
+                9,
+                19
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#B9AA87",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 208,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-3-canyon-cairn",
+                  "defUid": 209,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-3-canyon-cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Canyon Cairn",
+                  "defUid": 210,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Canyon Cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 211,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "noteId",
+                  "__type": "String",
+                  "__value": "path-3-canyon-cairn-note",
+                  "defUid": 212,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-3-canyon-cairn-note"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "Dust collects between these trail stones where the canyon begins to branch.",
+                  "defUid": 213,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Dust collects between these trail stones where the canyon begins to branch."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "04b7c00f-772c-584f-aebe-868de28eed78",
+              "px": [
+                154,
+                316
+              ],
+              "width": 32,
+              "__worldX": 154,
+              "__worldY": 828
             }
           ]
         },
@@ -72682,6 +74218,552 @@
               "width": 16,
               "__worldX": 712,
               "__worldY": 344
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                7,
+                7
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-2-wild-san-pedro",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-2-wild-san-pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild San Pedro",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild San Pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "echinopsis-pachanoi",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "echinopsis-pachanoi"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 900,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        900
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "116b4657-54ea-53d8-a2e0-97e9de05ca92",
+              "px": [
+                124,
+                118
+              ],
+              "width": 32,
+              "__worldX": 380,
+              "__worldY": 374
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                22,
+                11
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-2-wild-peyote",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-2-wild-peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild Peyote",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild Peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "lophophora-williamsii",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "lophophora-williamsii"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 900,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        900
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "120a1450-8f30-5ae5-afd2-cf544129bf29",
+              "px": [
+                354,
+                176
+              ],
+              "width": 32,
+              "__worldX": 610,
+              "__worldY": 432
+            },
+            {
+              "__identifier": "EnvironmentalInspectable",
+              "__grid": [
+                8,
+                8
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#B9AA87",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 208,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-2-roadside-cairn",
+                  "defUid": 209,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-2-roadside-cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Roadside Cairn",
+                  "defUid": 210,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Roadside Cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 211,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "noteId",
+                  "__type": "String",
+                  "__value": "path-2-roadside-cairn-note",
+                  "defUid": 212,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-2-roadside-cairn-note"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "A few carefully balanced stones keep the winding road toward Town easy to follow.",
+                  "defUid": 213,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "A few carefully balanced stones keep the winding road toward Town easy to follow."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "cf1fc0dd-b7f1-52d6-a987-448ffe3fa030",
+              "px": [
+                134,
+                129
+              ],
+              "width": 32,
+              "__worldX": 390,
+              "__worldY": 385
             }
           ]
         },
@@ -111355,6 +113437,174 @@
               "width": 48,
               "__worldX": -24,
               "__worldY": 896
+            },
+            {
+              "__identifier": "LandmarkRegion",
+              "__grid": [
+                15,
+                8
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#A5B86B",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 204,
+              "fieldInstances": [
+                {
+                  "__identifier": "landmarkId",
+                  "__type": "String",
+                  "__value": "seeping-stone",
+                  "defUid": 205,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seeping-stone"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Seeping Stone",
+                  "defUid": 206,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Seeping Stone"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "A cool seam of mineral-stained stone shelters a faint trace of moisture.",
+                  "defUid": 207,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "A cool seam of mineral-stained stone shelters a faint trace of moisture."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 64,
+              "iid": "61a9de8d-5a85-5bdd-a7a9-3284840b25a7",
+              "px": [
+                246,
+                130
+              ],
+              "width": 80,
+              "__worldX": -186,
+              "__worldY": 738
+            },
+            {
+              "__identifier": "EnvironmentalInspectable",
+              "__grid": [
+                15,
+                8
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#B9AA87",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 208,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "cave-mineral-seam",
+                  "defUid": 209,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "cave-mineral-seam"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Mineral Formation",
+                  "defUid": 210,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Mineral Formation"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 211,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "noteId",
+                  "__type": "String",
+                  "__value": "cave-mineral-seam-note",
+                  "defUid": 212,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "cave-mineral-seam-note"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "Pale mineral lines trace an old seep above the cave's damp floor.",
+                  "defUid": 213,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Pale mineral lines trace an old seep above the cave's damp floor."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "e409b454-daa2-5f8d-aeb5-f11caf2ae3fe",
+              "px": [
+                246,
+                130
+              ],
+              "width": 32,
+              "__worldX": -186,
+              "__worldY": 738
             }
           ]
         },
@@ -127526,6 +129776,552 @@
               "width": 16,
               "__worldX": 792,
               "__worldY": 832
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                11,
+                8
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-4-wild-san-pedro",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-4-wild-san-pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild San Pedro",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild San Pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "echinopsis-pachanoi",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "echinopsis-pachanoi"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 900,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        900
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "b76eeefd-3f58-5f71-a9f0-57e1f73a4fdc",
+              "px": [
+                180,
+                130
+              ],
+              "width": 32,
+              "__worldX": 436,
+              "__worldY": 786
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                23,
+                11
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-4-wild-peyote",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-4-wild-peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild Peyote",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild Peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "lophophora-williamsii",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "lophophora-williamsii"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 1200,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        1200
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "22073943-def9-579a-a098-2a0434cffc08",
+              "px": [
+                380,
+                180
+              ],
+              "width": 32,
+              "__worldX": 636,
+              "__worldY": 836
+            },
+            {
+              "__identifier": "EnvironmentalInspectable",
+              "__grid": [
+                24,
+                9
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#B9AA87",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 208,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-4-trail-cairn",
+                  "defUid": 209,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-4-trail-cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Basin Trail Cairn",
+                  "defUid": 210,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Basin Trail Cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 211,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "noteId",
+                  "__type": "String",
+                  "__value": "path-4-trail-cairn-note",
+                  "defUid": 212,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-4-trail-cairn-note"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "The last close-set trail stones point toward the open basin ahead.",
+                  "defUid": 213,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "The last close-set trail stones point toward the open basin ahead."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "74ea53a9-b7b9-567f-a294-bbb6ff723236",
+              "px": [
+                390,
+                148
+              ],
+              "width": 32,
+              "__worldX": 646,
+              "__worldY": 804
             }
           ]
         },
@@ -149632,6 +152428,104 @@
               "width": 32,
               "__worldX": 128,
               "__worldY": 1096
+            },
+            {
+              "__identifier": "EnvironmentalInspectable",
+              "__grid": [
+                9,
+                4
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#B9AA87",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 208,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "path-5-route-marker",
+                  "defUid": 209,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-5-route-marker"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Route Marker",
+                  "defUid": 210,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Route Marker"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 211,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "noteId",
+                  "__type": "String",
+                  "__value": "path-5-route-marker-note",
+                  "defUid": 212,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "path-5-route-marker-note"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "Route under construction.",
+                  "defUid": 213,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Route under construction."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "05dc4b0a-41bf-57e3-a00c-70dca2fc67e3",
+              "px": [
+                152,
+                76
+              ],
+              "width": 32,
+              "__worldX": 152,
+              "__worldY": 1068
             }
           ]
         },
@@ -152619,6 +155513,1798 @@
               "width": 48,
               "__worldX": 888,
               "__worldY": 832
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                12,
+                24
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "basin-san-pedro-entrance",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-san-pedro-entrance"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild San Pedro",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild San Pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "echinopsis-pachanoi",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "echinopsis-pachanoi"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 900,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        900
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "74129245-6e8c-55e4-a5dd-e887f4ebf46a",
+              "px": [
+                200,
+                390
+              ],
+              "width": 32,
+              "__worldX": 1064,
+              "__worldY": 822
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                20,
+                28
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "basin-peyote-west",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-peyote-west"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild Peyote",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild Peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "lophophora-williamsii",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "lophophora-williamsii"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 1200,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        1200
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "72da5e35-4999-50ee-ab6d-90b168e891bd",
+              "px": [
+                320,
+                448
+              ],
+              "width": 32,
+              "__worldX": 1184,
+              "__worldY": 880
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                34,
+                28
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "basin-san-pedro-wash",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-san-pedro-wash"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild San Pedro",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild San Pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "echinopsis-pachanoi",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "echinopsis-pachanoi"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 900,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        900
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "281e5dc4-56a3-59bd-a50d-db422bc3afcb",
+              "px": [
+                550,
+                454
+              ],
+              "width": 32,
+              "__worldX": 1414,
+              "__worldY": 886
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                40,
+                34
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "basin-peyote-south",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-peyote-south"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild Peyote",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild Peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "lophophora-williamsii",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "lophophora-williamsii"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 1200,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        1200
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "ac4a2393-dedc-584e-af20-0be556b3c5ba",
+              "px": [
+                650,
+                554
+              ],
+              "width": 32,
+              "__worldX": 1514,
+              "__worldY": 986
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                50,
+                26
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "basin-san-pedro-cairn",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-san-pedro-cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild San Pedro",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild San Pedro"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "echinopsis-pachanoi",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "echinopsis-pachanoi"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 900,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        900
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "8d139c1c-f0f6-53b8-aef7-31f7cb974eee",
+              "px": [
+                800,
+                430
+              ],
+              "width": 32,
+              "__worldX": 1664,
+              "__worldY": 862
+            },
+            {
+              "__identifier": "HarvestablePlant",
+              "__grid": [
+                60,
+                30
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#D99E51",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 107,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "basin-peyote-ridge",
+                  "defUid": 108,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-peyote-ridge"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Wild Peyote",
+                  "defUid": 109,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Wild Peyote"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 110,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "speciesId",
+                  "__type": "String",
+                  "__value": "lophophora-williamsii",
+                  "defUid": 111,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "lophophora-williamsii"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "seedYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 112,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawn",
+                  "__type": "String",
+                  "__value": "player-cooldown",
+                  "defUid": 113,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "player-cooldown"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "resourceType",
+                  "__type": "String",
+                  "__value": "seed-pod",
+                  "defUid": 196,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "seed-pod"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rewardTable",
+                  "__type": "String",
+                  "__value": "commodity-seeds",
+                  "defUid": 197,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "commodity-seeds"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "minYield",
+                  "__type": "Int",
+                  "__value": 3,
+                  "defUid": 198,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        3
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "maxYield",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 199,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "harvestingXp",
+                  "__type": "Int",
+                  "__value": 10,
+                  "defUid": 200,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        10
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "respawnSeconds",
+                  "__type": "Int",
+                  "__value": 1200,
+                  "defUid": 201,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        1200
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "requiredToolId",
+                  "__type": "String",
+                  "__value": "field-knife",
+                  "defUid": 202,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "field-knife"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "rareRollEligible",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 203,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "021d5ddd-f0e2-592c-a1e1-d1e9f7307cc8",
+              "px": [
+                966,
+                480
+              ],
+              "width": 32,
+              "__worldX": 1830,
+              "__worldY": 912
+            },
+            {
+              "__identifier": "LandmarkRegion",
+              "__grid": [
+                13,
+                23
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#A5B86B",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 204,
+              "fieldInstances": [
+                {
+                  "__identifier": "landmarkId",
+                  "__type": "String",
+                  "__value": "entrance-grove",
+                  "defUid": 205,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "entrance-grove"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Entrance Grove",
+                  "defUid": 206,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Entrance Grove"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "A sheltered stand of cactus marks the first open ground beyond the canyon trail.",
+                  "defUid": 207,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "A sheltered stand of cactus marks the first open ground beyond the canyon trail."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 80,
+              "iid": "8f60d4b2-e0f9-569c-aab7-af34a2d59f1c",
+              "px": [
+                212,
+                372
+              ],
+              "width": 100,
+              "__worldX": 1076,
+              "__worldY": 804
+            },
+            {
+              "__identifier": "LandmarkRegion",
+              "__grid": [
+                30,
+                22
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#A5B86B",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 204,
+              "fieldInstances": [
+                {
+                  "__identifier": "landmarkId",
+                  "__type": "String",
+                  "__value": "mesa-shoulder",
+                  "defUid": 205,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "mesa-shoulder"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Mesa Shoulder",
+                  "defUid": 206,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Mesa Shoulder"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "Layers of sandstone rise above a quiet shoulder of wind-worn sand.",
+                  "defUid": 207,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Layers of sandstone rise above a quiet shoulder of wind-worn sand."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 84,
+              "iid": "1b8a2ca6-99e8-5b4b-a54c-4a9d6d0a2101",
+              "px": [
+                488,
+                354
+              ],
+              "width": 112,
+              "__worldX": 1352,
+              "__worldY": 786
+            },
+            {
+              "__identifier": "LandmarkRegion",
+              "__grid": [
+                37,
+                29
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#A5B86B",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 204,
+              "fieldInstances": [
+                {
+                  "__identifier": "landmarkId",
+                  "__type": "String",
+                  "__value": "dry-wash",
+                  "defUid": 205,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "dry-wash"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Dry Wash",
+                  "defUid": 206,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Dry Wash"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "A shallow channel cut through the basin by storms that rarely come gently.",
+                  "defUid": 207,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "A shallow channel cut through the basin by storms that rarely come gently."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 72,
+              "iid": "625a055a-9b0f-5ec9-ac26-7c833af632dd",
+              "px": [
+                600,
+                476
+              ],
+              "width": 144,
+              "__worldX": 1464,
+              "__worldY": 908
+            },
+            {
+              "__identifier": "LandmarkRegion",
+              "__grid": [
+                46,
+                26
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#A5B86B",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 204,
+              "fieldInstances": [
+                {
+                  "__identifier": "landmarkId",
+                  "__type": "String",
+                  "__value": "cairn",
+                  "defUid": 205,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Cairn",
+                  "defUid": 206,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "A small stack of trail stones offers a steady point in the wide basin.",
+                  "defUid": 207,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "A small stack of trail stones offers a steady point in the wide basin."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 72,
+              "iid": "fbdcb13d-79f7-5a34-a21e-a923ac06e534",
+              "px": [
+                736,
+                428
+              ],
+              "width": 80,
+              "__worldX": 1600,
+              "__worldY": 860
+            },
+            {
+              "__identifier": "LandmarkRegion",
+              "__grid": [
+                60,
+                31
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#A5B86B",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 204,
+              "fieldInstances": [
+                {
+                  "__identifier": "landmarkId",
+                  "__type": "String",
+                  "__value": "eastern-ridge",
+                  "defUid": 205,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "eastern-ridge"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Eastern Ridge",
+                  "defUid": 206,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Eastern Ridge"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "Cactus and fallen stone gather beneath the basin's eastern rise.",
+                  "defUid": 207,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Cactus and fallen stone gather beneath the basin's eastern rise."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 80,
+              "iid": "dd482850-9163-5a7c-aa5c-67a8c72b2123",
+              "px": [
+                972,
+                500
+              ],
+              "width": 128,
+              "__worldX": 1836,
+              "__worldY": 932
+            },
+            {
+              "__identifier": "EnvironmentalInspectable",
+              "__grid": [
+                46,
+                26
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#B9AA87",
+              "__tags": [
+                "first-basin-exploration-v1"
+              ],
+              "__tile": null,
+              "defUid": 208,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__type": "String",
+                  "__value": "basin-trail-cairn",
+                  "defUid": 209,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-trail-cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__type": "String",
+                  "__value": "Basin Cairn",
+                  "defUid": 210,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Basin Cairn"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__type": "Bool",
+                  "__value": false,
+                  "defUid": 211,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "noteId",
+                  "__type": "String",
+                  "__value": "basin-trail-cairn-note",
+                  "defUid": 212,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "basin-trail-cairn-note"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__type": "String",
+                  "__value": "Someone has kept this modest marker standing against wind and passing seasons.",
+                  "defUid": 213,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Someone has kept this modest marker standing against wind and passing seasons."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "66f0166c-1783-59c6-a4bf-b3b7acfeff7d",
+              "px": [
+                736,
+                428
+              ],
+              "width": 32,
+              "__worldX": 1600,
+              "__worldY": 860
             }
           ]
         },

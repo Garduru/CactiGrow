@@ -8,12 +8,13 @@ import type { WorldArea, WorldVisualLayer } from './types.ts'
 import { LocalMinimapStore, minimapSurfaces, walkMinimap } from '../../src/game-world/localMinimap.ts'
 import { NavigationMap } from '../../src/game-world/navigation/NavigationMap.ts'
 import { NavigationController } from '../../src/game-world/navigation/NavigationController.ts'
+import { EXPLORATION_TAG, originalDefinition, originalWorldArea } from './explorationTestHelpers.ts'
 
 interface AuthoredTile { px: number[]; src: number[]; f: number }
 interface AuthoredLayer extends Record<string, unknown> {
   __identifier: string; __type: string; __gridSize: number; __cWid: number; __cHei: number
   __pxTotalOffsetX: number; __pxTotalOffsetY: number; __tilesetDefUid: number
-  gridTiles: AuthoredTile[]; entityInstances: unknown[]
+  gridTiles: AuthoredTile[]; entityInstances: { __tags?: string[] }[]
 }
 interface AuthoredLevel extends Record<string, unknown> {
   identifier: string; pxWid: number; pxHei: number; layerInstances: AuthoredLayer[]
@@ -27,7 +28,7 @@ function canonical(value: unknown): unknown {
   return value
 }
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex')
-function authority(area: WorldArea) { const { visualLayers, ...state } = area; void visualLayers; return state }
+function authority(area: WorldArea) { const { visualLayers, ...state } = originalWorldArea(area); void visualLayers; return state }
 
 // Captured before Settlement Art V1 from the accepted V2.1 world. These constants
 // deliberately travel with the tests: no ignored .wrangler evidence is required.
@@ -81,7 +82,7 @@ test('settlement art preserves all eleven authored authority Levels and both com
   const project = source()
   assert.deepEqual(project.levels.map(level => level.identifier).sort(), Object.keys(AUTHORITY_LEVELS).sort())
   for (const level of project.levels) {
-    const protectedLevel = { ...level, layerInstances: level.layerInstances.filter(layer => !['Tiles', 'AutoLayer'].includes(layer.__type)) }
+    const protectedLevel = { ...level, layerInstances: level.layerInstances.filter(layer => !['Tiles', 'AutoLayer'].includes(layer.__type)).map(layer => layer.__type === 'Entities' ? {...layer,entityInstances:layer.entityInstances.filter(e=>!e.__tags?.includes(EXPLORATION_TAG))}:layer) }
     assert.equal(hash(protectedLevel), AUTHORITY_LEVELS[level.identifier], `${level.identifier}: metadata, fields, topology, IntGrid and entities remain unchanged`)
     if (UNTARGETED_LEVELS[level.identifier]) assert.equal(hash(level), UNTARGETED_LEVELS[level.identifier], `${level.identifier}: complete untouched Level payload`)
   }
@@ -90,7 +91,7 @@ test('settlement art preserves all eleven authored authority Levels and both com
 test('settlement authoring adds definitions without modifying any original definition', () => {
   const { defs } = source()
   for (const [group, baseline] of Object.entries(OLD_DEFINITIONS)) {
-    const retained = defs[group].filter(definition => baseline.uids.includes(definition.uid))
+    const retained = defs[group].filter(definition => baseline.uids.includes(definition.uid)).map(originalDefinition)
     assert.deepEqual(retained.map(definition => definition.uid), baseline.uids, `${group}: original IDs and order`)
     assert.equal(hash(retained), baseline.hash, `${group}: original complete definition payloads`)
   }

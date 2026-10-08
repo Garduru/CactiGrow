@@ -51,21 +51,39 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
         const iid = text(e.iid)
         if (entities.has(iid)) throw new Error('Duplicate entity IID.')
         entities.set(iid, { areaId, levelIid: text(l.iid), layerIid: text(layer.iid), entity: e })
-        if (!['AreaSpawn', 'AreaExit', 'TutorialNpc', 'HarvestablePlant', 'TutorialPot'].includes(text(e.__identifier))) continue
+        if (!['AreaSpawn', 'AreaExit', 'TutorialNpc', 'HarvestablePlant', 'TutorialPot', 'LandmarkRegion', 'EnvironmentalInspectable'].includes(text(e.__identifier))) continue
         const ef = fields(e.fieldInstances), px = list(e.px)
         const authored = { x: number(px[0]) + number(layer.__pxTotalOffsetX), y: number(px[1]) + number(layer.__pxTotalOffsetY) }
         if (!lockedTemplate && (ef.runtimeX != null || ef.runtimeY != null)) throw new Error('Runtime entity overrides are reserved for locked Farm/Town templates.')
         const { x, y } = lockedTemplate ? { x: ef.runtimeX == null ? authored.x : number(ef.runtimeX), y: ef.runtimeY == null ? authored.y : number(ef.runtimeY) } : topologyToRuntime(area, authored)
         if ((ef.runtimeX == null) !== (ef.runtimeY == null) || x < 0 || y < 0 || x >= width || y >= height) throw new Error(`Invalid entity position in ${areaId}`)
         if (e.__identifier === 'AreaSpawn') area.spawns.push({ entryId: id(ef.entryId), x, y })
+        else if (e.__identifier === 'LandmarkRegion') {
+          if (lockedTemplate || area.zoneId !== 'first-basin') throw new Error('Invalid exploration landmark Area.')
+          const size = topologyToRuntime(area, { x: number(e.width), y: number(e.height) })
+          if (list(e.__pivot).some(v => v !== .5) || size.x <= 0 || size.y <= 0 || x - size.x / 2 < 0 || y - size.y / 2 < 0 || x + size.x / 2 > width || y + size.y / 2 > height) throw new Error('Invalid landmark discovery bounds.')
+          area.landmarks ??= []; area.landmarks.push({ landmarkId: id(ef.landmarkId), displayName: text(ef.displayName), description: text(ef.description), x, y, width: size.x, height: size.y })
+        }
         else if (e.__identifier !== 'AreaExit') {
           if (lockedTemplate || typeof ef.tutorial !== 'boolean') throw new Error('Invalid tutorial interaction.')
-          const kind = e.__identifier === 'TutorialNpc' ? 'npc' : e.__identifier === 'HarvestablePlant' ? 'harvestable' : 'tutorial-pot'
+          const kind = e.__identifier === 'TutorialNpc' ? 'npc' : e.__identifier === 'HarvestablePlant' ? 'harvestable' : e.__identifier === 'EnvironmentalInspectable' ? 'inspectable' : 'tutorial-pot'
           const entity = { entityId: id(ef.entityId), kind, displayName: text(ef.displayName), tutorial: ef.tutorial, x, y } as NonNullable<WorldArea['interactables']>[number]
           if (kind === 'harvestable') {
-            entity.speciesId = id(ef.speciesId); entity.seedYield = number(ef.seedYield)
-            if (entity.seedYield < 1 || entity.seedYield > 10 || ef.respawn !== 'once-per-player') throw new Error('Invalid controlled harvest reward.')
-            entity.respawn = 'once-per-player'
+            entity.speciesId = id(ef.speciesId)
+            if (entity.tutorial) {
+              entity.seedYield = number(ef.seedYield)
+              if (entity.seedYield < 1 || entity.seedYield > 10 || ef.respawn !== 'once-per-player') throw new Error('Invalid controlled harvest reward.')
+              entity.respawn = 'once-per-player'
+            } else {
+              if (area.zoneId !== 'first-basin' || !['echinopsis-pachanoi','lophophora-williamsii'].includes(entity.speciesId) || ef.resourceType !== 'seed-pod' || ef.rewardTable !== 'commodity-seeds' || ef.respawn !== 'player-cooldown' || typeof ef.rareRollEligible !== 'boolean' || ef.rareRollEligible || ef.requiredToolId !== null && ef.requiredToolId !== 'field-knife') throw new Error('Invalid wild harvest definition.')
+              const minYield = number(ef.minYield), maxYield = number(ef.maxYield), harvestingXp = number(ef.harvestingXp), respawnSeconds = number(ef.respawnSeconds)
+              if (minYield < 3 || maxYield > 10 || minYield > maxYield || harvestingXp < 1 || harvestingXp > 10 || respawnSeconds < 600 || respawnSeconds > 1200) throw new Error('Invalid wild harvest balance.')
+              Object.assign(entity, { resourceType: 'seed-pod', rewardTable: 'commodity-seeds', minYield, maxYield, harvestingXp, respawn: 'player-cooldown', respawnSeconds, requiredToolId: ef.requiredToolId, rareRollEligible: false })
+            }
+          }
+          if (kind === 'inspectable') {
+            if (entity.tutorial || area.zoneId !== 'first-basin') throw new Error('Invalid environmental inspection.')
+            entity.noteId = id(ef.noteId); entity.description = text(ef.description)
           }
           area.interactables ??= []; area.interactables.push(entity)
         } else {
@@ -221,6 +239,7 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
     if (new Set(a.spawns.map(s => s.entryId)).size !== a.spawns.length || !a.spawns.some(s => s.entryId === 'default')) throw new Error(`Duplicate/missing entries in ${a.areaId}`)
     if (new Set(a.exits.map(e => e.exitId)).size !== a.exits.length) throw new Error('Duplicate exit ID.')
     if (new Set(a.interactables?.map(e => e.entityId)).size !== (a.interactables?.length ?? 0)) throw new Error('Duplicate interaction ID.')
+    if (new Set(a.landmarks?.map(e => e.landmarkId)).size !== (a.landmarks?.length ?? 0)) throw new Error('Duplicate landmark ID.')
     for (const exit of a.exits) {
       const source = [...entities.values()].find(e => e.areaId === a.areaId && e.entity.__identifier === 'AreaExit' && fields(e.entity.fieldInstances).exitId === exit.exitId)!
       const ref = fields(source.entity.fieldInstances).targetEntry
@@ -230,6 +249,10 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
       exit.targetAreaId = target.areaId; exit.targetEntryId = id(fields(target.entity.fieldInstances).entryId)
     }
   }
+  const landmarkIds = areas.flatMap(a => a.landmarks?.map(l => l.landmarkId) ?? [])
+  if (new Set(landmarkIds).size !== landmarkIds.length) throw new Error('Duplicate global landmark ID.')
+  const noteIds = areas.flatMap(a => a.interactables?.filter(e => e.kind === 'inspectable').map(e => e.noteId) ?? [])
+  if (new Set(noteIds).size !== noteIds.length) throw new Error('Duplicate global inspection note ID.')
   const path = areas.find(a => a.areaId === 'path-1'), cross = areas.find(a => a.areaId === 'cross-path-1')
   if (path?.zoneId !== 'starting-zone' || cross?.zoneId !== 'first-basin' || !path.exits.some(e => !e.blocked && e.targetAreaId === cross.areaId)) throw new Error('Missing Starting Zone → First Basin boundary.')
   for (const a of areas.filter(a => a.areaType === 'farm' || a.areaType === 'town')) if (a.zoneId !== 'first-basin') throw new Error('Farm/Town must belong to First Basin.')
