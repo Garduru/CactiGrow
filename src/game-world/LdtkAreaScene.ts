@@ -1,10 +1,15 @@
 import Phaser from 'phaser'
+import { bindLocalMinimap } from './bindLocalMinimap'
+import { bindTutorialWorldHighlight } from './tutorialWorldHighlight'
 import { NavigationMap } from './navigation/NavigationMap'
 import { NavigationController } from './navigation/NavigationController'
 import { bindWorldKeyboardFocus, canUseWorldKeyboard } from './worldKeyboardFocus'
 import { AreaExitController, drawFoundationExitDebug, type FoundationSceneOptions } from './AreaExitController'
-import { createPlayerCharacter } from './PlayerCharacter'
+import { createNpcCharacter, createPlayerCharacter, preloadCharacterArt } from './PlayerCharacter'
 import { configureGameplayCamera } from './gameplayCamera'
+import { terrainBaseColor, terrainTileTexture } from './worldTilePresentation'
+import { drawBasinEnvironment } from './basinEnvironmentPresentation'
+import { NPC_PRESET_BY_ENTITY_ID } from '../../shared/characters/appearance'
 
 /** Rough terrain presentation; uses the existing obstacle-aware route planner unchanged. */
 export class LdtkAreaScene extends Phaser.Scene {
@@ -18,7 +23,9 @@ export class LdtkAreaScene extends Phaser.Scene {
   private potPlant?: Phaser.GameObjects.Image
   constructor(options: FoundationSceneOptions) { super('ldtk-area'); this.options = options }
   preload() {
-    for (const layer of this.options.area.visualLayers ?? []) if (!this.textures.exists(`terrain:${layer.tileset.uid}`)) this.load.image(`terrain:${layer.tileset.uid}`, layer.tileset.path)
+    preloadCharacterArt(this)
+    const tilesets = new Map((this.options.area.visualLayers ?? []).map(layer => [layer.tileset.uid, layer.tileset]))
+    for (const tileset of tilesets.values()) if (!this.textures.exists(`terrain:${tileset.uid}`)) this.load.image(`terrain:${tileset.uid}`, tileset.path)
     if (this.options.area.interactables?.some(e => e.kind === 'harvestable')) this.load.image('tutorial-san-pedro', '/assets/plants/species/echinopsis-pachanoi/plant-echinopsis-pachanoi-mature-base-v01.webp')
     if (this.options.area.interactables?.some(e => e.kind === 'tutorial-pot')) for (const stage of ['seedling','developing','mature']) this.load.image(`pot-${stage}`, `/assets/plants/species/echinopsis-pachanoi/plant-echinopsis-pachanoi-${stage}-base-v01.webp`)
   }
@@ -26,19 +33,19 @@ export class LdtkAreaScene extends Phaser.Scene {
     const { area, position, onExit } = this.options
     this.physics.world.setBounds(0, 0, area.width, area.height)
     this.cameras.main.setBounds(0, 0, area.width, area.height)
-    this.add.rectangle(area.width / 2, area.height / 2, area.width, area.height, 0x65523d)
-    for (const layer of [...(area.visualLayers ?? [])].sort((a,b) => (a.name === 'Ground' ? 0 : 1) - (b.name === 'Ground' ? 0 : 1))) {
-      const key = `terrain:${layer.tileset.uid}`, texture = this.textures.get(key)
-      for (const tile of layer.tiles) {
-        const frame = `${tile.sourceX}:${tile.sourceY}`
-        // Inset sampling keeps painted atlas dividers out of the gameplay tiles.
-        if (!texture.has(frame)) texture.add(frame, 0, tile.sourceX + 2, tile.sourceY + 2, layer.tileset.tileSize - 4, layer.tileset.tileSize - 4)
-        this.add.image(tile.x + layer.offsetX + layer.cellWidth/2, tile.y + layer.offsetY + layer.cellHeight/2, key, frame).setDisplaySize(layer.cellWidth + .5, layer.cellHeight + .5).setFlipX(!!(tile.flip & 1)).setFlipY(!!(tile.flip & 2))
+    if (!drawBasinEnvironment(this, area)) {
+      this.add.rectangle(area.width / 2, area.height / 2, area.width, area.height, terrainBaseColor(this, area.visualLayers ?? []))
+      for (const layer of [...(area.visualLayers ?? [])].sort((a,b) => (['Ground','GroundVariation','BoundaryEdges','Decorations'].indexOf(a.name)) - (['Ground','GroundVariation','BoundaryEdges','Decorations'].indexOf(b.name)))) {
+        for (const tile of layer.tiles) {
+          const {key,frame} = terrainTileTexture(this, layer, tile)
+          this.add.image(tile.x + layer.offsetX + (tile.width ?? layer.cellWidth)/2, tile.y + layer.offsetY + (tile.height ?? layer.cellHeight)/2, key, frame).setDisplaySize((tile.width ?? layer.cellWidth) + .5, (tile.height ?? layer.cellHeight) + .5).setFlipX(!!(tile.flip & 1)).setFlipY(!!(tile.flip & 2)).setName(layer.name === 'BoundaryEdges' ? 'terrain-boundary' : 'terrain-tile')
+        }
       }
     }
     const walls = this.physics.add.staticGroup()
     for (const o of area.collision) {
-      const rect = this.add.rectangle(o.x, o.y, o.width, o.height, 0x29231e, area.visualLayers?.length && !this.options.debug ? 0 : 1)
+      const rect = this.add.rectangle(o.x, o.y, o.width, o.height, 0x29231e, area.visualLayers?.length ? 0 : 1)
+      if (this.options.debug) this.add.rectangle(o.x, o.y, o.width, o.height, 0xff4050, .25).setStrokeStyle(2,0xff4050).setDepth(200).setName('collision-debug-boundary')
       this.physics.add.existing(rect, true); walls.add(rect)
     }
     this.player = createPlayerCharacter(this, position.x, position.y, this.options.appearance)
@@ -50,7 +57,11 @@ export class LdtkAreaScene extends Phaser.Scene {
     this.physics.add.collider(this.player, walls)
     this.navigation = new NavigationController(new NavigationMap(area.width, area.height, area.collision))
     for (const entity of area.interactables ?? []) {
-      if (entity.kind === 'npc') createPlayerCharacter(this, entity.x, entity.y, { skin: 2, shirt: 1 })
+      if (entity.kind === 'npc') {
+        const preset = NPC_PRESET_BY_ENTITY_ID[entity.entityId]
+        if (preset) createNpcCharacter(this, entity.x, entity.y, preset, () => this.player)
+        else createPlayerCharacter(this, entity.x, entity.y)
+      }
       else if (entity.kind === 'harvestable') this.add.image(entity.x, entity.y, 'tutorial-san-pedro').setOrigin(.5,1).setScale(150 / this.textures.get('tutorial-san-pedro').getSourceImage().height).setDepth(110)
       else {
         this.add.container(entity.x,entity.y,[this.add.ellipse(0,12,76,25,0x543728),this.add.rectangle(0,-2,62,42,0xad6241).setStrokeStyle(4,0x573626),this.add.ellipse(0,-23,74,24,0x543728).setStrokeStyle(4,0xd28e5f)]).setDepth(110)
@@ -58,6 +69,15 @@ export class LdtkAreaScene extends Phaser.Scene {
       }
       this.add.text(entity.x, entity.y + 32, entity.displayName, {fontSize:'15px',fontFamily:'system-ui',color:'#fff3dc',backgroundColor:'#39281edd',padding:{x:7,y:4}}).setOrigin(.5,0).setDepth(140)
     }
+    if (this.options.guidance) bindTutorialWorldHighlight(this, this.options.guidance, key => {
+      if (key.startsWith('entity:')) {
+        const entity = area.interactables?.find(e => e.entityId === key.slice(7))
+        return entity ? { x: entity.x - 60, y: entity.y - 155, width: 120, height: 170 } : undefined
+      }
+      const exit = area.exits.find(e => key === `exit:${e.exitId}`)
+      return exit ? { x: exit.x - exit.width/2, y: exit.y - exit.height/2, width: exit.width, height: exit.height } : undefined
+    })
+    bindLocalMinimap(this, this.options.minimap, area, this.player, () => this.navigation, this.options.pending, () => { this.interaction = null })
     this.exits = new AreaExitController(area, onExit)
     drawFoundationExitDebug(this, this.options)
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT') as Record<string, Phaser.Input.Keyboard.Key>
@@ -92,7 +112,7 @@ export class LdtkAreaScene extends Phaser.Scene {
     if (this.potPlant) {
       this.potPlant.setVisible(!!pot && !pot.collectedAt)
       if (pot && !pot.collectedAt) {
-        const progress = (Date.now()-Date.parse(pot.plantedAt))/(Date.parse(pot.readyAt)-Date.parse(pot.plantedAt)), key = progress < .33 ? 'pot-seedling' : progress < .85 ? 'pot-developing' : 'pot-mature'
+        const progress = ((this.options.tutorialNow?.() ?? Date.now())-Date.parse(pot.plantedAt))/(Date.parse(pot.readyAt)-Date.parse(pot.plantedAt)), key = progress < .33 ? 'pot-seedling' : progress < .85 ? 'pot-developing' : 'pot-mature'
         if (this.potPlant.texture.key !== key) this.potPlant.setTexture(key)
         this.potPlant.setScale(110 / this.potPlant.texture.getSourceImage().height)
       }

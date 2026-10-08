@@ -31,6 +31,8 @@ import { MailService } from '../player/MailService.ts'
 import { isMailCommand } from '../../shared/api/mailV1.ts'
 import { WorldService } from '../world/WorldService.ts'
 import { StartingExperienceService } from '../starting/StartingExperienceService.ts'
+import { StartingResetService } from '../starting/StartingResetService.ts'
+import { isStartingResetCommand } from '../../shared/api/startingResetV1.ts'
 import { isStartingCommand } from '../../shared/api/startingExperienceV1.ts'
 
 export interface ApiRequestContext {
@@ -112,10 +114,10 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       return withAuthenticatedPlayer(context, async ({ player }) => {
         const service = new StartingExperienceService(await context.database.getDatabase())
-        if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
+        if (request.method === 'GET') return successResponse({ ...await service.read(player.playerId), serverNow: new Date().toISOString() }, requestId)
         const command = await readJson(request)
         if (!isStartingCommand(command)) throw ApiError.validation('Invalid tutorial command.')
-        return successResponse(await service.execute(player.playerId, command), requestId)
+        return successResponse({ ...await service.execute(player.playerId, command), serverNow: new Date().toISOString() }, requestId)
       }, dependencies.authenticationConfigurationFactory)
     }
     if (url.pathname === '/api/v1/me/world') {
@@ -161,6 +163,12 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
           return successResponse({ ...getRuntimeMetadata(env), playerId: player.playerId }, requestId)
         }
         const service = new DevToolsService(await context.database.getDatabase(), getRuntimeMetadata(env).environment)
+        if (url.pathname === '/api/v1/dev/starting-experience/reset') {
+          if (request.method !== 'POST') throw ApiError.methodNotAllowed()
+          const body = await readJson(request)
+          if (!isStartingResetCommand(body)) throw ApiError.validation('Confirm the exact target player UUID.')
+          return successResponse(await new StartingResetService(await context.database.getDatabase(), getRuntimeMetadata(env).environment).execute(player.playerId, body), requestId)
+        }
         if (url.pathname === '/api/v1/dev/commands') {
           if (request.method !== 'POST') throw ApiError.methodNotAllowed()
           const body = await readJson(request)

@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react'
+import { useStartingExperience } from '../starting/StartingContext'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getSpeciesById } from '../../data/species'
 import { useGameState } from '../../game/useGameState'
@@ -11,6 +12,12 @@ import { normalizeTissueSample } from './labModel'
 import { SeedTreatmentWorkflow } from './SeedTreatmentWorkflow'
 
 export function GeneticsLabPage() {
+  const tutorial = useStartingExperience(), admitted = useRef(false)
+  useEffect(() => {
+    if (!tutorial.active || tutorial.state?.farmStage !== 'lab' || admitted.current) return
+    admitted.current = true
+    void tutorial.execute({ type: 'visit-lab' }).then(ok => { if (!ok) admitted.current = false })
+  }, [tutorial])
   const { state, upgradeLab, extractFromSample } = useGameState()
   const [selectedSampleId, setSelectedSampleId] = useState('')
   const [target, setTarget] = useState<QuantitativeExtractTarget>('vigor')

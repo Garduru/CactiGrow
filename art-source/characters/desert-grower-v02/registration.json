@@ -1,0 +1,30 @@
+{
+  "version": "character-system-v02",
+  "canvasSize": [128, 224],
+  "atlasSize": [640, 896],
+  "worldDisplaySize": [64, 112],
+  "worldOffset": [0, 13],
+  "origin": [0.5, 1],
+  "physicsContainerSize": [54, 54],
+  "directions": ["south", "west", "east", "north"],
+  "poses": ["idle", "walk-contact-left", "walk-passing-left", "walk-contact-right", "walk-passing-right"],
+  "bodyHeight": 198,
+  "bodyBaseline": 216,
+  "bodyWidthLimit": 108,
+  "bodies": [
+    { "module": "masculine", "source": "desert-grower-masculine-poses-master-v02.png", "sourceDirections": ["south", "east", "west", "north"], "output": "player/masculine/desert-grower-masculine-poses-v02.webp", "maskModule": "masculineMask", "maskOutput": "player/masculine/desert-grower-masculine-pigments-v02.png" },
+    { "module": "feminine", "source": "desert-grower-feminine-poses-master-v02.png", "sourceDirections": ["south", "west", "east", "north"], "output": "player/feminine/desert-grower-feminine-poses-v02.webp", "maskModule": "feminineMask", "maskOutput": "player/feminine/desert-grower-feminine-pigments-v02.png" },
+    { "module": "mara", "source": "desert-mara-poses-master-v02.png", "sourceDirections": ["south", "east", "west", "north"], "idleSource": "desert-mara-idle-master-v02.png", "idleDirections": ["south", "east", "west", "north"], "output": "npc/mara/desert-mara-poses-v02.webp" }
+  ],
+  "cosmetics": [
+    { "module": "cropped", "source": "desert-hair-directions-master-v02.png", "columns": 4, "column": 0, "output": "shared/desert-hair-cropped-v02.webp", "kind": "hair", "targetWidth": 50, "maxHeight": 58, "anchorOffset": 8 },
+    { "module": "tied", "source": "desert-hair-directions-master-v02.png", "columns": 4, "column": 1, "output": "shared/desert-hair-tied-back-v02.webp", "kind": "hair", "targetWidth": 54, "maxHeight": 92 },
+    { "module": "wavy", "source": "desert-hair-directions-master-v02.png", "columns": 4, "column": 2, "output": "shared/desert-hair-wavy-crop-v02.webp", "kind": "hair", "targetWidth": 56, "maxHeight": 72 },
+    { "module": "braid", "source": "desert-hair-directions-master-v02.png", "columns": 4, "column": 3, "output": "shared/desert-hair-long-braid-v02.webp", "kind": "hair", "targetWidth": 54, "maxHeight": 110 },
+    { "module": "straw", "source": "desert-equipment-directions-master-v02.png", "columns": 3, "column": 0, "output": "shared/desert-hat-straw-v02.webp", "kind": "hat", "targetWidth": 76, "maxHeight": 58 },
+    { "module": "cap", "source": "desert-equipment-directions-master-v02.png", "columns": 3, "column": 1, "output": "shared/desert-hat-cap-v02.webp", "kind": "hat", "targetWidth": 62, "maxHeight": 56 },
+    { "module": "satchel", "source": "desert-equipment-directions-master-v02.png", "columns": 3, "column": 2, "output": "shared/desert-field-satchel-v02.webp", "kind": "accessory", "targetWidth": 62, "maxHeight": 94 }
+  ],
+  "cosmeticCanvasSize": [96, 128],
+  "notes": "Alpha-preserving generated raster poses. Palette masks classify source material pigments across each articulated pose. Head and torso anchors are presentation metadata; neither artwork nor registration defines physics. Mara is an authored NPC-only cosmetic sheet in the same atlas format."
+}

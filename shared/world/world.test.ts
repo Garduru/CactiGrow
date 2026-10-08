@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { parseWorld, topologyToRuntime } from '../../scripts/world-import.ts'
 import { WORLD, authoredRoadExit, discoveredTravelAreas, findArea, initialLocation, runtimeAreaId, isWorldLocation } from './world.ts'
 import { resolveExit, resolveTravel } from '../../server/world/WorldService.ts'
@@ -9,6 +10,70 @@ import { NavigationMap } from '../../src/game-world/navigation/NavigationMap.ts'
 import { AreaExitController, insideExit } from '../../src/game-world/AreaExitController.ts'
 const source = () => JSON.parse(readFileSync('world/cactigrow-world.ldtk', 'utf8'))
 const owner = '00000000-0000-4000-8000-000000000001'
+
+test('Art Direction V1 preserves the accepted Starting Experience authority and original three desert Areas', () => {
+  const world = parseWorld(source())
+  const authority = {...world,areas:world.areas.map(({visualLayers,...area}) => { void visualLayers; return area })}
+  // Captured from the current milestone baseline (LDtk49b3fa3a69ab74a9), before
+  // art changes: every ID, entity, collision rectangle, spawn, exit and dimension.
+  assert.equal(createHash('sha256').update(JSON.stringify(authority)).digest('hex'),'e22e312aaa92f0696e79a163b8f0b3a4016a1e099bdf4e5f8b84cdd11d07c8b6')
+  // First Basin Environment V1 explicitly extends this same master to five more
+  // outdoor Areas. Retain these original three and their accepted road checks.
+  const masterAreas=world.areas.filter(a=>['cross-path-1','path-1','starting-spawn-tutorial'].includes(a.areaId))
+  assert.deepEqual(masterAreas.map(a=>a.areaId).sort(),['cross-path-1','path-1','starting-spawn-tutorial'])
+  for(const area of masterAreas) {
+    const originalLayers=area.visualLayers!.filter(l=>l.tileset.path==='/assets/world/tiles/world-desert-master-v01.png'&&l.name!=='Paths')
+    assert.deepEqual(new Set(originalLayers.map(l=>l.name)),new Set(['Ground','GroundVariation','BoundaryEdges','Decorations']))
+    const road=area.visualLayers!.find(l=>l.name==='GroundVariation')!
+    assert.ok(road.tiles.length>0)
+    assert.ok(road.tiles.every(t=>Number.isInteger(t.blendEdges)&&t.blendEdges!>=0&&t.blendEdges!<=15))
+    assert.ok(road.tiles.every(t=>Number.isInteger(t.blendCorners)&&t.blendCorners!>=0&&t.blendCorners!<=15))
+    for(const layer of originalLayers) {
+      assert.equal(layer.tileset.width,1024);assert.equal(layer.tileset.height,768);assert.equal(layer.tileset.tileSize,128)
+    }
+  }
+  assert.ok(masterAreas.find(a=>a.areaId==='cross-path-1')!.visualLayers!.find(l=>l.name==='GroundVariation')!.tiles.filter(t=>t.blendCorners).length>=4,'Cross Path shoulders also feather the concave joins at the intersection')
+  const modified=source(),level=modified.levels.find((l:{identifier:string})=>l.identifier==='Path_1')
+  level.layerInstances.find((l:{__identifier:string})=>l.__identifier==='GroundVariation').gridTiles=[]
+  const visualOnly=parseWorld(modified).areas.find(a=>a.areaId==='path-1')!
+  assert.deepEqual(visualOnly.collision,world.areas.find(a=>a.areaId==='path-1')!.collision)
+  assert.deepEqual(visualOnly.exits,world.areas.find(a=>a.areaId==='path-1')!.exits)
+})
+
+test('rock auto-layer covers collision and world bounds without closing walkable exits', () => {
+  const p = source(), world = parseWorld(p)
+  for (const identifier of ['Starting_Spawn_Tutorial_1','Path_1','Cross_Path_1','Path_5_Under_Construction']) {
+    const level = p.levels.find((l:{identifier:string}) => l.identifier === identifier)
+    const grid = level.layerInstances.find((l:{__type:string}) => l.__type === 'IntGrid')
+    const area = world.areas.find(a => a.identifier === identifier)!, edges = area.visualLayers!.find(l => l.name === 'BoundaryEdges')!
+    const covers = (x:number,y:number) => edges.tiles.some(t => x >= t.x && x <= t.x+(t.width??edges.cellWidth) && y >= t.y && y <= t.y+(t.height??edges.cellHeight))
+    for (let row=0;row<grid.__cHei;row++) for (let col=0;col<grid.__cWid;col++) {
+      const x=col*edges.cellWidth,y=row*edges.cellHeight
+      if (grid.intGridCsv[row*grid.__cWid+col]===1) assert.ok(covers(x+edges.cellWidth/2,y+edges.cellHeight/2),'every accepted collision cell has rock art')
+    }
+    for (const exit of area.exits.filter(e=>!e.blocked)) {
+      // Some trigger rectangles contain authored wall corners; only its walkable
+      // opening must stay clear. Test the existing 27+5-unit navigation clearance.
+      const map = new NavigationMap(area.width,area.height,area.collision)
+      for(let x=exit.x-exit.width/2+32;x<exit.x+exit.width/2;x+=16) for(let y=exit.y-exit.height/2+32;y<exit.y+exit.height/2;y+=16) if(map.walkable({x,y})) assert.equal(covers(x,y),false,`${area.areaId}/${exit.exitId} stays visually open`)
+    }
+    for(let x=edges.cellWidth/2;x<area.width;x+=edges.cellWidth) for(const y of [1,area.height-1]) if(!area.exits.some(e=>!e.blocked&&insideExit({x,y},e))) assert.ok(covers(x,y),'outer world bound has a visible rim')
+    for(let y=edges.cellHeight/2;y<area.height;y+=edges.cellHeight) for(const x of [1,area.width-1]) if(!area.exits.some(e=>!e.blocked&&insideExit({x,y},e))) assert.ok(covers(x,y),'outer world bound has a visible rim')
+    assert.equal(edges.cellWidth,identifier==='Starting_Spawn_Tutorial_1'?64:80)
+  }
+  const area=world.areas.find(a=>a.areaId==='path-5-under-construction')!,exit=area.exits.find(e=>e.blocked)!,layer=area.visualLayers!.find(l=>l.name==='BoundaryEdges')!
+  assert.equal(exit.futureDestinationLabel,'Route under construction.')
+  assert.ok(layer.tiles.some(t=>t.x===exit.x-exit.width/2&&t.y===exit.y+exit.height/2&&t.width===exit.width))
+  const before=parseWorld(p),level=p.levels.find((l:{identifier:string})=>l.identifier==='Starting_Spawn_Tutorial_1'),grid=level.layerInstances.find((l:{__type:string})=>l.__type==='IntGrid')
+  const reordered=structuredClone(p);for(const l of reordered.levels)l.layerInstances.reverse()
+  for(const area of before.areas)assert.deepEqual(parseWorld(reordered).areas.find(a=>a.areaId===area.areaId)!.visualLayers?.find(l=>l.name==='BoundaryEdges'),area.visualLayers?.find(l=>l.name==='BoundaryEdges'),'exit reservations do not depend on LDtk layer order')
+  grid.intGridCsv[10*grid.__cWid+20]=1
+  const changed=parseWorld(p).areas.find(a=>a.identifier===level.identifier)!
+  assert.ok(changed.visualLayers!.find(l=>l.name==='BoundaryEdges')!.tiles.some(t=>t.x===20*64&&t.y===10*64),'IntGrid edits update art without a second manual boundary list or fresh editor cache')
+  assert.deepEqual(changed.exits,before.areas.find(a=>a.identifier===level.identifier)!.exits)
+  const noArt=structuredClone(p);for(const l of noArt.levels)l.layerInstances=l.layerInstances.filter((s:{__type:string})=>!['Tiles','AutoLayer'].includes(s.__type))
+  for(const area of parseWorld(p).areas)assert.deepEqual(area.collision,parseWorld(noArt).areas.find(a=>a.areaId===area.areaId)!.collision)
+})
 
 test('Travel requires physical discovery, uses authored entries and owner identity, and never unlocks paths', () => {
   let location = initialLocation(owner)
@@ -141,6 +206,10 @@ test('every playable Level requires proportional runtime dimensions and one dete
     if (['Player_Farm','Town_p1'].includes(level.identifier)) continue
     level.fieldInstances.find((f: {__identifier:string}) => f.__identifier === 'runtimeWidth').__value = level.pxWid
     level.fieldInstances.find((f: {__identifier:string}) => f.__identifier === 'runtimeHeight').__value = level.pxHei
+    // This fixture tests the geometry transform at native scale. First Basin
+    // prop display envelopes use explicit runtime sizes; omit cosmetic layers
+    // when shrinking this synthetic rough world to its authoring dimensions.
+    level.layerInstances = level.layerInstances.filter((layer: {__type:string}) => !['Tiles','AutoLayer'].includes(layer.__type))
   }
   const native = parseWorld(nativeSource)
   assert.deepEqual(parseWorld(p), normalized, 'repeat import is deterministic')

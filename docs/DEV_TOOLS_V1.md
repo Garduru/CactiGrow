@@ -14,7 +14,7 @@ Dev Tools target **local development and protected staging at `https://dev.cacti
 
 Do not deploy production solely for Dev Tools changes. Changes to shared normal-game code require a separate explicit production-release decision. Preserve the existing production environment gate and infrastructure.
 
-Local and staging share the same sections and authoritative commands. Local mutations require the loopback `cactigrow_local` target; staging mutations require verified Access identity and the isolated staging database. World/visual previews stay temporary in both. Realtime diagnostics report the existing environment's actual connection; a staging deployment does not provision multiplayer or force a reconnect. Owner provisioning scripts, destructive resets and deferred controls are not panel actions in either environment.
+Local and staging share the same sections and authoritative commands. Local mutations require the loopback `cactigrow_local` target; staging mutations require verified Access identity and the isolated staging database. World/visual previews stay temporary in both. Realtime diagnostics report the existing environment's actual connection; a staging deployment does not provision multiplayer or force a reconnect. Owner provisioning scripts, full-account wipes and deferred controls are not panel actions. The separately authorized Starting Experience reset is documented below.
 
 ## Discovery and consolidation
 
@@ -145,3 +145,12 @@ Manual acceptance:
 3. Test Organized Beds below and above its real purchase gate using separate local accounts; verify normal research eligibility and Favorite protection.
 4. Dock World/Visual Testing; exercise existing editor dragging/numeric previews/debug overlays and plant previews, then close and confirm normal world input/render assignments return. Check desktop and narrow-screen controls/scrolling.
 5. Inspect copied snapshot for omitted private fields. Verify production build has no Dev Tools entry and production manual API requests return 404 before any privileged mutation.
+
+### Starting Experience reset extension — 2026-10-06
+
+System includes Reset Starting Experience with explicit target UUID confirmation. Authenticated self-reset is owner-scoped; another account requires existing progression.adjust and inventory.adjust permissions under the staff authorization lock. The existing dev environment gate excludes production, public hosts and shared development data. The reset uses the canonical onboarding lock and revisioned tutorial/world events, preserves identity/name and normal gameplay, retires only tutorial-provenanced practice inventory, and records a persisted reset event plus the session action log. Normal harvest seeds are never credited twice across resets. No full-account wipe, migration, grant or production action is added. Full persistence/acceptance details: [STARTING_EXPERIENCE_V1.md](STARTING_EXPERIENCE_V1.md), confirmed-reset appendix.
+
+
+### Full character onboarding reset
+
+System's Reset mode distinguishes Reset Starting Experience (retain name) from Reset Full Character Onboarding (existing name form, then appearance). Exact target UUID confirmation, authenticated owner/staff permissions and command-bound persisted audit/replay behavior apply to both. Full reset preserves stable public profile/account identity; old display-name onboarding is inactive until normal name selection. Neither mode deletes normal records. Appearance setup has a collapsed, build-gated staging/local entry reusing the same action before the menu exists. Production excludes both reset UI chunks and rejects the route before auth/database access.

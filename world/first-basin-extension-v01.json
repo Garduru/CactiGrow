@@ -1,0 +1,1437 @@
+{
+  "identifier": "CactiGrowFirstBasinExtensionV1",
+  "runtimePath": "/assets/world/tiles/world-first-basin-extension-v01.png",
+  "tileSize": 128,
+  "columns": 8,
+  "rows": 4,
+  "samplingInset": 1,
+  "ground": {
+    "cave-dusty-stone": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "cave-compacted-earth": [
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "caveWalls": {
+    "firstTileId": 8,
+    "count": 16,
+    "neighborBits": {
+      "north": 1,
+      "east": 2,
+      "south": 4,
+      "west": 8
+    },
+    "authority": "visual connection mask derived only from unchanged authored IntGrid"
+  },
+  "props": {
+    "loose-mineral-rubble": 24,
+    "dry-root-debris": 25,
+    "weathered-mineral-rock": 26,
+    "damp-floor-patch": 27,
+    "stratified-rock-pillar": 28,
+    "wild-cactus-cluster": 29,
+    "trail-cairn": 30,
+    "rockslide-barrier-debris": 31
+  },
+  "propDisplay": {
+    "preserveAspect": true,
+    "footBaseline": 122,
+    "originX": 0.5,
+    "originY": 0.953125,
+    "collision": "none; independently authored gameplay geometry only"
+  },
+  "propRegistration": {
+    "loose-mineral-rubble": {
+      "displayWidth": 160,
+      "displayHeight": 160,
+      "footBaseline": 122
+    },
+    "dry-root-debris": {
+      "displayWidth": 160,
+      "displayHeight": 160,
+      "footBaseline": 122
+    },
+    "weathered-mineral-rock": {
+      "displayWidth": 192,
+      "displayHeight": 192,
+      "footBaseline": 122
+    },
+    "damp-floor-patch": {
+      "displayWidth": 160,
+      "displayHeight": 160,
+      "footBaseline": 122
+    },
+    "stratified-rock-pillar": {
+      "displayWidth": 256,
+      "displayHeight": 256,
+      "footBaseline": 122
+    },
+    "wild-cactus-cluster": {
+      "displayWidth": 224,
+      "displayHeight": 224,
+      "footBaseline": 122
+    },
+    "trail-cairn": {
+      "displayWidth": 160,
+      "displayHeight": 160,
+      "footBaseline": 122
+    },
+    "rockslide-barrier-debris": {
+      "displayWidth": 224,
+      "displayHeight": 224,
+      "footBaseline": 122
+    }
+  },
+  "sources": [
+    {
+      "path": "art-source/world/first-basin/world-first-basin-ground-v01-master.png",
+      "sha256": "e52926ea1e4c7cfcecc77a4b57dee3b19482dce220dffc869450b9bd1f26a9fc",
+      "width": 1774,
+      "height": 887,
+      "columns": 4,
+      "rows": 2,
+      "alphaRange": [
+        255,
+        255
+      ]
+    },
+    {
+      "path": "art-source/world/first-basin/world-first-basin-cave-walls-v01-master.png",
+      "sha256": "aafec03f0da68f7a0b38db46dcb2f57a85deb310cffc2e1d4cfb31a2ae977584",
+      "width": 1254,
+      "height": 1254,
+      "columns": 4,
+      "rows": 4,
+      "alphaRange": [
+        255,
+        255
+      ]
+    },
+    {
+      "path": "art-source/world/first-basin/world-first-basin-props-v01-master.png",
+      "sha256": "f4ee797c38a70ee00296c4b27020adbb6c30417b620cf0f81768ec05c597afce",
+      "width": 1774,
+      "height": 887,
+      "columns": 4,
+      "rows": 2,
+      "alphaRange": [
+        0,
+        255
+      ]
+    }
+  ],
+  "frames": [
+    {
+      "tileId": 0,
+      "name": "cave-dusty-stone-0",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 0,
+      "sourceCrop": [
+        0,
+        0,
+        444,
+        444
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        442,
+        442
+      ],
+      "atlasRect": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 1,
+      "name": "cave-dusty-stone-1",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 1,
+      "sourceCrop": [
+        444,
+        0,
+        887,
+        444
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        441,
+        442
+      ],
+      "atlasRect": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 2,
+      "name": "cave-dusty-stone-2",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 2,
+      "sourceCrop": [
+        887,
+        0,
+        1330,
+        444
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        441,
+        442
+      ],
+      "atlasRect": [
+        256,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 3,
+      "name": "cave-dusty-stone-3",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 3,
+      "sourceCrop": [
+        1330,
+        0,
+        1774,
+        444
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        442,
+        442
+      ],
+      "atlasRect": [
+        384,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 4,
+      "name": "cave-compacted-earth-0",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 4,
+      "sourceCrop": [
+        0,
+        444,
+        444,
+        887
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        442,
+        441
+      ],
+      "atlasRect": [
+        512,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 5,
+      "name": "cave-compacted-earth-1",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 5,
+      "sourceCrop": [
+        444,
+        444,
+        887,
+        887
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        441,
+        441
+      ],
+      "atlasRect": [
+        640,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 6,
+      "name": "cave-compacted-earth-2",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 6,
+      "sourceCrop": [
+        887,
+        444,
+        1330,
+        887
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        441,
+        441
+      ],
+      "atlasRect": [
+        768,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 7,
+      "name": "cave-compacted-earth-3",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 7,
+      "sourceCrop": [
+        1330,
+        444,
+        1774,
+        887
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        442,
+        441
+      ],
+      "atlasRect": [
+        896,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 8,
+      "name": "cave-wall-mask-0",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 0,
+      "sourceCrop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 9,
+      "name": "cave-wall-mask-1",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 1,
+      "sourceCrop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 10,
+      "name": "cave-wall-mask-2",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 2,
+      "sourceCrop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        256,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 11,
+      "name": "cave-wall-mask-3",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 3,
+      "sourceCrop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        384,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 12,
+      "name": "cave-wall-mask-4",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 4,
+      "sourceCrop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        512,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 13,
+      "name": "cave-wall-mask-5",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 5,
+      "sourceCrop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        640,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 14,
+      "name": "cave-wall-mask-6",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 6,
+      "sourceCrop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        768,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 15,
+      "name": "cave-wall-mask-7",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 7,
+      "sourceCrop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        896,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 16,
+      "name": "cave-wall-mask-8",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 8,
+      "sourceCrop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        0,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 17,
+      "name": "cave-wall-mask-9",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 9,
+      "sourceCrop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        128,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 18,
+      "name": "cave-wall-mask-10",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 10,
+      "sourceCrop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        256,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 19,
+      "name": "cave-wall-mask-11",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 11,
+      "sourceCrop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        384,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 20,
+      "name": "cave-wall-mask-12",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 12,
+      "sourceCrop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        512,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 21,
+      "name": "cave-wall-mask-13",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 13,
+      "sourceCrop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        640,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 22,
+      "name": "cave-wall-mask-14",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 14,
+      "sourceCrop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        768,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 23,
+      "name": "cave-wall-mask-15",
+      "category": "cave-wall",
+      "sourceSheet": 1,
+      "sourceCell": 15,
+      "sourceCrop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        896,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 24,
+      "name": "loose-mineral-rubble",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 0,
+      "sourceCrop": [
+        53,
+        184,
+        373,
+        376
+      ],
+      "sourceContentCrop": [
+        53,
+        184,
+        373,
+        376
+      ],
+      "atlasRect": [
+        0,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        7,
+        53,
+        121,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 160,
+      "displayHeight": 160
+    },
+    {
+      "tileId": 25,
+      "name": "dry-root-debris",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 1,
+      "sourceCrop": [
+        478,
+        131,
+        832,
+        382
+      ],
+      "sourceContentCrop": [
+        478,
+        131,
+        832,
+        382
+      ],
+      "atlasRect": [
+        128,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        20,
+        59,
+        108,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 160,
+      "displayHeight": 160
+    },
+    {
+      "tileId": 26,
+      "name": "weathered-mineral-rock",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 2,
+      "sourceCrop": [
+        898,
+        96,
+        1292,
+        390
+      ],
+      "sourceContentCrop": [
+        898,
+        96,
+        1292,
+        390
+      ],
+      "atlasRect": [
+        256,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        10,
+        42,
+        117,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 192,
+      "displayHeight": 192
+    },
+    {
+      "tileId": 27,
+      "name": "damp-floor-patch",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 3,
+      "sourceCrop": [
+        1373,
+        186,
+        1739,
+        374
+      ],
+      "sourceContentCrop": [
+        1373,
+        186,
+        1739,
+        374
+      ],
+      "atlasRect": [
+        384,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        22,
+        78,
+        107,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 160,
+      "displayHeight": 160
+    },
+    {
+      "tileId": 28,
+      "name": "stratified-rock-pillar",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 4,
+      "sourceCrop": [
+        57,
+        415,
+        376,
+        847
+      ],
+      "sourceContentCrop": [
+        57,
+        415,
+        376,
+        847
+      ],
+      "atlasRect": [
+        512,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        22,
+        7,
+        106,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 256,
+      "displayHeight": 256
+    },
+    {
+      "tileId": 29,
+      "name": "wild-cactus-cluster",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 5,
+      "sourceCrop": [
+        465,
+        456,
+        824,
+        844
+      ],
+      "sourceContentCrop": [
+        465,
+        456,
+        824,
+        844
+      ],
+      "atlasRect": [
+        640,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        12,
+        9,
+        115,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 224,
+      "displayHeight": 224
+    },
+    {
+      "tileId": 30,
+      "name": "trail-cairn",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 6,
+      "sourceCrop": [
+        893,
+        578,
+        1210,
+        832
+      ],
+      "sourceContentCrop": [
+        893,
+        578,
+        1210,
+        832
+      ],
+      "atlasRect": [
+        768,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        27,
+        63,
+        100,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 160,
+      "displayHeight": 160
+    },
+    {
+      "tileId": 31,
+      "name": "rockslide-barrier-debris",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 7,
+      "sourceCrop": [
+        1257,
+        504,
+        1753,
+        843
+      ],
+      "sourceContentCrop": [
+        1257,
+        504,
+        1753,
+        843
+      ],
+      "atlasRect": [
+        896,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        6,
+        44,
+        122,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ],
+      "displayWidth": 224,
+      "displayHeight": 224
+    }
+  ],
+  "export": {
+    "sha256": "9bd1271091e313924d68c8a1c014c665a2416199957e6a3a4de50a3a000f8aba",
+    "encodedBytes": 918520,
+    "decodedRgbaBytes": 2097152,
+    "width": 1024,
+    "height": 512,
+    "mode": "RGBA",
+    "operation": "deterministic alpha-subject isolation, crop, proportional LANCZOS resize, alpha registration; no repaint/recolor"
+  }
+}

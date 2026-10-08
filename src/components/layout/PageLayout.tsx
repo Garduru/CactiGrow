@@ -8,7 +8,7 @@ export function PageLayout() {
 
   return (
     <div className="location-page">
-      <Link className="farm-return cg-button cg-button--ghost" to={farmReturnPath} state={location.state}>{farmReturnLabel}</Link>
+      <Link data-tutorial-target="farm-return" className="farm-return cg-button cg-button--ghost" to={farmReturnPath} state={location.state}>{farmReturnLabel}</Link>
       <div className="location-page__content"><Outlet /></div>
     </div>
   )

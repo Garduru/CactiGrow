@@ -58,7 +58,7 @@ export function NurserySlot({
         <div className="nursery-slot__empty-pot" aria-hidden="true"><span>+</span></div>
         <h2>Available pot</h2>
         <p>Ready for a seed.</p>
-        <button className="nursery-button" type="button" onClick={() => onPlant(slot.id)}>
+        <button data-tutorial-target="nursery-plant" className="nursery-button" type="button" onClick={() => onPlant(slot.id)}>
           Plant Seed
         </button>
       </article>

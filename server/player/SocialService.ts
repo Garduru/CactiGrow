@@ -1,10 +1,11 @@
-import { and, count, eq, ilike, inArray, or } from 'drizzle-orm'
+import { and, count, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
-import { bredSeeds, friendRequests, friendships, playerBlocks, playerOnboarding, playerProfiles, plantSpecimens, players } from '../db/schema/index.ts'
+import { bredSeeds, friendRequests, friendships, playerBlocks, playerOnboarding, playerProfiles, playerGrowerEvents, plantSpecimens, players } from '../db/schema/index.ts'
 import type { PublicPlayerProfileV1, PublicPlayerSummaryV1, SocialCommandV1, SocialOverviewV1, PlayerSearchV1 } from '../../shared/api/socialV1.ts'
 import { getLevelFromXp } from '../../src/features/progression/progressionModel.ts'
 import { publicSkillsFromXp, getTotalLevel } from '../../src/features/progression/publicSkills.ts'
 import { ApiError } from '../api/errors.ts'
+import { loadStartingState, saveStartingState, STARTING_EVENT, STARTING_PROFILE } from '../starting/startingState.ts'
 import { socialRead } from './socialReadDiagnostics.ts'
 
 type Transaction = Parameters<Parameters<CactiGrowDatabase['transaction']>[0]>[0]
@@ -113,8 +114,16 @@ export class SocialService {
     if (command.type === 'set-display-name') {
       const displayName = normalizeCharacterName(command.displayName)
       try {
-        await this.database.insert(playerProfiles).values({ playerId, displayName })
-          .onConflictDoUpdate({ target: playerProfiles.playerId, set: { displayName, updatedAt: new Date() } })
+        await this.database.transaction(async tx => {
+          // Serialize with onboarding resets when an owner exists; retain legacy name-only profiles.
+          const [owner] = await tx.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1)
+          await tx.insert(playerProfiles).values({ playerId, displayName })
+            .onConflictDoUpdate({ target: playerProfiles.playerId, set: { displayName, updatedAt: new Date() } })
+          if (owner?.profileId === STARTING_PROFILE) {
+            const state = await loadStartingState(tx, playerId, owner.profileId)
+            if (!state.nameComplete) { state.nameComplete = true; await saveStartingState(tx, playerId, state, crypto.randomUUID(), new Date()) }
+          }
+        })
       } catch (error) {
         if (databaseErrorCode(error) === '23505') throw ApiError.conflict('That character name is already in use.')
         throw error
@@ -203,7 +212,13 @@ export class SocialService {
       displayName: playerProfiles.displayName, joinedAt: players.createdAt, cultivationXp: playerOnboarding.cultivationXp, breedingXp: playerOnboarding.breedingXp, geneticsXp: playerOnboarding.geneticsXp })
       .from(playerProfiles).innerJoin(players, eq(playerProfiles.playerId, players.id))
       .leftJoin(playerOnboarding, eq(playerOnboarding.playerId, playerProfiles.playerId))
-      .where(inArray(playerProfiles.playerId, [...playerIds])))
+      .where(and(inArray(playerProfiles.playerId, [...playerIds]), sql`not exists (
+        select 1 from ${playerGrowerEvents} pending where pending.player_id = ${playerProfiles.playerId}
+        and pending.event_type = ${STARTING_EVENT} and pending.payload->>'nameComplete' = 'false'
+        and ${playerOnboarding.profileId} = ${STARTING_PROFILE}
+        and (pending.payload->>'revision')::integer = (select max((latest.payload->>'revision')::integer)
+          from ${playerGrowerEvents} latest where latest.player_id = pending.player_id and latest.event_type = ${STARTING_EVENT})
+      )`)))
     const [collections, breeding] = await Promise.all([
       socialRead('social.collections', () => this.database.select({ playerId: plantSpecimens.ownerPlayerId, total: count() }).from(plantSpecimens)
         .where(and(inArray(plantSpecimens.ownerPlayerId, [...playerIds]), eq(plantSpecimens.lifecycleStatus, 'owned'))).groupBy(plantSpecimens.ownerPlayerId)),

@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import type { WorldArea, WorldData, WorldPoint } from '../shared/world/types.ts'
+import type { WorldArea, WorldData, WorldPoint, WorldVisualLayer } from '../shared/world/types.ts'
 
 /** One Level-local transform for authored entity positions and IntGrid rectangles. */
 export function topologyToRuntime(area: Pick<WorldArea, 'width' | 'height' | 'topology'>, point: WorldPoint): WorldPoint {
@@ -76,19 +76,96 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
           area.exits.push({ exitId: id(ef.exitId), x, y, width: size.x, height: size.y, blocked: ef.blocked, targetAreaId: null, targetEntryId: null, futureDestinationLabel: ef.futureDestinationLabel == null ? null : text(ef.futureDestinationLabel) })
         }
       }
-      if (layer.__type === 'Tiles') {
-        if (lockedTemplate || !['Ground','Decorations'].includes(text(layer.__identifier))) throw new Error('Unexpected visual layer.')
+      if (layer.__type === 'Tiles' || layer.__type === 'AutoLayer') {
+        const authoredVisualName = text(layer.__identifier)
+        const basin = !lockedTemplate && authoredVisualName.startsWith('Basin')
+        const visualName = lockedTemplate ? authoredVisualName === 'SettlementVegetation' ? 'Decorations' : authoredVisualName.replace(/^Settlement/, '')
+          : basin ? authoredVisualName === 'BasinGroundFine' ? 'Ground' : authoredVisualName === 'BasinVegetation' ? 'Decorations' : authoredVisualName.replace(/^Basin(?:Cave)?/, '') : authoredVisualName
+        const allowed = lockedTemplate
+          ? layer.__type === 'Tiles' && ['Ground','GroundVariation','Paths','StructureGrounding','Decorations','BoundaryEdges'].includes(visualName)
+          : layer.__type === 'AutoLayer' ? ['BoundaryEdges','BoundaryEdgesMaster'].includes(visualName) : ['Ground','GroundVariation','Decorations', ...(basin ? ['Paths'] : [])].includes(visualName)
+        if (!allowed) throw new Error('Unexpected visual layer.')
         const tileset = list(record(project.defs).tilesets).map(record).find(t => t.uid === layer.__tilesetDefUid)
         if (!tileset || typeof tileset.relPath !== 'string' || !/^\.\.\/public\/assets\/[a-z0-9/-]+\.png$/.test(tileset.relPath)) throw new Error('Tileset must reference a bundled world asset.')
         const tileSize = number(tileset.tileGridSize), grid = number(layer.__gridSize), textureWidth = number(tileset.pxWid), textureHeight = number(tileset.pxHei)
         if (grid < 1 || tileSize < 1) throw new Error('Invalid visual tile size.')
         const cell = topologyToRuntime(area, { x: grid, y: grid }), offset = topologyToRuntime(area, { x: number(layer.__pxTotalOffsetX), y: number(layer.__pxTotalOffsetY) })
-        const tiles = list(layer.gridTiles).map(record).map(t => {
+        let authoredTiles = list(layer.gridTiles)
+        if (layer.__type === 'AutoLayer') {
+          const definition = list(record(project.defs).layers).map(record).find(d => d.uid === layer.layerDefUid)
+          const source = list(l.layerInstances).map(record).find(s => s.layerDefUid === definition?.autoSourceLayerDefUid)
+          const rules = list(definition?.autoRuleGroups).map(record).filter(g => g.active === true).flatMap(g => list(g.rules).map(record)).filter(r => r.active === true)
+          // Re-evaluate these bounded LDtk rules from IntGrid. The editor's cached
+          // artwork is never a second source of collision or blocked-edge truth.
+          if (!source || source.__type !== 'IntGrid' || source.__gridSize !== grid || source.__cWid !== layer.__cWid || source.__cHei !== layer.__cHei || source.__pxTotalOffsetX !== layer.__pxTotalOffsetX || source.__pxTotalOffsetY !== layer.__pxTotalOffsetY) throw new Error('Invalid boundary source layer.')
+          const columns = number(tileset.__cWid), cw = number(source.__cWid), ch = number(source.__cHei), csv = list(source.intGridCsv)
+          if (csv.length !== cw * ch || csv.some(v => v !== 0 && v !== 1)) throw new Error('Invalid boundary source.')
+          const connected = visualName === 'BoundaryEdgesMaster'
+          if (rules.length !== (connected ? 16 : 1)) throw new Error('Unsupported boundary auto-rule count.')
+          const ruleTiles = rules.map((rule, mask) => {
+            const pattern = connected ? [0,mask&1?1:-1,0,mask&8?1:-1,1,mask&2?1:-1,0,mask&4?1:-1,0] : [1]
+            if (rule.size !== (connected ? 3 : 1) || JSON.stringify(rule.pattern) !== JSON.stringify(pattern) || rule.chance !== 1 || rule.alpha !== 1 || rule.tileMode !== 'Single' || rule.perlinActive !== false || rule.checker !== 'None' || rule.xModulo !== 1 || rule.yModulo !== 1 || [rule.xOffset,rule.yOffset,rule.tileXOffset,rule.tileYOffset,rule.tileRandomXMin,rule.tileRandomXMax,rule.tileRandomYMin,rule.tileRandomYMax].some(v => v !== 0) || connected && (rule.outOfBoundsValue !== 1 || rule.flipX !== false || rule.flipY !== false)) throw new Error('Unsupported boundary auto-rule.')
+            const choices = list(rule.tileRectsIds)
+            if (choices.length !== 1 || list(choices[0]).length !== 1) throw new Error('Boundary rule requires one rock tile.')
+            const tileId = number(list(choices[0])[0])
+            if (tileId < 0) throw new Error('Invalid boundary tile.')
+            return tileId
+          })
+          const blocked = (x: number,y: number) => x < 0 || y < 0 || x >= cw || y >= ch || csv[y*cw+x] === 1
+          authoredTiles = csv.flatMap((v,i) => {
+            if (v !== 1) return []
+            const x = i % cw, y = Math.floor(i / cw), mask = connected ? Number(blocked(x,y-1)) | Number(blocked(x+1,y))*2 | Number(blocked(x,y+1))*4 | Number(blocked(x-1,y))*8 : 0, tileId = ruleTiles[mask]
+            return [{px:[x*grid,y*grid],src:[tileId%columns*tileSize,Math.floor(tileId/columns)*tileSize],f:0}]
+          })
+        }
+        const tiles = authoredTiles.map(record).map(t => {
           const px = list(t.px), src = list(t.src), position = topologyToRuntime(area, { x: number(px[0]), y: number(px[1]) }), sourceX = number(src[0]), sourceY = number(src[1]), flip = number(t.f)
           if (position.x < 0 || position.y < 0 || position.x + cell.x > width || position.y + cell.y > height || sourceX < 0 || sourceY < 0 || sourceX + tileSize > textureWidth || sourceY + tileSize > textureHeight || flip < 0 || flip > 3) throw new Error('Invalid visual tile bounds.')
           return { ...position, sourceX, sourceY, flip }
         })
-        area.visualLayers ??= []; area.visualLayers.push({ name: layer.__identifier as 'Ground' | 'Decorations', tileset: { uid: number(tileset.uid), path: tileset.relPath.replace('../public',''), tileSize, width: textureWidth, height: textureHeight }, gridWidth: number(layer.__cWid), gridHeight: number(layer.__cHei), cellWidth: cell.x, cellHeight: cell.y, offsetX: offset.x, offsetY: offset.y, tiles })
+        if (['GroundVariation','Paths','StructureGrounding'].includes(visualName)) {
+          // Road shoulders follow the authored road tiles, independently from walls.
+          // Compact settlement scales are fractional; compare integer authoring
+          // coordinates so adjacent cells do not acquire rounding seams.
+          const positions = lockedTemplate ? authoredTiles.map(record).map(t => ({ x: number(list(t.px)[0]), y: number(list(t.px)[1]) })) : tiles
+          const occupied = new Set(positions.map(t => `${t.x}:${t.y}`))
+          for (const [index, tile] of tiles.entries()) {
+            const point = positions[index], stepX = lockedTemplate ? grid : cell.x, stepY = lockedTemplate ? grid : cell.y
+            const has = (dx: number,dy: number) => occupied.has(`${point.x+dx*stepX}:${point.y+dy*stepY}`)
+            const north=has(0,-1),east=has(1,0),south=has(0,1),west=has(-1,0)
+            Object.assign(tile, {
+              blendEdges: Number(!north) | Number(!east)*2 | Number(!south)*4 | Number(!west)*8,
+              // At a concave road join the cardinal neighbors cover both edges,
+              // but the missing diagonal needs the same shoulder fade at its tip.
+              blendCorners: Number(north&&west&&!has(-1,-1)) | Number(north&&east&&!has(1,-1))*2 | Number(south&&east&&!has(1,1))*4 | Number(south&&west&&!has(-1,1))*8,
+              ...(lockedTemplate || basin ? { roundCorners: Number(!north&&!west) | Number(!north&&!east)*2 | Number(!south&&!east)*4 | Number(!south&&!west)*8 } : {}),
+            })
+          }
+        }
+        const settlement = tileset.identifier === 'CactiGrowSettlementMasterV1'
+        const extension = tileset.identifier === 'CactiGrowFirstBasinExtensionV1'
+        if (basin && extension && visualName === 'Decorations') {
+          const registrations = list(tileset.customData).map(record)
+          for (const tile of tiles) {
+            const tileId = tile.sourceY / tileSize * number(tileset.__cWid) + tile.sourceX / tileSize
+            const entry = registrations.find(entry => entry.tileId === tileId)
+            if (!entry || typeof entry.data !== 'string') throw new Error('Basin prop requires display registration.')
+            const bounds = record(JSON.parse(entry.data)), displayWidth = number(bounds.displayWidth), displayHeight = number(bounds.displayHeight), foot = number(bounds.footBaseline)
+            if (displayWidth < 32 || displayWidth > 512 || displayHeight !== displayWidth || foot < 1 || foot >= tileSize) throw new Error('Invalid basin prop registration.')
+            Object.assign(tile, { x: tile.x + cell.x / 2 - displayWidth / 2, y: tile.y + cell.y - (foot - 1) / (tileSize - 2) * displayHeight, width: displayWidth, height: displayHeight })
+            if (tile.x < 0 || tile.y < 0 || tile.x + displayWidth > width || tile.y + displayHeight > height) throw new Error('Basin prop display outside Area.')
+          }
+        }
+        if (lockedTemplate && visualName === 'Decorations') {
+          // Compact Farm/Town topology has different X/Y scales. Prop silhouettes
+          // keep one 128-unit square while their authored ground anchors transform.
+          // These display bounds never create collision or interaction geometry.
+          // Settlement exports share source foot 122; the one-pixel atlas inset
+          // crops to 126 pixels before display. Keep that foot at the LDtk anchor.
+          const foot = settlement ? (122 - 1) / (128 - 2) * 128 : 128
+          for (const tile of tiles) Object.assign(tile, { x: tile.x + cell.x / 2 - 64, y: tile.y + cell.y - foot, width: 128, height: 128 })
+        }
+        area.visualLayers ??= []; area.visualLayers.push({ name: (visualName === 'BoundaryEdgesMaster' ? 'BoundaryEdges' : visualName) as WorldVisualLayer['name'], tileset: { uid: number(tileset.uid), path: tileset.relPath.replace('../public',''), tileSize, width: textureWidth, height: textureHeight, ...(tileset.identifier === 'CactiGrowDesertMasterV1' || settlement || extension ? {inset:1} : {}) }, gridWidth: number(layer.__cWid), gridHeight: number(layer.__cHei), cellWidth: cell.x, cellHeight: cell.y, offsetX: offset.x, offsetY: offset.y, tiles })
       }
       if (layer.__type === 'IntGrid') {
         const grid = number(layer.__gridSize), cw = number(layer.__cWid), ch = number(layer.__cHei), csv = list(layer.intGridCsv)
@@ -105,6 +182,33 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
           const size = topologyToRuntime(area, { x: w, y: grid })
           area.collision.push({ ...center, width: size.x, height: size.y })
         }
+      }
+    }
+    const boundary = area.visualLayers?.find(l => l.name === 'BoundaryEdges')
+    if (boundary && !lockedTemplate) {
+      const tiles = boundary.tiles, cell = {x:boundary.cellWidth,y:boundary.cellHeight}
+      // Arcade world bounds also block movement. Show a narrow rock rim where the
+      // IntGrid has no wall, reserving authored unblocked exit openings in full.
+      const rock = tiles[0]
+      if (!rock) throw new Error('Boundary layer requires collision rocks.')
+      const rim = Math.min(27, cell.x, cell.y)
+      const border: {x:number;y:number;width:number;height:number}[] = []
+      for (let x = 0; x < width; x += cell.x) border.push({x,y:0,width:cell.x,height:rim},{x,y:height-rim,width:cell.x,height:rim})
+      for (let y = 0; y < height; y += cell.y) border.push({x:0,y,width:rim,height:cell.y},{x:width-rim,y,width:rim,height:cell.y})
+      for (const b of border) {
+        if (area.exits.some(e => !e.blocked && b.x < e.x+e.width/2 && b.x+b.width > e.x-e.width/2 && b.y < e.y+e.height/2 && b.y+b.height > e.y-e.height/2)) continue
+        if (tiles.some(t => b.x >= t.x && b.x+b.width <= t.x+(t.width ?? cell.x) && b.y >= t.y && b.y+b.height <= t.y+(t.height ?? cell.y))) continue
+        tiles.push({...b,sourceX:rock.sourceX,sourceY:rock.sourceY,flip:0})
+      }
+      // Future-route barrier sits beyond its trigger so the existing message still
+      // fires on approach. Placement follows the authored exit and its entrance.
+      for (const e of area.exits.filter(e => e.blocked)) {
+        const entrance = area.exits.find(x => !x.blocked)
+        if (!entrance) continue
+        const horizontal = e.width >= e.height, forward = horizontal ? e.y >= entrance.y : e.x >= entrance.x
+        const b = horizontal ? {x:e.x-e.width/2,y:e.y+(forward ? e.height/2 : -e.height/2-cell.y),width:e.width,height:cell.y} : {x:e.x+(forward ? e.width/2 : -e.width/2-cell.x),y:e.y-e.height/2,width:cell.x,height:e.height}
+        if (b.x < 0 || b.y < 0 || b.x+b.width > width || b.y+b.height > height) throw new Error('Future route barrier outside Area.')
+        tiles.push({...b,sourceX:rock.sourceX,sourceY:rock.sourceY,flip:0})
       }
     }
     return area

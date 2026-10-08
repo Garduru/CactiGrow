@@ -1,14 +1,15 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
-import { bredSeeds, cloneLines, geneticProfiles, nurseryOccupancies, plantSpecimens, playerGardenSpecimens, playerGrowerEvents, playerOnboarding, playerPlantLifecycleVersions, playerProfiles, playerSeedStacks } from '../db/schema/index.ts'
+import { bredSeeds, cloneLines, geneticProfiles, plantSpecimens, playerGardenSpecimens, playerGrowerEvents, playerOnboarding, playerPlantLifecycleVersions, playerProfiles, playerSeedStacks } from '../db/schema/index.ts'
 import { ApiError } from '../api/errors.ts'
 import type { StartingCommand, StartingExperienceV1 } from '../../shared/api/startingExperienceV1.ts'
 import { findArea } from '../../shared/world/world.ts'
 import { establishCommoditySeedGenetics, GENETIC_ESTABLISHMENT_RULE_VERSION, GENETIC_REPRESENTATION_VERSION, VISUAL_DERIVATION_VERSION } from '../gameplay/plantLifecycleRules.ts'
 import { loadStartingState, lockStartingOwner, saveStartingState, STARTING_EVENT, TUTORIAL_ORIGIN, type StartingTransaction } from './startingState.ts'
+import { retiredTutorialMaterial } from './StartingResetService.ts'
 
 export const TUTORIAL_SPECIES = 'echinopsis-pachanoi'
-export const TUTORIAL_GROWTH_MS = 45_000
+export const TUTORIAL_GROWTH_MS = 15_000
 export class StartingExperienceService {
   private readonly database: CactiGrowDatabase
   private readonly now: () => Date
@@ -17,11 +18,34 @@ export class StartingExperienceService {
     const owner = await lockStartingOwner(tx, playerId)
     const state = await loadStartingState(tx, playerId, owner.profileId)
     const [profile] = await tx.select({ playerId: playerProfiles.playerId }).from(playerProfiles).where(eq(playerProfiles.playerId, playerId)).limit(1)
-    state.nameComplete = !!profile
+    if (state.revision === 0) state.nameComplete = !!profile
     return state
   }
   private async reconcile(tx: StartingTransaction, playerId: string, state: StartingExperienceV1) {
     let changed = false
+    if (state.compatibilityComplete || !state.nameComplete || !state.appearanceComplete) return state
+    if (state.spawnStage === 'collect-pot' && state.pot && this.now().getTime() >= Date.parse(state.pot.readyAt)) {
+      state.spawnStage = 'collect-ready'; changed = true
+    }
+    if (state.farmStage === 'nursery') {
+      // A real planting after the current Farm arrival; old occupied beds do not satisfy a reset lesson.
+      const [arrival] = await tx.select({ occurredAt: playerGrowerEvents.occurredAt }).from(playerGrowerEvents)
+        .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, STARTING_EVENT), sql`${playerGrowerEvents.payload}->>'farmStage' = 'nursery'`))
+        .orderBy(desc(sql`(${playerGrowerEvents.payload}->>'revision')::integer`)).limit(1)
+      const retired = await retiredTutorialMaterial(tx, playerId)
+      const candidates = arrival ? await tx.select({ id: plantSpecimens.id }).from(playerGrowerEvents)
+        .innerJoin(plantSpecimens, and(eq(plantSpecimens.ownerPlayerId, playerId), sql`${plantSpecimens.cloneLineId}::text = ${playerGrowerEvents.payload}->>'cloneLineId'`))
+        .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'plantSeed'), sql`${playerGrowerEvents.occurredAt} >= ${arrival.occurredAt}`)) : []
+      const planted = candidates.find(p => !retired.retiredSpecimenIds.includes(p.id))
+      if (planted) { state.farmStage = 'garden'; state.farmSeedAvailable = false; changed = true }
+    }
+    if (state.farmStage === 'garden' && state.tutorialParentIds[0]) {
+      const [metadata] = await tx.select().from(playerGardenSpecimens).where(and(eq(playerGardenSpecimens.playerId, playerId), eq(playerGardenSpecimens.specimenId, state.tutorialParentIds[0]))).limit(1)
+      if (metadata?.favorite) {
+        if (state.tutorialParentIds.length === 1) state.tutorialParentIds.push(await this.createSample(tx, playerId, this.now(), true))
+        state.farmStage = 'lab'; changed = true; await this.incrementLifecycle(tx, playerId)
+      }
+    }
     if (state.farmStage === 'research') {
       const [observed] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'specimen-observed'), sql`${playerGrowerEvents.payload}->>'specimenId' = ${state.tutorialParentIds[0]}`)).limit(1)
       if (observed) { state.farmStage = 'breeding'; changed = true }
@@ -51,6 +75,11 @@ export class StartingExperienceService {
         if (state.appearanceComplete) throw ApiError.conflict('Appearance setup is already complete.')
         state.appearance = command.appearance; state.appearanceComplete = true; state.spawnStage = 'meet-guide'
         await tx.update(playerOnboarding).set({ tutorialStartedAt: this.now(), version: sql`${playerOnboarding.version} + 1` }).where(eq(playerOnboarding.playerId, playerId))
+      } else if (command.type === 'visit-lab') {
+        const [location] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'world-foundation-location-v1'))).orderBy(desc(sql`(${playerGrowerEvents.payload}->>'revision')::integer`)).limit(1)
+        if ((location?.payload as { areaId?: string } | undefined)?.areaId !== 'player-farm' || state.farmStage !== 'lab') throw ApiError.conflict('Visit the Genetics Lab during your Farm introduction.')
+        // Facility admission is recorded separately; it never fabricates GeneticKnowledge.
+        state.farmStage = 'research'
       } else if (command.type === 'equip-tool') {
         if (command.itemId && !state.ownedEquipment.includes(command.itemId)) throw ApiError.forbidden()
         state.equipment.tool = command.itemId
@@ -71,35 +100,24 @@ export class StartingExperienceService {
             if (entity.speciesId !== TUTORIAL_SPECIES || entity.seedYield !== 3 || entity.respawn !== 'once-per-player') throw ApiError.conflict('This harvest target is unavailable.')
             // Reserve one quest seed so normal planting/trading cannot strand onboarding.
             state.tutorialSeedAvailable = true; state.harvestingXp += 10; state.spawnStage = 'plant-pot'
-            await tx.insert(playerSeedStacks).values({ playerId, speciesId: TUTORIAL_SPECIES, quantity: 2 }).onConflictDoUpdate({ target: [playerSeedStacks.playerId, playerSeedStacks.speciesId], set: { quantity: sql`${playerSeedStacks.quantity} + 2`, version: sql`${playerSeedStacks.version} + 1`, updatedAt: this.now() } })
+            // A confirmed tutorial reset must not mint the ordinary economic reward again.
+            // Retain historical checkpoints as its provenance instead of guessing which stacked seeds were spent.
+            const [reward] = await tx.select({ id: playerGrowerEvents.id }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, STARTING_EVENT), sql`(${playerGrowerEvents.payload}->>'harvestingXp')::integer > 0`)).limit(1)
+            if (!reward) await tx.insert(playerSeedStacks).values({ playerId, speciesId: TUTORIAL_SPECIES, quantity: 2 }).onConflictDoUpdate({ target: [playerSeedStacks.playerId, playerSeedStacks.speciesId], set: { quantity: sql`${playerSeedStacks.quantity} + 2`, version: sql`${playerSeedStacks.version} + 1`, updatedAt: this.now() } })
             await this.incrementLifecycle(tx, playerId)
           } else if (command.type === 'plant-pot') {
             if (state.spawnStage !== 'plant-pot' || !state.tutorialSeedAvailable || state.pot) throw ApiError.conflict('The tutorial pot has already been planted or needs a tutorial seed.')
             const plantedAt = this.now(), specimenId = await this.createSample(tx, playerId, plantedAt, false)
-            state.pot = { specimenId, plantedAt: plantedAt.toISOString(), readyAt: new Date(plantedAt.getTime() + TUTORIAL_GROWTH_MS).toISOString(), collectedAt: null, growthRule: 'starting-pot-45s-v1' }
+            state.pot = { specimenId, plantedAt: plantedAt.toISOString(), readyAt: new Date(plantedAt.getTime() + TUTORIAL_GROWTH_MS).toISOString(), collectedAt: null, growthRule: 'starting-pot-15s-v1' }
             state.tutorialSeedAvailable = false; state.spawnStage = 'collect-pot'
           } else {
-            if (state.spawnStage !== 'collect-pot' || !state.pot || state.pot.collectedAt) throw ApiError.conflict('There is no tutorial plant to collect.')
+            if (!['collect-pot', 'collect-ready'].includes(state.spawnStage) || !state.pot || state.pot.collectedAt) throw ApiError.conflict('There is no tutorial plant to collect.')
             if (this.now().getTime() < Date.parse(state.pot.readyAt)) throw ApiError.conflict('Your tutorial plant is still growing.')
             const collectedAt = this.now()
             const [specimen] = await tx.update(plantSpecimens).set({ lifecycleStatus: 'owned', collectedAt, updatedAt: collectedAt, version: sql`${plantSpecimens.version} + 1` }).where(and(eq(plantSpecimens.id, state.pot.specimenId), eq(plantSpecimens.ownerPlayerId, playerId), eq(plantSpecimens.lifecycleStatus, 'growing'))).returning({ id: plantSpecimens.id })
             if (!specimen) throw ApiError.conflict('The tutorial plant cannot be collected.')
             state.pot.collectedAt = collectedAt.toISOString(); state.tutorialParentIds = [specimen.id]; state.spawnStage = 'leave-zone'
             await this.incrementLifecycle(tx, playerId)
-          }
-        } else {
-          if (areaId !== 'player-farm') throw ApiError.conflict('Visit your own Farm for this lesson.')
-          if (command.type === 'confirm-nursery') {
-            if (state.farmStage !== 'nursery') throw ApiError.conflict('Follow your current Farm objective.')
-            const [occupied] = await tx.select({ id: nurseryOccupancies.specimenId }).from(nurseryOccupancies).where(eq(nurseryOccupancies.playerId, playerId)).limit(1)
-            if (!occupied) throw ApiError.conflict('Plant a normal seed in your real Nursery first. It grows while you are offline.')
-            state.farmStage = 'garden'
-          } else {
-            if (state.farmStage !== 'garden' || !state.tutorialParentIds[0]) throw ApiError.conflict('Follow your current Farm objective.')
-            const [metadata] = await tx.select().from(playerGardenSpecimens).where(and(eq(playerGardenSpecimens.playerId, playerId), eq(playerGardenSpecimens.specimenId, state.tutorialParentIds[0]))).limit(1)
-            if (!metadata?.favorite) throw ApiError.conflict('Favorite your tutorial specimen in Collection first. Favorites protect specimens from sale and trade.')
-            if (state.tutorialParentIds.length === 1) state.tutorialParentIds.push(await this.createSample(tx, playerId, this.now(), true))
-            state.farmStage = 'research'; await this.incrementLifecycle(tx, playerId)
           }
         }
       }

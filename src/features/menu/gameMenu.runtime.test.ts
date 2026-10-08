@@ -10,7 +10,7 @@ test('compact HUD and separate feature panels retain Farm/Town hosts, session an
   const dom = new JSDOM('<div id="root"></div>', { url: 'https://test/play', pretendToBeVisual: true })
   const original = new Map<string, PropertyDescriptor | undefined>()
   function install(key: string, value: unknown) { original.set(key, Object.getOwnPropertyDescriptor(globalThis, key)); Object.defineProperty(globalThis, key, { value, configurable: true, writable: true }) }
-  for (const key of ['window', 'document', 'HTMLElement', 'Node', 'Event', 'MouseEvent', 'KeyboardEvent']) install(key, dom.window[key as keyof typeof dom.window])
+  for (const key of ['window', 'document', 'HTMLElement', 'Node', 'Event', 'MouseEvent', 'KeyboardEvent', 'MutationObserver']) install(key, dom.window[key as keyof typeof dom.window])
   install('IS_REACT_ACT_ENVIRONMENT', true)
   install('ResizeObserver', class { observe() {} disconnect() {} })
   dom.window.HTMLElement.prototype.scrollIntoView = () => {}

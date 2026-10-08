@@ -1,0 +1,39 @@
+{
+  "identifier": "CactiGrowDesertMasterV1",
+  "runtimePath": "/assets/world/tiles/world-desert-master-v01.png",
+  "tileSize": 128,
+  "columns": 8,
+  "rows": 6,
+  "ground": {
+    "light-sand": [0, 1, 2, 3],
+    "packed-dirt": [4, 5, 6, 7],
+    "road-dirt": [8, 9, 10, 11],
+    "rocky-soil": [12, 13, 14, 15]
+  },
+  "boundary": {
+    "firstTile": 16,
+    "count": 16,
+    "neighborBits": { "north": 1, "east": 2, "south": 4, "west": 8 },
+    "source": "IntGrid value 1; outside-Level neighbors count as blocked"
+  },
+  "props": {
+    "loose-rocks": 32,
+    "boulder": 33,
+    "dry-grass": 34,
+    "shrub": 35,
+    "desert-flowers": 36,
+    "small-cactus-cluster": 37,
+    "dead-wood": 38,
+    "trail-marker": 39,
+    "fence-horizontal": 40,
+    "fence-vertical": 41,
+    "pot": 42,
+    "planter": 43
+  },
+  "propVariations": {
+    "loose-rocks-alt": 44,
+    "dry-grass-alt": 45,
+    "shrub-alt": 46,
+    "trail-marker-left": 47
+  }
+}

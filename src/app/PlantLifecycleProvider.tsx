@@ -47,14 +47,14 @@ export function PlantLifecycleProvider({ children }: { children: ReactNode }) {
       readGeneration.current += 1
       setState({ authority: 'server', status: 'ready', projection, error: null })
     },
-    async plant(slotId: string, speciesId: string): Promise<boolean> {
+    async plant(slotId: string, speciesId: string, tutorial?: true): Promise<boolean> {
       if (state.authority !== 'server' || state.status !== 'ready' || !isNurserySlotIdV3(slotId)) throw new CactiGrowApiError('server', 'The Nursery or seed is no longer available. Refresh and try again.')
       const stack = state.projection.seedStacks.find((item) => item.speciesId === speciesId)
-      if (!stack) throw new CactiGrowApiError('server', 'That seed is no longer available. Refresh the Nursery.')
+      if (!stack && !tutorial) throw new CactiGrowApiError('server', 'That seed is no longer available. Refresh the Nursery.')
       if (planting.current) throw new CactiGrowApiError('server', 'A seed is already being planted. Please wait.')
       planting.current = true
       try {
-        const result = await browserApiClient.plantCommoditySeedV3({ slotId, speciesId, expectedSeedStackVersion: stack.version }, crypto.randomUUID())
+        const result = await browserApiClient.plantCommoditySeedV3({ slotId, speciesId, expectedSeedStackVersion: stack?.version ?? 1, ...(tutorial ? { tutorial } : {}) }, crypto.randomUUID())
         readGeneration.current += 1
         setState((previous) => previous.authority === 'server' && previous.status === 'ready' ? { ...previous, projection: reconcilePlanting(previous.projection, result), error: null } : previous)
         notifyGrowerAuthorityChanged()

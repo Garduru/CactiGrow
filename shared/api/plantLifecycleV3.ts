@@ -16,7 +16,7 @@ export interface PlantLifecycleProjectionV3 {
   nursery: { capacity: 6 | 8; slots: NurserySlotV3[] }
   ownedSpecimens: PlantSpecimenV2[]
 }
-export interface PlantCommoditySeedCommandV3 { slotId: NurserySlotIdV3; speciesId: string; expectedSeedStackVersion: number }
+export interface PlantCommoditySeedCommandV3 { slotId: NurserySlotIdV3; speciesId: string; expectedSeedStackVersion: number; tutorial?: true }
 export interface PlantBredSeedCommandV3 { slotId: NurserySlotIdV3; seedId: string }
 export interface CollectPlantCommandV3 { slotId: NurserySlotIdV3; specimenId: string; expectedOccupancyVersion: number; expectedSpecimenVersion: number }
 export interface PlantCommoditySeedResultV3 { commandId: string; lifecycleVersion: string; seedStack: CommoditySeedStackV1; slot: NurserySlotV3 }
@@ -41,7 +41,7 @@ export function isPlantLifecycleProjectionV3(value: unknown): value is PlantLife
   if (!object(value.nursery) || !keys(value.nursery, ['capacity', 'slots']) || (value.nursery.capacity !== 6 && value.nursery.capacity !== 8) || !Array.isArray(value.nursery.slots)) return false
   return value.nursery.slots.length === 8 && value.nursery.slots.every(isNurserySlotV3) && new Set(value.nursery.slots.map((slot) => slot.slotId)).size === 8
 }
-export function isPlantCommoditySeedCommandV3(value: unknown): value is PlantCommoditySeedCommandV3 { return object(value) && keys(value, ['slotId', 'speciesId', 'expectedSeedStackVersion']) && isNurserySlotIdV3(value.slotId) && typeof value.speciesId === 'string' && Number.isInteger(value.expectedSeedStackVersion) && Number(value.expectedSeedStackVersion) >= 1 }
+export function isPlantCommoditySeedCommandV3(value: unknown): value is PlantCommoditySeedCommandV3 { return object(value) && keys(value, ['slotId', 'speciesId', 'expectedSeedStackVersion', ...('tutorial' in value ? ['tutorial'] : [])]) && (!('tutorial' in value) || value.tutorial === true) && isNurserySlotIdV3(value.slotId) && typeof value.speciesId === 'string' && Number.isInteger(value.expectedSeedStackVersion) && Number(value.expectedSeedStackVersion) >= 1 }
 export function isPlantBredSeedCommandV3(value: unknown): value is PlantBredSeedCommandV3 { return object(value) && keys(value, ['slotId', 'seedId']) && isNurserySlotIdV3(value.slotId) && typeof value.seedId === 'string' && UUID.test(value.seedId) }
 export function isCollectPlantCommandV3(value: unknown): value is CollectPlantCommandV3 { return object(value) && keys(value, ['slotId', 'specimenId', 'expectedOccupancyVersion', 'expectedSpecimenVersion']) && isNurserySlotIdV3(value.slotId) && typeof value.specimenId === 'string' && UUID.test(value.specimenId) && Number.isInteger(value.expectedOccupancyVersion) && Number.isInteger(value.expectedSpecimenVersion) }
 export function isPlantCommoditySeedResultV3(value: unknown): value is PlantCommoditySeedResultV3 { return object(value) && keys(value, ['commandId', 'lifecycleVersion', 'seedStack', 'slot']) && typeof value.commandId === 'string' && UUID.test(value.commandId) && typeof value.lifecycleVersion === 'string' && isCommoditySeedStackV1(value.seedStack) && isNurserySlotV3(value.slot) }

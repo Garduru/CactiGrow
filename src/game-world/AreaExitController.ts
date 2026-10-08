@@ -1,3 +1,4 @@
+import type { LocalMinimapStore } from './localMinimap.ts'
 import type Phaser from 'phaser'
 import type { WorldArea, WorldExit, WorldPoint } from '../../shared/world/types.ts'
 import { findArea } from '../../shared/world/world.ts'
@@ -21,7 +22,7 @@ export class AreaExitController {
     }
   }
 }
-export interface FoundationSceneOptions { position: WorldPoint; area: WorldArea; onExit(id: string): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean; appearance?: CharacterAppearance; onInteract?(id: string): void; tutorialPot?(): StartingExperienceV1['pot'] }
+export interface FoundationSceneOptions { minimap?: LocalMinimapStore; tutorialNow?(): number; position: WorldPoint; area: WorldArea; onExit(id: string): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean; appearance?: CharacterAppearance; onInteract?(id: string): void; guidance?(): string | null; tutorialPot?(): StartingExperienceV1['pot'] }
 export function drawFoundationExitDebug(scene: Phaser.Scene, options: FoundationSceneOptions) {
   if (!options.debug) return
   for (const exit of options.area.exits) {

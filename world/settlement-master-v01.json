@@ -1,0 +1,2725 @@
+{
+  "identifier": "CactiGrowSettlementMasterV1",
+  "runtimePath": "/assets/world/tiles/world-settlement-master-v01.png",
+  "tileSize": 128,
+  "columns": 8,
+  "rows": 8,
+  "samplingInset": 1,
+  "ground": {
+    "packed-earth": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "swept-dirt": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "cultivated-soil": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "stone-paver": [
+      12,
+      13,
+      14,
+      15
+    ]
+  },
+  "edges": {
+    "low-stone-H": 16,
+    "low-stone-V": 17,
+    "low-stone-corner-nw": 18,
+    "low-stone-corner-ne": 19,
+    "low-stone-corner-sw": 20,
+    "low-stone-corner-se": 21,
+    "drainage-H": 22,
+    "drainage-V": 23,
+    "timber-fence-H": 24,
+    "timber-fence-V": 25,
+    "timber-gate-post": 26,
+    "stone-gate-post": 27,
+    "irrigation-H": 28,
+    "irrigation-V": 29,
+    "irrigation-elbow": 30,
+    "irrigation-tee": 31
+  },
+  "props": {
+    "water-barrel": 32,
+    "closed-crate": 33,
+    "crate-stack": 34,
+    "soil-sack": 35,
+    "pot-stack": 36,
+    "woven-basket": 37,
+    "watering-can": 38,
+    "hand-tool-bundle": 39,
+    "propagation-table": 40,
+    "seedling-tray": 41,
+    "wheelbarrow": 42,
+    "soil-bag-stack": 43,
+    "compost-bin": 44,
+    "empty-raised-bed": 45,
+    "cactus-raised-bed": 46,
+    "small-shade-canopy": 47,
+    "bench-horizontal": 48,
+    "bench-side": 49,
+    "lantern-post": 50,
+    "botanical-noticeboard": 51,
+    "public-water-trough": 52,
+    "public-cactus-planter": 53,
+    "modest-cloth-awning": 54,
+    "cactus-display-stand": 55,
+    "stone-threshold": 56,
+    "wood-threshold": 57,
+    "paver-border-H": 58,
+    "paver-border-V": 59,
+    "bed-border-H": 60,
+    "bed-border-V": 61,
+    "drain-mouth": 62,
+    "coiled-irrigation-hose": 63
+  },
+  "propDisplay": {
+    "width": 128,
+    "height": 128,
+    "preserveAspect": true,
+    "footBaseline": 122,
+    "originX": 0.5,
+    "originY": 0.953125,
+    "collision": "none; independently authored gameplay geometry only"
+  },
+  "repeatJoin": {
+    "names": [
+      "low-stone-H",
+      "low-stone-V",
+      "drainage-H",
+      "drainage-V",
+      "timber-fence-H",
+      "timber-fence-V",
+      "irrigation-H",
+      "irrigation-V",
+      "paver-border-H",
+      "paver-border-V",
+      "bed-border-H",
+      "bed-border-V"
+    ],
+    "note": "Isolated art strips; use actual frame alphaBounds when repeating. Transparent margins require overlap for visual continuity; no gameplay geometry is inferred."
+  },
+  "sources": [
+    {
+      "path": "art-source/world/settlement/world-settlement-ground-v01-master-r02.png",
+      "sha256": "90a0ea3a88a3fcb2cf2b2814880b010f4c11d4e006e8fe3ec03cf9ee259159d3",
+      "width": 1254,
+      "height": 1254,
+      "alphaRange": [
+        255,
+        255
+      ]
+    },
+    {
+      "path": "art-source/world/settlement/world-settlement-edges-v01-master.png",
+      "sha256": "4932756012fc5618619188755cacdb4c954294d91ce794ed479ff0a4098d5c4e",
+      "width": 1254,
+      "height": 1254,
+      "alphaRange": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "art-source/world/settlement/world-settlement-farm-props-v01-master.png",
+      "sha256": "dd5cfc0a33b535756f44b08242fcaff1a8350d060a3fe65a30354d7a93c974b4",
+      "width": 1254,
+      "height": 1254,
+      "alphaRange": [
+        0,
+        255
+      ]
+    },
+    {
+      "path": "art-source/world/settlement/world-settlement-town-props-v01-master.png",
+      "sha256": "34d5b562d835d010bdd3b4c520e55243d3e575cf397aa3dddc7d25279948d9a2",
+      "width": 1254,
+      "height": 1254,
+      "alphaRange": [
+        0,
+        255
+      ]
+    }
+  ],
+  "frames": [
+    {
+      "tileId": 0,
+      "name": "packed-earth-0",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 0,
+      "sourceCrop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 1,
+      "name": "packed-earth-1",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 1,
+      "sourceCrop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        128,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 2,
+      "name": "packed-earth-2",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 2,
+      "sourceCrop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        256,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 3,
+      "name": "packed-earth-3",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 3,
+      "sourceCrop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        384,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 4,
+      "name": "swept-dirt-0",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 4,
+      "sourceCrop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        512,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 5,
+      "name": "swept-dirt-1",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 5,
+      "sourceCrop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        640,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 6,
+      "name": "swept-dirt-2",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 6,
+      "sourceCrop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        768,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 7,
+      "name": "swept-dirt-3",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 7,
+      "sourceCrop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        896,
+        0,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 8,
+      "name": "cultivated-soil-0",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 8,
+      "sourceCrop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        0,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 9,
+      "name": "cultivated-soil-1",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 9,
+      "sourceCrop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        128,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 10,
+      "name": "cultivated-soil-2",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 10,
+      "sourceCrop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "atlasRect": [
+        256,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 11,
+      "name": "cultivated-soil-3",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 11,
+      "sourceCrop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        311
+      ],
+      "atlasRect": [
+        384,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 12,
+      "name": "stone-paver-0",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 12,
+      "sourceCrop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        512,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 13,
+      "name": "stone-paver-1",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 13,
+      "sourceCrop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        640,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 14,
+      "name": "stone-paver-2",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 14,
+      "sourceCrop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        311,
+        312
+      ],
+      "atlasRect": [
+        768,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 15,
+      "name": "stone-paver-3",
+      "category": "ground",
+      "sourceSheet": 0,
+      "sourceCell": 15,
+      "sourceCrop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "sourceContentCrop": [
+        2,
+        2,
+        312,
+        312
+      ],
+      "atlasRect": [
+        896,
+        128,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "alphaRange": [
+        255,
+        255
+      ],
+      "footBaseline": 128,
+      "origin": [
+        0.5,
+        1
+      ]
+    },
+    {
+      "tileId": 16,
+      "name": "low-stone-H",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 0,
+      "sourceCrop": [
+        10,
+        139,
+        353,
+        257
+      ],
+      "sourceContentCrop": [
+        10,
+        139,
+        353,
+        257
+      ],
+      "atlasRect": [
+        0,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        15,
+        89,
+        112,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 17,
+      "name": "low-stone-V",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 1,
+      "sourceCrop": [
+        414,
+        57,
+        569,
+        301
+      ],
+      "sourceContentCrop": [
+        414,
+        57,
+        569,
+        301
+      ],
+      "atlasRect": [
+        128,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        43,
+        53,
+        85,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 18,
+      "name": "low-stone-corner-nw",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 2,
+      "sourceCrop": [
+        641,
+        59,
+        920,
+        259
+      ],
+      "sourceContentCrop": [
+        641,
+        59,
+        920,
+        259
+      ],
+      "atlasRect": [
+        256,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        21,
+        60,
+        106,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 19,
+      "name": "low-stone-corner-ne",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 3,
+      "sourceCrop": [
+        953,
+        59,
+        1235,
+        254
+      ],
+      "sourceContentCrop": [
+        953,
+        59,
+        1235,
+        254
+      ],
+      "atlasRect": [
+        384,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        20,
+        61,
+        108,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 20,
+      "name": "low-stone-corner-sw",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 4,
+      "sourceCrop": [
+        27,
+        380,
+        312,
+        578
+      ],
+      "sourceContentCrop": [
+        27,
+        380,
+        312,
+        578
+      ],
+      "atlasRect": [
+        512,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        20,
+        61,
+        107,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 21,
+      "name": "low-stone-corner-se",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 5,
+      "sourceCrop": [
+        346,
+        384,
+        624,
+        587
+      ],
+      "sourceContentCrop": [
+        346,
+        384,
+        624,
+        587
+      ],
+      "atlasRect": [
+        640,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        22,
+        61,
+        105,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 22,
+      "name": "drainage-H",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 6,
+      "sourceCrop": [
+        647,
+        415,
+        937,
+        599
+      ],
+      "sourceContentCrop": [
+        647,
+        415,
+        937,
+        599
+      ],
+      "atlasRect": [
+        768,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        43,
+        96,
+        84,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 23,
+      "name": "drainage-V",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 7,
+      "sourceCrop": [
+        997,
+        362,
+        1205,
+        622
+      ],
+      "sourceContentCrop": [
+        997,
+        362,
+        1205,
+        622
+      ],
+      "atlasRect": [
+        896,
+        256,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        46,
+        77,
+        82,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 24,
+      "name": "timber-fence-H",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 8,
+      "sourceCrop": [
+        26,
+        728,
+        329,
+        884
+      ],
+      "sourceContentCrop": [
+        26,
+        728,
+        329,
+        884
+      ],
+      "atlasRect": [
+        0,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        7,
+        63,
+        121,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 25,
+      "name": "timber-fence-V",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 9,
+      "sourceCrop": [
+        404,
+        682,
+        601,
+        905
+      ],
+      "sourceContentCrop": [
+        404,
+        682,
+        601,
+        905
+      ],
+      "atlasRect": [
+        128,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        36,
+        57,
+        92,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 26,
+      "name": "timber-gate-post",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 10,
+      "sourceCrop": [
+        723,
+        658,
+        835,
+        920
+      ],
+      "sourceContentCrop": [
+        723,
+        658,
+        835,
+        920
+      ],
+      "atlasRect": [
+        256,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        41,
+        5,
+        88,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 27,
+      "name": "stone-gate-post",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 11,
+      "sourceCrop": [
+        992,
+        658,
+        1208,
+        927
+      ],
+      "sourceContentCrop": [
+        992,
+        658,
+        1208,
+        927
+      ],
+      "atlasRect": [
+        384,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        20,
+        11,
+        108,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 28,
+      "name": "irrigation-H",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 12,
+      "sourceCrop": [
+        24,
+        1058,
+        342,
+        1129
+      ],
+      "sourceContentCrop": [
+        24,
+        1058,
+        342,
+        1129
+      ],
+      "atlasRect": [
+        512,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        30,
+        107,
+        97,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 29,
+      "name": "irrigation-V",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 13,
+      "sourceCrop": [
+        449,
+        956,
+        519,
+        1197
+      ],
+      "sourceContentCrop": [
+        449,
+        956,
+        519,
+        1197
+      ],
+      "atlasRect": [
+        640,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        56,
+        70,
+        71,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 30,
+      "name": "irrigation-elbow",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 14,
+      "sourceCrop": [
+        688,
+        1011,
+        874,
+        1172
+      ],
+      "sourceContentCrop": [
+        688,
+        1011,
+        874,
+        1172
+      ],
+      "atlasRect": [
+        768,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        21,
+        48,
+        106,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 31,
+      "name": "irrigation-tee",
+      "category": "edge",
+      "sourceSheet": 1,
+      "sourceCell": 15,
+      "sourceCrop": [
+        962,
+        1019,
+        1226,
+        1172
+      ],
+      "sourceContentCrop": [
+        962,
+        1019,
+        1226,
+        1172
+      ],
+      "atlasRect": [
+        896,
+        384,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        13,
+        63,
+        115,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 32,
+      "name": "water-barrel",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 0,
+      "sourceCrop": [
+        63,
+        66,
+        281,
+        344
+      ],
+      "sourceContentCrop": [
+        63,
+        66,
+        281,
+        344
+      ],
+      "atlasRect": [
+        0,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        39,
+        60,
+        87,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 33,
+      "name": "closed-crate",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 1,
+      "sourceCrop": [
+        361,
+        119,
+        602,
+        339
+      ],
+      "sourceContentCrop": [
+        361,
+        119,
+        602,
+        339
+      ],
+      "atlasRect": [
+        128,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        41,
+        80,
+        86,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 34,
+      "name": "crate-stack",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 2,
+      "sourceCrop": [
+        643,
+        78,
+        951,
+        340
+      ],
+      "sourceContentCrop": [
+        643,
+        78,
+        951,
+        340
+      ],
+      "atlasRect": [
+        256,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        33,
+        69,
+        95,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 35,
+      "name": "soil-sack",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 3,
+      "sourceCrop": [
+        985,
+        90,
+        1217,
+        351
+      ],
+      "sourceContentCrop": [
+        985,
+        90,
+        1217,
+        351
+      ],
+      "atlasRect": [
+        384,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        46,
+        81,
+        82,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 36,
+      "name": "pot-stack",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 4,
+      "sourceCrop": [
+        58,
+        375,
+        266,
+        641
+      ],
+      "sourceContentCrop": [
+        58,
+        375,
+        266,
+        641
+      ],
+      "atlasRect": [
+        512,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        44,
+        71,
+        84,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 37,
+      "name": "woven-basket",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 5,
+      "sourceCrop": [
+        340,
+        441,
+        603,
+        624
+      ],
+      "sourceContentCrop": [
+        340,
+        441,
+        603,
+        624
+      ],
+      "atlasRect": [
+        640,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        41,
+        90,
+        87,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 38,
+      "name": "watering-can",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 6,
+      "sourceCrop": [
+        631,
+        401,
+        929,
+        626
+      ],
+      "sourceContentCrop": [
+        631,
+        401,
+        929,
+        626
+      ],
+      "atlasRect": [
+        768,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        41,
+        88,
+        86,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 39,
+      "name": "hand-tool-bundle",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 7,
+      "sourceCrop": [
+        970,
+        411,
+        1232,
+        647
+      ],
+      "sourceContentCrop": [
+        970,
+        411,
+        1232,
+        647
+      ],
+      "atlasRect": [
+        896,
+        512,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        40,
+        77,
+        89,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 40,
+      "name": "propagation-table",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 8,
+      "sourceCrop": [
+        14,
+        666,
+        341,
+        917
+      ],
+      "sourceContentCrop": [
+        14,
+        666,
+        341,
+        917
+      ],
+      "atlasRect": [
+        0,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        28,
+        68,
+        100,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 41,
+      "name": "seedling-tray",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 9,
+      "sourceCrop": [
+        355,
+        703,
+        633,
+        898
+      ],
+      "sourceContentCrop": [
+        355,
+        703,
+        633,
+        898
+      ],
+      "atlasRect": [
+        128,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        44,
+        94,
+        84,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 42,
+      "name": "wheelbarrow",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 10,
+      "sourceCrop": [
+        631,
+        668,
+        998,
+        913
+      ],
+      "sourceContentCrop": [
+        631,
+        668,
+        998,
+        913
+      ],
+      "atlasRect": [
+        256,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        23,
+        60,
+        111,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 43,
+      "name": "soil-bag-stack",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 11,
+      "sourceCrop": [
+        976,
+        680,
+        1242,
+        927
+      ],
+      "sourceContentCrop": [
+        976,
+        680,
+        1242,
+        927
+      ],
+      "atlasRect": [
+        384,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        38,
+        74,
+        90,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 44,
+      "name": "compost-bin",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 12,
+      "sourceCrop": [
+        23,
+        920,
+        328,
+        1204
+      ],
+      "sourceContentCrop": [
+        23,
+        920,
+        328,
+        1204
+      ],
+      "atlasRect": [
+        512,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        36,
+        70,
+        92,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 45,
+      "name": "empty-raised-bed",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 13,
+      "sourceCrop": [
+        331,
+        996,
+        631,
+        1177
+      ],
+      "sourceContentCrop": [
+        331,
+        996,
+        631,
+        1177
+      ],
+      "atlasRect": [
+        640,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        25,
+        75,
+        103,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 46,
+      "name": "cactus-raised-bed",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 14,
+      "sourceCrop": [
+        631,
+        913,
+        958,
+        1205
+      ],
+      "sourceContentCrop": [
+        631,
+        913,
+        958,
+        1205
+      ],
+      "atlasRect": [
+        768,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        30,
+        62,
+        95,
+        119
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 47,
+      "name": "small-shade-canopy",
+      "category": "prop",
+      "sourceSheet": 2,
+      "sourceCell": 15,
+      "sourceCrop": [
+        954,
+        933,
+        1236,
+        1199
+      ],
+      "sourceContentCrop": [
+        954,
+        933,
+        1236,
+        1199
+      ],
+      "atlasRect": [
+        896,
+        640,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        8,
+        15,
+        120,
+        120
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 48,
+      "name": "bench-horizontal",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 0,
+      "sourceCrop": [
+        32,
+        179,
+        350,
+        390
+      ],
+      "sourceContentCrop": [
+        32,
+        179,
+        350,
+        390
+      ],
+      "atlasRect": [
+        0,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        26,
+        70,
+        103,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 49,
+      "name": "bench-side",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 1,
+      "sourceCrop": [
+        419,
+        157,
+        560,
+        386
+      ],
+      "sourceContentCrop": [
+        419,
+        157,
+        560,
+        386
+      ],
+      "atlasRect": [
+        128,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        45,
+        58,
+        83,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 50,
+      "name": "lantern-post",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 2,
+      "sourceCrop": [
+        697,
+        41,
+        868,
+        392
+      ],
+      "sourceContentCrop": [
+        697,
+        41,
+        868,
+        392
+      ],
+      "atlasRect": [
+        256,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        44,
+        36,
+        84,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 51,
+      "name": "botanical-noticeboard",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 3,
+      "sourceCrop": [
+        943,
+        82,
+        1231,
+        381
+      ],
+      "sourceContentCrop": [
+        943,
+        82,
+        1231,
+        381
+      ],
+      "atlasRect": [
+        384,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        28,
+        47,
+        100,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 52,
+      "name": "public-water-trough",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 4,
+      "sourceCrop": [
+        9,
+        504,
+        361,
+        741
+      ],
+      "sourceContentCrop": [
+        9,
+        504,
+        361,
+        741
+      ],
+      "atlasRect": [
+        512,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        28,
+        74,
+        99,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 53,
+      "name": "public-cactus-planter",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 5,
+      "sourceCrop": [
+        379,
+        417,
+        596,
+        732
+      ],
+      "sourceContentCrop": [
+        379,
+        417,
+        596,
+        732
+      ],
+      "atlasRect": [
+        640,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        38,
+        48,
+        90,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 54,
+      "name": "modest-cloth-awning",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 6,
+      "sourceCrop": [
+        636,
+        429,
+        955,
+        725
+      ],
+      "sourceContentCrop": [
+        636,
+        429,
+        955,
+        725
+      ],
+      "atlasRect": [
+        768,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        14,
+        28,
+        113,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 55,
+      "name": "cactus-display-stand",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 7,
+      "sourceCrop": [
+        969,
+        429,
+        1239,
+        731
+      ],
+      "sourceContentCrop": [
+        969,
+        429,
+        1239,
+        731
+      ],
+      "atlasRect": [
+        896,
+        768,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        33,
+        54,
+        94,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 56,
+      "name": "stone-threshold",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 8,
+      "sourceCrop": [
+        26,
+        815,
+        342,
+        962
+      ],
+      "sourceContentCrop": [
+        26,
+        815,
+        342,
+        962
+      ],
+      "atlasRect": [
+        0,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        38,
+        98,
+        90,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 57,
+      "name": "wood-threshold",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 9,
+      "sourceCrop": [
+        363,
+        842,
+        637,
+        967
+      ],
+      "sourceContentCrop": [
+        363,
+        842,
+        637,
+        967
+      ],
+      "atlasRect": [
+        128,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        42,
+        102,
+        86,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 58,
+      "name": "paver-border-H",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 10,
+      "sourceCrop": [
+        652,
+        838,
+        1022,
+        980
+      ],
+      "sourceContentCrop": [
+        652,
+        838,
+        1022,
+        980
+      ],
+      "atlasRect": [
+        256,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        35,
+        100,
+        92,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 59,
+      "name": "paver-border-V",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 11,
+      "sourceCrop": [
+        1072,
+        753,
+        1171,
+        997
+      ],
+      "sourceContentCrop": [
+        1072,
+        753,
+        1171,
+        997
+      ],
+      "atlasRect": [
+        384,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        52,
+        58,
+        76,
+        121
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 60,
+      "name": "bed-border-H",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 12,
+      "sourceCrop": [
+        31,
+        1074,
+        408,
+        1200
+      ],
+      "sourceContentCrop": [
+        31,
+        1074,
+        408,
+        1200
+      ],
+      "atlasRect": [
+        512,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        28,
+        98,
+        100,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 61,
+      "name": "bed-border-V",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 13,
+      "sourceCrop": [
+        458,
+        979,
+        620,
+        1204
+      ],
+      "sourceContentCrop": [
+        458,
+        979,
+        620,
+        1204
+      ],
+      "atlasRect": [
+        640,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        52,
+        86,
+        77,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 62,
+      "name": "drain-mouth",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 14,
+      "sourceCrop": [
+        656,
+        1010,
+        968,
+        1218
+      ],
+      "sourceContentCrop": [
+        656,
+        1010,
+        968,
+        1218
+      ],
+      "atlasRect": [
+        768,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        40,
+        90,
+        88,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    },
+    {
+      "tileId": 63,
+      "name": "coiled-irrigation-hose",
+      "category": "prop",
+      "sourceSheet": 3,
+      "sourceCell": 15,
+      "sourceCrop": [
+        989,
+        1036,
+        1229,
+        1205
+      ],
+      "sourceContentCrop": [
+        989,
+        1036,
+        1229,
+        1205
+      ],
+      "atlasRect": [
+        896,
+        896,
+        128,
+        128
+      ],
+      "alphaBounds": [
+        42,
+        92,
+        85,
+        122
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "footBaseline": 122,
+      "origin": [
+        0.5,
+        0.953125
+      ]
+    }
+  ],
+  "export": {
+    "sha256": "aa0f9d9c11fd0d70b7bff08e4ed48da05135a25d7b624e0e9db4e12239211c53",
+    "encodedBytes": 911092,
+    "decodedRgbaBytes": 4194304,
+    "width": 1024,
+    "height": 1024,
+    "mode": "RGBA",
+    "operation": "deterministic subject isolation, crop, proportional LANCZOS resize, alpha registration; retained authored pixels unchanged before resize; no repaint/recolor"
+  }
+}

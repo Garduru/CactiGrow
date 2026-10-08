@@ -10,7 +10,7 @@ export const TUTORIAL_ORIGIN = 'starting-experience-tutorial'
 export function initialStartingState(compatibilityComplete: boolean): StartingExperienceV1 {
   return { projectionVersion: 1, revision: 0, compatibilityComplete, nameComplete: false, appearance: { ...DEFAULT_APPEARANCE }, appearanceComplete: compatibilityComplete,
     spawnTutorialComplete: compatibilityComplete, farmTutorialComplete: compatibilityComplete, spawnStage: compatibilityComplete ? 'complete' : 'appearance', farmStage: compatibilityComplete ? 'complete' : 'undiscovered',
-    equipment: { tool: null, head: null, body: null, accessory: null }, ownedEquipment: [], harvestingXp: 0, tutorialSeedAvailable: false, pot: null, tutorialParentIds: [], offspringSeedId: null }
+    equipment: { tool: null, head: null, body: null, accessory: null }, ownedEquipment: [], harvestingXp: 0, tutorialSeedAvailable: false, farmSeedAvailable: false, pot: null, tutorialParentIds: [], offspringSeedId: null }
 }
 // Same canonical onboarding owner row as WorldService. Callers hold it through commit.
 export async function lockStartingOwner(tx: StartingTransaction, playerId: string) {
@@ -36,11 +36,12 @@ export async function progressWorldTutorial(tx: StartingTransaction, playerId: s
   const state = await loadStartingState(tx, playerId, owner.profileId)
   if (state.compatibilityComplete) return
   if (!state.appearanceComplete) throw ApiError.conflict('Choose your appearance before exploring.')
+  if (physical && fromAreaId === 'cross-path-1' && toAreaId !== 'player-farm' && !state.farmTutorialComplete) throw ApiError.conflict('Visit your Farm first. Learn the basics before exploring farther.')
   let changed = false
   if (physical && fromAreaId === 'path-1' && toAreaId === 'cross-path-1' && !state.spawnTutorialComplete) {
     if (state.spawnStage !== 'leave-zone') throw ApiError.conflict('Collect the plant from the Path 1 tutorial pot before leaving the Starting Zone.')
     state.spawnStage = 'complete'; state.spawnTutorialComplete = true; changed = true
   }
-  if (physical && toAreaId === 'player-farm' && state.spawnTutorialComplete && state.farmStage === 'undiscovered') { state.farmStage = 'nursery'; changed = true }
+  if (physical && toAreaId === 'player-farm' && state.spawnTutorialComplete && state.farmStage === 'undiscovered') { state.farmStage = 'nursery'; state.farmSeedAvailable = true; changed = true }
   if (changed) await saveStartingState(tx, playerId, state, commandId, new Date())
 }

@@ -7,6 +7,7 @@ import { PlantVisual } from '../../components/ui/PlantVisual'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { createPlantVisualDescriptor } from '../plants/plantVisualModel'
 import { gardenDisplayLabels } from './gardenDisplayModel'
+import { tutorialPlantRole } from '../starting/tutorialGuidance'
 import { PlantDetails } from './PlantDetails'
 import { SpecimenQuickPreview } from './SpecimenQuickPreview'
 import { GardenDisplaySection } from './GardenDisplaySection'
@@ -107,15 +108,15 @@ export function ServerGardenPage() {
             <PlantVisual visual={createPlantVisualDescriptor(specimen)} />
             {selected && <span className="garden-specimen__check" aria-hidden="true">&#10003;</span>}
             <strong>{species?.commonName ?? 'Unknown cactus'}</strong><em>{species?.scientificName}</em>
-            <span className="garden-specimen__id">Specimen {specimen.specimenId.slice(0, 8)}</span>
-            {tutorial.state?.tutorialParentIds.includes(specimen.specimenId) && <span className="garden-specimen__listed">Tutorial specimen · research / practice only</span>}
+            <span className="garden-specimen__id">{tutorialPlantRole(tutorial.state, specimen.specimenId) ?? `Specimen ${specimen.specimenId.slice(0, 8)}`}</span>
+            {tutorial.state?.tutorialParentIds.includes(specimen.specimenId) && <span className="garden-specimen__listed">{tutorial.state?.tutorialParentIds[0] === specimen.specimenId ? 'Grown in Path 1 - observe, then breed' : 'Mature San Pedro partner for your breeding lesson'}</span>}
             {plant.isListedForSale && <span className="garden-specimen__listed">Listed on Marketplace</span>}
             <CollectionKnowledge plant={plant} research={game.state.geneticsResearch} level={level} />
           </button>
-          <FavoriteControl favorite={Boolean(game.state.gardenOrganization[plant.id]?.favorite)} listed={plant.isListedForSale} name={`specimen ${plant.id}`} onChange={(favorite) => game.setGardenFavorite(plant.id, favorite)} />
+          <FavoriteControl tutorialTarget={`favorite:${plant.id}`} favorite={Boolean(game.state.gardenOrganization[plant.id]?.favorite)} listed={plant.isListedForSale} name={`specimen ${plant.id}`} onChange={(favorite) => game.setGardenFavorite(plant.id, favorite)} />
           <div className="garden-specimen__actions">
             <button className="garden-specimen__quick-view" type="button" onClick={(event) => { event.stopPropagation(); openQuickPreview(specimen.specimenId) }} aria-label={`Quick view ${species?.commonName ?? 'unknown cactus'} specimen ${specimen.specimenId}`}>Quick view</button>
-            <button className="garden-specimen__details" type="button" onClick={() => setSelectedSpecimenId(specimen.specimenId)} aria-label={`Full details for ${species?.commonName ?? 'unknown cactus'} specimen ${specimen.specimenId}`}>Details</button>
+            <button data-tutorial-target={`details:${specimen.specimenId}`} className="garden-specimen__details" type="button" onClick={() => setSelectedSpecimenId(specimen.specimenId)} aria-label={`Full details for ${species?.commonName ?? 'unknown cactus'} specimen ${specimen.specimenId}`}>Details</button>
           </div>
         </article>
       })}</div>}

@@ -1,6 +1,7 @@
 import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV1 } from '../../../shared/api/commerceV1.ts'
 import { isWorldLocation } from '../../../shared/world/world.ts'
 import { isStartingExperience, type StartingCommand, type StartingExperienceV1 } from '../../../shared/api/startingExperienceV1.ts'
+import { isStartingResetResult, type StartingResetCommand } from '../../../shared/api/startingResetV1.ts'
 import type { WorldLocation } from '../../../shared/world/types.ts'
 import { isAdminSession, isAdminPlayer, isAdminInspection, isAdminListing, isAdminAudit, isAdminResult, isAdminRoleEntry, isAdminSpecimen, adminPageValidator, type AdminSession, type AdminMutation, type AdminAction } from '../../../shared/api/adminV1.ts'
 import { isDevCommandResult, isDevSpecimenDiagnostics, type DevCommand, type DevCommandResult, type DevSpecimenDiagnostics } from '../../../shared/api/devToolsV1.ts'
@@ -123,6 +124,9 @@ export class CactiGrowApiClient {
   }
   async executeDevCommand(command: DevCommand): Promise<DevCommandResult> {
     return this.execute('/api/v1/dev/commands', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isDevCommandResult, 'developer command result')
+  }
+  resetStartingExperience(command: StartingResetCommand) {
+    return this.execute('/api/v1/dev/starting-experience/reset', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isStartingResetResult, 'Starting Experience reset')
   }
   async getDevSpecimen(id: string, signal?: AbortSignal): Promise<DevSpecimenDiagnostics> {
     return this.execute(`/api/v1/dev/specimen?id=${encodeURIComponent(id)}`, { method: 'GET', signal }, isDevSpecimenDiagnostics, 'specimen diagnostics')

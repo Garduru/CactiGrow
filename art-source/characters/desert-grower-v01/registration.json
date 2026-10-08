@@ -1,0 +1,18 @@
+{
+  "source": "desert-grower-modules-master-v01.png",
+  "sourceSize": [1536, 1024],
+  "canvasSize": [128, 224],
+  "worldDisplaySize": [64, 112],
+  "worldOffset": [0, 13],
+  "origin": [0.5, 1],
+  "physicsContainerSize": [54, 54],
+  "layers": [
+    { "name": "desert-grower-base-v01", "crop": [128, 30, 448, 560], "size": [128, 212], "position": [0, 4] },
+    { "name": "desert-hair-cropped-v01", "crop": [602, 110, 950, 387], "size": [62, 49], "position": [33, 0] },
+    { "name": "desert-hair-tied-back-v01", "crop": [1110, 110, 1460, 520], "size": [62, 73], "position": [33, 0] },
+    { "name": "desert-hat-straw-v01", "crop": [0, 605, 540, 905], "size": [84, 47], "position": [22, -7] },
+    { "name": "desert-hat-cap-v01", "crop": [570, 595, 970, 900], "size": [65, 50], "position": [32, -6] },
+    { "name": "desert-field-satchel-v01", "crop": [1110, 535, 1510, 995], "size": [62, 71], "position": [39, 57] }
+  ],
+  "notes": "Registered alpha-preserving crops of generated raster art; no painted backgrounds are included. Static south-facing V1; palettes are renderer material projections."
+}

@@ -1,3 +1,5 @@
+import { useLocalMinimap } from '../../game-world/LocalMinimapContext'
+import '../../game-world/localMinimap.css'
 import { worldInputBoundary } from './worldInputBoundary'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -27,6 +29,7 @@ export function GameHeader() {
   const tokens = grower.state.authority === 'server'
     ? grower.state.status === 'ready' ? grower.state.projection.player.tokenBalance : null
     : state.player.tokens
+  const map = useLocalMinimap()
   const isWorld = ['/play', '/town', '/world'].includes(location.pathname)
 
   useEffect(() => {
@@ -71,12 +74,13 @@ export function GameHeader() {
             <button type="button" className="game-header__player" title={name ?? 'Player'} onClick={() => { setMenuOpen(false); openFeature('profile') }} aria-label="Open own profile">
               <strong>{name ?? 'Player'}</strong><span>Lvl: {total ?? '-'}</span>
             </button>
-            <button className="game-header__backpack" type="button" onClick={() => { setMenuOpen(false); openFeature('inventory') }} aria-label="Inventory" title="Inventory">
+            <button data-tutorial-target="inventory" className="game-header__backpack" type="button" onClick={() => { setMenuOpen(false); openFeature('inventory') }} aria-label="Inventory" title="Inventory">
               <img src="/assets/ui/icons/inventory-backpack.png" alt="" width="32" height="32" />
             </button>
           </div>
         </div>
         <div className="game-header__right">
+          {import.meta.env.MODE === 'staging' && location.pathname === '/world' && <button type="button" className="game-header__map" aria-label="Map" aria-expanded={map?.open ?? false} onClick={() => { setMenuOpen(false); map?.toggle() }}>Map</button>}
           <div ref={setTravelHost} className="game-header__travel" />
           <div className="game-header__menu" ref={menuRef}>
             <button ref={toggleRef} className="game-header__menu-toggle" type="button" aria-label="Menu" aria-expanded={menuOpen} aria-controls={menuOpen ? 'hud-menu-dropdown' : undefined} onClick={() => setMenuOpen(!menuOpen)}>Menu</button>

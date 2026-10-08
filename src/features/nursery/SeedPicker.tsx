@@ -13,9 +13,10 @@ interface SeedPickerProps {
   onSelect: (speciesId: string) => void | Promise<void>
   onSelectBredSeed: (seedId: string) => void | Promise<void>
   onClose: () => void
+  onSelectTutorial?: () => Promise<void>
 }
 
-export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClose }: SeedPickerProps) {
+export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClose, onSelectTutorial }: SeedPickerProps) {
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const submitting = useRef(false)
@@ -73,12 +74,13 @@ export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClo
         <p className="seed-picker__note" role="status">{pending ? 'Planting seed... Please wait.' : 'Tap a seed to plant it immediately in this Nursery position.'}</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="seed-picker__options">
-          {!seeds.length && !bredSeeds.length && <EmptyState compact title="No seeds available">Return after acquiring seeds to plant this position.</EmptyState>}
+          {!seeds.length && !bredSeeds.length && !onSelectTutorial && <EmptyState compact title="No seeds available">Return after acquiring seeds to plant this position.</EmptyState>}
+          {onSelectTutorial && <button data-tutorial-target="nursery-seed" className="seed-option" type="button" disabled={pending !== null} onClick={() => void submit('farm-tutorial-seed', onSelectTutorial)}><span className="seed-option__icon" aria-hidden="true">◉</span><span><strong>San Pedro Farm practice seed</strong><small>Tutorial only · Reserved for this Nursery lesson</small></span><Badge tone="accent">× 1</Badge></button>}
           {seeds.map((seed) => {
             const seedSpecies = getSpeciesById(seed.itemKey)
             return (
               <button
-                className="seed-option"
+                data-tutorial-target="nursery-seed" className="seed-option"
                 key={seed.id}
                 type="button"
                 disabled={seed.quantity === 0 || pending !== null}

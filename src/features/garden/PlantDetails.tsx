@@ -218,8 +218,8 @@ export function PlantDetails(props: PlantDetailsProps) {
         {local && <footer className="plant-details__actions">
           <span>{local.isListed ? 'Listed on Marketplace' : 'Specimen actions'}</span>
           <div>
-            <button className="plant-details__primary-action" type="button" onClick={local.onResearch}>Study Genetics</button>
-            <button className="plant-details__primary-action" type="button" onClick={local.onBreed} disabled={local.isListed}>Breed</button>
+            <button className="plant-details__primary-action" type="button" data-tutorial-target={`study:${specimenId}`} onClick={local.onResearch}>Study Genetics</button>
+            <button className="plant-details__primary-action" type="button" data-tutorial-target={`breed:${specimenId}`} onClick={local.onBreed} disabled={local.isListed}>Breed</button>
             <button className="plant-details__primary-action" type="button" onClick={local.onSell} disabled={local.isListed || local.organization?.favorite} title={local.organization?.favorite ? 'Unfavorite this plant before selling.' : undefined}>Sell</button>
           </div>
         </footer>}

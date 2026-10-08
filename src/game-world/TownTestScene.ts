@@ -1,4 +1,4 @@
-import { createPlayerCharacter } from './PlayerCharacter'
+import { createPlayerCharacter, preloadCharacterArt, updateCharacterMotion } from './PlayerCharacter'
 import { configureGameplayCamera } from './gameplayCamera'
 import { NavigationMap } from './navigation/NavigationMap'
 import { bindFoundationExits, type FoundationSceneOptions } from './AreaExitController'
@@ -7,6 +7,8 @@ import { getWorldEditor } from './editor/worldEditorState'
 import { NavigationController } from './navigation/NavigationController'
 import { bindWorldKeyboardFocus, canUseWorldKeyboard } from './worldKeyboardFocus'
 import Phaser from 'phaser'
+import { bindLocalMinimap } from './bindLocalMinimap'
+import { drawSettlementArt, preloadSettlementArt } from './settlementPresentation'
 import type { WorldBridge } from './WorldBridge'
 import { TOWN_WORLD_HEIGHT, TOWN_WORLD_WIDTH, townWorldLayout, townWorldSpawns, type TownLocationLayout } from './townWorldLayout'
 import type { TownWorldLocationProjection, TownWorldSpawnId } from './worldTypes'
@@ -16,6 +18,7 @@ import type { EditorObject, WorldEditorController } from './editor/worldEditorSt
 import type { AreaConnection } from '../services/realtime/AreaConnection'
 import type { Facing } from '../../shared/realtime/protocolV1'
 import { RemotePlayers } from './RemotePlayers'
+import { DEFAULT_APPEARANCE } from '../../shared/characters/appearance'
 
 const PLAYER_SPEED = 245
 const CAMERA_ZOOM_FLOOR = 0.1
@@ -68,6 +71,7 @@ export class TownTestScene extends Phaser.Scene {
   private remotePlayers?: RemotePlayers
 
   private readonly foundation?: FoundationSceneOptions
+  private settlementRendered = false
   constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: TownWorldSpawnId; editor?: WorldEditorController; connection?: AreaConnection; foundation?: FoundationSceneOptions }) {
     super('town-graybox')
     this.bridge = bridge
@@ -79,6 +83,8 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   preload() {
+    preloadSettlementArt(this, this.foundation?.area)
+    preloadCharacterArt(this)
     this.load.image(SHOP_V1_MAIN_ART.key, SHOP_V1_MAIN_ART.path)
     this.load.image(MARKETPLACE_V1_MAIN_ART.key, MARKETPLACE_V1_MAIN_ART.path)
   }
@@ -96,6 +102,7 @@ export class TownTestScene extends Phaser.Scene {
     if (this.editor) this.setupEditor()
     this.rebuildNavigation()
     bindFoundationExits(this, this.player, this.foundation)
+    if (this.foundation) bindLocalMinimap(this, this.foundation.minimap, this.foundation.area, this.player, () => this.navigation, this.foundation.pending)
     if (this.debugWorld) this.setDevelopmentDebug(true)
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
@@ -168,6 +175,8 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   private drawGroundAndPaths() {
+    this.settlementRendered = drawSettlementArt(this, this.foundation?.area)
+    if (this.settlementRendered) return
     this.add.rectangle(TOWN_WORLD_WIDTH / 2, TOWN_WORLD_HEIGHT / 2, TOWN_WORLD_WIDTH, TOWN_WORLD_HEIGHT, 0x2b2520).setDepth(WORLD_DEPTH.ground)
     const ground = this.add.graphics().setDepth(WORLD_DEPTH.ground)
     ground.fillStyle(0x65523d).fillRoundedRect(60, 50, TOWN_WORLD_WIDTH - 120, TOWN_WORLD_HEIGHT - 100, 70)
@@ -193,7 +202,7 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   private drawBoundary() {
-    const wall = this.add.graphics().setDepth(WORLD_DEPTH.foreground)
+    const wall = this.add.graphics().setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
     wall.lineStyle(18, 0x584432, 1).strokeRect(60, 50, TOWN_WORLD_WIDTH - 120, TOWN_WORLD_HEIGHT - 100)
     this.addStaticCollider(TOWN_WORLD_WIDTH / 2, 58, TOWN_WORLD_WIDTH - 120, 30)
     this.addStaticCollider(68, TOWN_WORLD_HEIGHT / 2, 30, TOWN_WORLD_HEIGHT - 100)
@@ -237,9 +246,9 @@ export class TownTestScene extends Phaser.Scene {
       return
     }
     if (layout.visualKind === 'farm-exit') {
-      const left = this.add.rectangle(layout.x - 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      const right = this.add.rectangle(layout.x + 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      const main = this.add.rectangle(layout.x, layout.y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground)
+      const left = this.add.rectangle(layout.x - 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
+      const right = this.add.rectangle(layout.x + 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
+      const main = this.add.rectangle(layout.x, layout.y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
       this.rememberVisual(layout.id, main, [left, right])
       this.addStaticCollider(layout.x - 135, layout.y, 24, 118, layout.id)
       this.addStaticCollider(layout.x + 135, layout.y, 24, 118, layout.id)
@@ -278,11 +287,12 @@ export class TownTestScene extends Phaser.Scene {
   private setupPresence() {
     const connection = this.connection
     if (!connection) return
-    const remotes = new RemotePlayers((presence) => (presence.appearance === 'placeholder' ? this.add.container(presence.position.x, presence.position.y, [
+    const remotes = new RemotePlayers((presence) => (presence.appearance === 'placeholder' && import.meta.env.MODE !== 'staging' ? this.add.container(presence.position.x, presence.position.y, [
       this.add.rectangle(0, -18, 34, 62, 0x58806b).setStrokeStyle(4, 0x2b1a13),
       this.add.circle(0, -61, 20, 0xd39a6b).setStrokeStyle(4, 0x2b1a13),
-    ]) : createPlayerCharacter(this, presence.position.x, presence.position.y, presence.appearance))
-      .add(this.add.text(0, -96, presence.label, { color: '#fff3dc', fontFamily: 'system-ui', fontSize: '14px' }).setOrigin(.5)).setDepth(WORLD_DEPTH.remotePlayers))
+    ]) : createPlayerCharacter(this, presence.position.x, presence.position.y, presence.appearance === 'placeholder' ? DEFAULT_APPEARANCE : presence.appearance, { externalMotion: true }))
+      .add(this.add.text(0, -96, presence.label, { color: '#fff3dc', fontFamily: 'system-ui', fontSize: '14px' }).setOrigin(.5)).setDepth(WORLD_DEPTH.remotePlayers),
+      (avatar, presence, position, now) => updateCharacterMotion(avatar as Phaser.GameObjects.Container, position, now, presence.facing))
     this.remotePlayers = remotes
     const refresh = () => remotes.sync(connection.getSnapshot().remotes, performance.now())
     const unsubscribe = connection.subscribe(refresh)

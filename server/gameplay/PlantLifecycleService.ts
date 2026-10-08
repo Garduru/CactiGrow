@@ -1,5 +1,6 @@
 import { assertSpecimenNotInMail } from './specimenCommerceEligibility.ts'
-import { loadStartingState, TUTORIAL_ORIGIN } from '../starting/startingState.ts'
+import { loadStartingState, saveStartingState, TUTORIAL_ORIGIN } from '../starting/startingState.ts'
+import { retiredTutorialMaterial } from '../starting/StartingResetService.ts'
 import { and, isNull, eq, inArray, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { bredSeeds, bredSeedTreatments, cloneLines, cloneLineVariants, gameplayCommandReceipts, geneticProfiles, marketplaceListings, mailMessages, nurseryOccupancies, plantSpecimens, playerGrowerEvents, playerGrowerState, playerOnboarding, playerPlantLifecycleVersions, playerSeedStacks } from '../db/schema/index.ts'
@@ -90,13 +91,14 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     })
   }
 
-  async getProjection(playerId: string): Promise<PlantLifecycleProjectionV1> {
+  async getProjection(playerId: string, retired?: { retiredSpecimenIds: string[]; retiredSeedIds: string[] }): Promise<PlantLifecycleProjectionV1> {
     await this.upgradeAlphaSchedules(playerId)
+    retired ??= ['staging', 'development', 'test'].includes(this.options.environment ?? '') ? await retiredTutorialMaterial(this.database, playerId) : { retiredSpecimenIds: [], retiredSeedIds: [] }
     const stacks = await this.database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, playerId))
     const occupancies = await this.database.select().from(nurseryOccupancies).where(eq(nurseryOccupancies.playerId, playerId))
     const reserved = await this.database.select({ id: mailMessages.specimenId }).from(mailMessages).where(and(eq(mailMessages.senderPlayerId, playerId), isNull(mailMessages.claimedAt)))
     const reservedIds = new Set(reserved.map(row => row.id))
-    const specimens = (await this.database.select().from(plantSpecimens).where(eq(plantSpecimens.ownerPlayerId, playerId))).filter(row => !reservedIds.has(row.id))
+    const specimens = (await this.database.select().from(plantSpecimens).where(eq(plantSpecimens.ownerPlayerId, playerId))).filter(row => !reservedIds.has(row.id) && !retired.retiredSpecimenIds.includes(row.id))
     const versionRows = await this.database.select().from(playerPlantLifecycleVersions).where(eq(playerPlantLifecycleVersions.playerId, playerId)).limit(1)
     const cloneIdList = [...new Set(specimens.map((specimen) => specimen.cloneLineId))]
     const lines = cloneIdList.length ? await this.database.select().from(cloneLines).where(inArray(cloneLines.id, cloneIdList)) : []
@@ -114,8 +116,9 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
   }
 
   async getProjectionV2(playerId: string): Promise<PlantLifecycleProjectionV2> {
-    const base = await this.getProjection(playerId)
-    const seeds = await this.database.select().from(bredSeeds).where(eq(bredSeeds.ownerPlayerId, playerId))
+    const retired = ['staging', 'development', 'test'].includes(this.options.environment ?? '') ? await retiredTutorialMaterial(this.database, playerId) : { retiredSpecimenIds: [], retiredSeedIds: [] }
+    const base = await this.getProjection(playerId, retired)
+    const seeds = (await this.database.select().from(bredSeeds).where(eq(bredSeeds.ownerPlayerId, playerId))).filter(seed => !retired.retiredSeedIds.includes(seed.id))
     const cloneIds = seeds.map((seed) => seed.cloneLineId)
     const profiles = cloneIds.length ? await this.database.select().from(geneticProfiles).where(inArray(geneticProfiles.cloneLineId, cloneIds)) : []
     const variants = cloneIds.length ? await this.database.select().from(cloneLineVariants).where(inArray(cloneLineVariants.cloneLineId, cloneIds)) : []
@@ -297,31 +300,43 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     })
   }
 
-  async plantCommoditySeed(playerId: string, idempotencyKey: string, command: PlantCommoditySeedCommandV1): Promise<PlantCommoditySeedResultV1> {
+  async plantCommoditySeed(playerId: string, idempotencyKey: string, command: PlantCommoditySeedCommandV1 & { tutorial?: true }): Promise<PlantCommoditySeedResultV1> {
+    if (command.tutorial && !['staging', 'test'].includes(this.options.environment ?? '')) throw ApiError.notFound()
     return this.runIdempotent(playerId, idempotencyKey, 'plant-commodity-seed', command, async (tx) => {
+      let tutorial
+      if (command.tutorial) {
+        if (!['staging', 'test'].includes(this.options.environment ?? '')) throw ApiError.notFound()
+        const [owner] = await tx.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1)
+        if (!owner) throw safeConflict('CONFLICT', 'Tutorial onboarding is unavailable.')
+        tutorial = await loadStartingState(tx, playerId, owner.profileId)
+        const [location] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'world-foundation-location-v1'))).orderBy(sql`(${playerGrowerEvents.payload}->>'revision')::integer DESC`).limit(1)
+        if (command.speciesId !== 'echinopsis-pachanoi' || tutorial.compatibilityComplete || tutorial.farmStage !== 'nursery' || !tutorial.farmSeedAvailable || (location?.payload as { areaId?: string } | undefined)?.areaId !== 'player-farm') throw safeConflict('SEED_UNAVAILABLE', 'The reserved Farm tutorial seed is unavailable here.')
+        await tx.insert(playerSeedStacks).values({ playerId, speciesId: command.speciesId, quantity: 0 }).onConflictDoNothing()
+      }
       const genetics = establishCommoditySeedGenetics(command.speciesId)
       if (!genetics) throw new ApiError('UNKNOWN_SPECIES', 400, 'The selected seed species is unavailable.')
       const [stack] = await tx.select().from(playerSeedStacks).where(and(eq(playerSeedStacks.playerId, playerId), eq(playerSeedStacks.speciesId, command.speciesId))).for('update').limit(1)
       if (!stack) throw new ApiError('SEED_STACK_NOT_FOUND', 404, 'The requested seed stack was not found.')
       if (stack.version !== command.expectedSeedStackVersion) throw safeConflict('STALE_VERSION', 'The seed inventory changed. Refresh and try again.')
-      if (stack.quantity < 1) throw safeConflict('SEED_UNAVAILABLE', 'No seeds remain in this stack.')
+      if (!tutorial && stack.quantity < 1) throw safeConflict('SEED_UNAVAILABLE', 'No seeds remain in this stack.')
       const [occupied] = await tx.select({ specimenId: nurseryOccupancies.specimenId }).from(nurseryOccupancies).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.slotId, command.slotId))).limit(1)
       if (occupied) throw safeConflict('SLOT_OCCUPIED', 'That Nursery position is already occupied.')
       const plantedAt = this.now(); const { readyAt, growthRuleVersion } = resolvePlantGrowth(plantedAt, this.options.environment, command.speciesId)
       const cloneLineId = this.createId(); const specimenId = this.createId()
       if (!UUID.test(cloneLineId) || !UUID.test(specimenId) || cloneLineId === specimenId) throw new Error('The server generated an invalid entity identity.')
-      const shiny = rollShiny(this.randomUint16)
-      await tx.update(playerSeedStacks).set({ quantity: stack.quantity - 1, version: stack.version + 1, updatedAt: plantedAt }).where(and(eq(playerSeedStacks.playerId, playerId), eq(playerSeedStacks.speciesId, command.speciesId)))
-      await tx.insert(cloneLines).values({ id: cloneLineId, speciesId: command.speciesId, originType: 'commodity-seed', originPlayerId: playerId, establishedAt: plantedAt, geneticRepresentationVersion: GENETIC_REPRESENTATION_VERSION, visualDerivationVersion: VISUAL_DERIVATION_VERSION, createdAt: plantedAt })
+      const shiny = tutorial ? false : rollShiny(this.randomUint16)
+      if (!tutorial) await tx.update(playerSeedStacks).set({ quantity: stack.quantity - 1, version: stack.version + 1, updatedAt: plantedAt }).where(and(eq(playerSeedStacks.playerId, playerId), eq(playerSeedStacks.speciesId, command.speciesId)))
+      else { tutorial.farmSeedAvailable = false; await saveStartingState(tx, playerId, tutorial, idempotencyKey, plantedAt) }
+      await tx.insert(cloneLines).values({ id: cloneLineId, speciesId: command.speciesId, originType: tutorial ? TUTORIAL_ORIGIN : 'commodity-seed', originPlayerId: playerId, establishedAt: plantedAt, geneticRepresentationVersion: GENETIC_REPRESENTATION_VERSION, visualDerivationVersion: VISUAL_DERIVATION_VERSION, createdAt: plantedAt })
       await tx.insert(geneticProfiles).values({ cloneLineId, ...genetics, establishmentRuleVersion: GENETIC_ESTABLISHMENT_RULE_VERSION, createdAt: plantedAt })
       if (shiny) await tx.insert(cloneLineVariants).values({ cloneLineId, variantId: 'shiny', origin: 'random', establishedAt: plantedAt })
-      await tx.insert(plantSpecimens).values({ id: specimenId, ownerPlayerId: playerId, cloneLineId, sourceType: 'commodity-seed', lifecycleStatus: 'growing', plantedAt, collectedAt: null, visualDerivationVersion: VISUAL_DERIVATION_VERSION, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
+      await tx.insert(plantSpecimens).values({ id: specimenId, ownerPlayerId: playerId, cloneLineId, sourceType: tutorial ? TUTORIAL_ORIGIN : 'commodity-seed', lifecycleStatus: 'growing', plantedAt, collectedAt: null, visualDerivationVersion: VISUAL_DERIVATION_VERSION, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
       await tx.insert(nurseryOccupancies).values({ playerId, slotId: command.slotId, specimenId, plantedAt, readyAt, growthRuleVersion, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
       const version = await this.incrementVersion(tx, playerId, plantedAt)
       await this.awardXp(tx, playerId, 'cultivation', 10)
       await this.recordProgress(tx, playerId, idempotencyKey, 'plantSeed', command.speciesId, cloneLineId, shiny, plantedAt)
       const specimen: PlantSpecimenV1 = { specimenId, cloneLineId, speciesId: command.speciesId, lifecycleStatus: 'growing', plantedAt: plantedAt.toISOString(), collectedAt: null, genetics, geneticFeatures: [], specialVariants: shiny ? [{ variantId: 'shiny', origin: 'random', establishedAt: plantedAt.toISOString() }] : [], geneticRepresentationVersion: GENETIC_REPRESENTATION_VERSION, visualDerivationVersion: VISUAL_DERIVATION_VERSION, version: 1 }
-      return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seedStack: { speciesId: command.speciesId, quantity: stack.quantity - 1, version: stack.version + 1 }, slot: { slotId: command.slotId, occupancy: { specimen, plantedAt: plantedAt.toISOString(), readyAt: readyAt.toISOString(), growthRuleVersion, version: 1 } } }
+      return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seedStack: { speciesId: command.speciesId, quantity: stack.quantity - (tutorial ? 0 : 1), version: stack.version + (tutorial ? 0 : 1) }, slot: { slotId: command.slotId, occupancy: { specimen, plantedAt: plantedAt.toISOString(), readyAt: readyAt.toISOString(), growthRuleVersion, version: 1 } } }
     })
   }
 
@@ -381,6 +396,9 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     const requestFingerprint = fingerprint(type, command)
     const existing = await this.database.select().from(gameplayCommandReceipts).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, key))).limit(1)
     if (existing[0]) { if (existing[0].commandType !== type || existing[0].requestFingerprint !== requestFingerprint) throw safeConflict('IDEMPOTENCY_KEY_REUSED', 'The idempotency key was already used for another request.'); if (existing[0].status === 'completed') return existing[0].responsePayload as T }
-    try { return await this.database.transaction(async (tx) => { await tx.insert(gameplayCommandReceipts).values({ playerId, idempotencyKey: key, commandType: type, requestFingerprint, status: 'processing' }); const response = await operation(tx); await tx.update(gameplayCommandReceipts).set({ status: 'completed', responsePayload: response, completedAt: this.now() }).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, key))); return response }) } catch (error) { if (databaseErrorCode(error) === '23505') { const [receipt] = await this.database.select().from(gameplayCommandReceipts).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, key))).limit(1); if (receipt?.status === 'completed' && receipt.commandType === type && receipt.requestFingerprint === requestFingerprint) return receipt.responsePayload as T } throw error }
+    try { return await this.database.transaction(async (tx) => {
+      // Staging resets and cultivation share the canonical owner lock before inventory/body locks.
+      if (['staging', 'development', 'test'].includes(this.options.environment ?? '')) await tx.select({ playerId: playerOnboarding.playerId }).from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1)
+      await tx.insert(gameplayCommandReceipts).values({ playerId, idempotencyKey: key, commandType: type, requestFingerprint, status: 'processing' }); const response = await operation(tx); await tx.update(gameplayCommandReceipts).set({ status: 'completed', responsePayload: response, completedAt: this.now() }).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, key))); return response }) } catch (error) { if (databaseErrorCode(error) === '23505') { const [receipt] = await this.database.select().from(gameplayCommandReceipts).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, key))).limit(1); if (receipt?.status === 'completed' && receipt.commandType === type && receipt.requestFingerprint === requestFingerprint) return receipt.responsePayload as T } throw error }
   }
 }

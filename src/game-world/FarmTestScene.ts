@@ -1,4 +1,5 @@
-import { createPlayerCharacter } from './PlayerCharacter'
+import { bindTutorialWorldHighlight } from './tutorialWorldHighlight'
+import { createPlayerCharacter, preloadCharacterArt } from './PlayerCharacter'
 import { configureGameplayCamera } from './gameplayCamera'
 import { NavigationMap } from './navigation/NavigationMap'
 import { bindFoundationExits, type FoundationSceneOptions } from './AreaExitController'
@@ -7,6 +8,8 @@ import { getWorldEditor } from './editor/worldEditorState'
 import { NavigationController } from './navigation/NavigationController'
 import { bindWorldKeyboardFocus, canUseWorldKeyboard } from './worldKeyboardFocus'
 import Phaser from 'phaser'
+import { bindLocalMinimap } from './bindLocalMinimap'
+import { drawSettlementArt, preloadSettlementArt } from './settlementPresentation'
 import { FARM_WORLD_HEIGHT, FARM_WORLD_WIDTH, MAILBOX_APPROACH_POINTS, MAILBOX_V1_COLLIDERS, NURSERY_PATH_ENDPOINT, farmWorldLayout, farmWorldSpawns, type FarmLocationLayout } from './farmWorldLayout'
 import type { WorldBridge } from './WorldBridge'
 import type { FarmWorldLocationProjection, FarmWorldSpawnId } from './worldTypes'
@@ -96,6 +99,7 @@ export class FarmTestScene extends Phaser.Scene {
   private cameraDebugText: Phaser.GameObjects.Text | null = null
 
   private readonly foundation?: FoundationSceneOptions
+  private settlementRendered = false
   constructor(bridge: WorldBridge, debugWorld = false, options: { spawnId: FarmWorldSpawnId; editor?: WorldEditorController; foundation?: FoundationSceneOptions }) {
     super('farm-graybox')
     this.bridge = bridge
@@ -106,6 +110,8 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   preload() {
+    preloadSettlementArt(this, this.foundation?.area)
+    preloadCharacterArt(this)
     registeredPlantStageAssets.forEach(({ key, path }) => this.load.image(key, path))
     registeredPlantPigmentationAssets.forEach(({ key, path }) => this.load.image(key, path))
     this.load.image(NURSERY_V2_MAIN_ART.key, NURSERY_V2_MAIN_ART.path)
@@ -129,6 +135,8 @@ export class FarmTestScene extends Phaser.Scene {
     if (this.editor) this.setupEditor()
     this.rebuildNavigation()
     bindFoundationExits(this, this.player, this.foundation)
+    if (this.foundation) bindLocalMinimap(this, this.foundation.minimap, this.foundation.area, this.player, () => this.navigation, this.foundation.pending)
+    if (this.foundation?.guidance) bindTutorialWorldHighlight(this, this.foundation.guidance, key => key.startsWith('building:') ? this.editorVisuals.get(key.slice(9))?.main.getBounds() : undefined)
     if (this.debugWorld) this.setDevelopmentDebug(true)
 
     this.unsubscribeProjection = this.bridge.subscribeToProjection((projection) => {
@@ -222,6 +230,8 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private drawGroundAndPaths() {
+    this.settlementRendered = drawSettlementArt(this, this.foundation?.area)
+    if (this.settlementRendered) return
     this.add.rectangle(FARM_WORLD_WIDTH / 2, FARM_WORLD_HEIGHT / 2, FARM_WORLD_WIDTH, FARM_WORLD_HEIGHT, 0x30271f).setDepth(WORLD_DEPTH.ground)
     const ground = this.add.graphics().setDepth(WORLD_DEPTH.ground)
     ground.fillStyle(0x5c4b37).fillRoundedRect(70, 60, FARM_WORLD_WIDTH - 140, FARM_WORLD_HEIGHT - 120, 80)
@@ -248,7 +258,7 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private drawPropertyBoundary() {
-    const fence = this.add.graphics().setDepth(WORLD_DEPTH.foreground)
+    const fence = this.add.graphics().setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
     fence.lineStyle(18, 0x694b32, 1)
     fence.beginPath().moveTo(90, 90).lineTo(2910, 90).lineTo(2910, 1810).strokePath()
     fence.beginPath().moveTo(90, 1810).lineTo(90, 90).strokePath()
@@ -268,6 +278,7 @@ export class FarmTestScene extends Phaser.Scene {
   }
 
   private drawLandscaping() {
+    if (this.settlementRendered) return
     const props = this.add.graphics().setDepth(WORLD_DEPTH.landscaping)
     const cactusClusters = [[250, 330], [280, 900], [2700, 280], [2730, 930], [340, 1590], [2640, 1610], [1050, 300], [1980, 330]]
     cactusClusters.forEach(([x, y]) => {
@@ -321,9 +332,9 @@ export class FarmTestScene extends Phaser.Scene {
       this.rememberVisual(layout.id, visual)
       MAILBOX_V1_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
     } else if (layout.visualKind === 'town-exit') {
-      const left = this.add.rectangle(x - 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      const right = this.add.rectangle(x + 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground)
-      const visual = this.add.rectangle(x, y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground)
+      const left = this.add.rectangle(x - 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
+      const right = this.add.rectangle(x + 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
+      const visual = this.add.rectangle(x, y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
       this.rememberVisual(layout.id, visual, [left, right])
       this.addStaticCollider(x - 135, y, 24, 118, layout.id)
       this.addStaticCollider(x + 135, y, 24, 118, layout.id)

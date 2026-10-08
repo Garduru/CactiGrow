@@ -24,7 +24,7 @@ test('actual foundation page restores HUD Travel, Farm interiors and discovered 
       function Path(){return <output id='path'>{JSON.stringify(useLocation())}</output>}
       function App(){const [host,setHost]=useState(null);return <FeaturePanelContext.Provider value={{feature:null,travelHost:host,setTravelHost:setHost,openFeature(){}}}><GameHeader/><LdtkWorldPage/><Path/></FeaturePanelContext.Provider>}
       export {act,calls};export function mount(areaId,discovered=[]){const a=findArea(areaId);location={...initialLocation('00000000-0000-4000-8000-000000000001'),areaId,zoneId:a.zoneId,runtimeAreaId:runtimeAreaId(a,'00000000-0000-4000-8000-000000000001'),position:a.spawns[0],discoveredAreaIds:discovered,discoveredTravelDestinationIds:discovered};const root=createRoot(document.getElementById('root'));root.render(<MemoryRouter initialEntries={['/world']}><App/></MemoryRouter>);return root}
-    `},bundle:true,write:false,platform:'node',format:'esm',packages:'external',jsx:'automatic',define:{'import.meta.env':JSON.stringify({MODE:'staging',DEV:false})},plugins:[{name:'read-only-fixtures',setup(plugin){
+    `},bundle:true,write:false,platform:'node',format:'esm',packages:'external',jsx:'automatic',loader:{'.css':'empty'},define:{'import.meta.env':JSON.stringify({MODE:'staging',DEV:false})},plugins:[{name:'read-only-fixtures',setup(plugin){
       const stubs={
         useWorldLocation:'return globalThis.travelFixture.world',
         useGameState:'return {state:globalThis.travelFixture.game}',

@@ -16,7 +16,10 @@ test('production hides menu, refuses direct panel opening and excludes developer
     try {
       const result = await build({ stdin: { contents: `import React,{act} from 'react';import {createRoot} from 'react-dom/client';import {FeaturePanelProvider} from './src/features/menu/FeaturePanelProvider';import {useFeaturePanel} from './src/features/menu/featurePanelState';import {MenuDropdown} from './src/components/layout/UtilityMenu';import {FeatureContent} from './src/features/menu/FeatureContent';function Harness(){const p=useFeaturePanel();return <><MenuDropdown onDismiss={()=>{}}/><button id="direct" onClick={()=>p.openFeature('devtools')}>Direct</button><output>{p.feature}</output></>};export {act};export function mount(){const r=createRoot(document.getElementById('root'));r.render(<FeaturePanelProvider><Harness/></FeaturePanelProvider>);return r};export const Content=FeatureContent;`, loader: 'tsx', resolveDir: process.cwd() }, bundle: true, packages: 'external', platform: 'node', format: 'esm', jsx: 'automatic', loader: { '.css': 'empty' }, write: false, define: { 'import.meta.env.MODE': JSON.stringify(mode), 'import.meta.env.DEV': 'false', 'import.meta.env': JSON.stringify({ MODE: mode, DEV: false }) } })
       const source = result.outputFiles[0].text
-      if (mode === 'production' || mode === 'unknown') assert.equal(source.includes('Copied clean debug snapshot'), false)
+      if (mode === 'production' || mode === 'unknown') {
+        assert.equal(source.includes('Copied clean debug snapshot'), false)
+        assert.equal(source.includes('Reset Full Character Onboarding'), false)
+      }
       await writeFile(file, source)
       const { act, mount } = await import(pathToFileURL(file).href)
       let root: { unmount(): void }

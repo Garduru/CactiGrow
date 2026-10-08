@@ -95,7 +95,7 @@ export function ResearchWorkflow({ plant, onClose }: ResearchWorkflowProps) {
             {level < nextStep.requiredLevel && <small>Requires Genetics Level {nextStep.requiredLevel}</small>}
           </div>
           {nextStep.label !== 'Research complete' && (
-            <button className="nursery-button" type="button" onClick={() => void advanceResearch()} disabled={!canAdvance || researchBusy}>
+            <button data-tutorial-target={`observe:${plant.id}`} className="nursery-button" type="button" onClick={() => void advanceResearch()} disabled={!canAdvance || researchBusy}>
               {researchBusy ? 'Researching…' : record ? 'Run analysis' : 'Observe specimen'}
             </button>
           )}

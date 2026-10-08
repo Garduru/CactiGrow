@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test:starting": "node --experimental-strip-types --test shared/api/startingExperienceV1.test.ts server/starting/starting.integration.test.mjs",
+    "test:characters": "node --experimental-strip-types --test shared/characters/appearance.test.ts src/characters/characterMotion.test.ts src/characters/characterComposition.test.ts src/game-world/remoteCharacterMotion.test.ts",
+    "test:starting": "node --experimental-strip-types --test shared/api/startingExperienceV1.test.ts src/features/starting/tutorialGuidance.test.ts src/features/starting/tutorialClock.test.ts server/starting/starting.integration.test.mjs",
     "test:reconciliation": "node --experimental-strip-types --test src/app/playerAuthorityReconciliation.test.ts",
     "test:chat": "node --experimental-strip-types --test --test-isolation=none server/realtime/chatScopes.test.ts server/realtime/admission.runtime.test.ts src/features/social/chatViewport.test.ts",
     "test:mail": "node --experimental-strip-types --test shared/api/mailV1.test.ts server/player/mail.integration.test.mjs",
@@ -31,6 +32,7 @@
     "test:client": "node --experimental-strip-types --test --test-isolation=none src/services/api/CactiGrowApiClient.test.ts",
     "test:website": "node --experimental-strip-types --test --test-isolation=none src/app/websiteRouting.test.ts",
     "test:menu": "node --experimental-strip-types --test --test-isolation=none src/features/menu/gameMenu.runtime.test.ts src/features/social/chatViewport.test.ts src/game-world/townProfileInteraction.test.ts src/game-world/worldKeyboardFocus.test.ts src/features/progression/publicSkills.test.ts",
+    "test:minimap": "node --experimental-strip-types --test src/game-world/localMinimap.test.ts",
     "test:navigation": "node --experimental-strip-types --test --test-isolation=none src/game-world/navigation/navigation.test.ts src/game-world/townProfileInteraction.test.ts",
     "test:commerce": "node --experimental-strip-types --test server/gameplay/commerce.integration.test.mjs src/features/marketplace/commerceCommand.test.ts",
     "test:collection": "node --experimental-strip-types --test --test-isolation=none src/features/garden/collectionManagement.test.ts src/features/garden/collection.runtime.test.ts",
@@ -55,7 +57,11 @@
     "world:validate": "node --experimental-strip-types scripts/world-import.ts",
     "world:generate": "node --experimental-strip-types scripts/world-import.ts --generate",
     "test:world": "node --experimental-strip-types --test --test-isolation=none shared/world/world.test.ts server/world/world.integration.test.mjs src/app/worldRouting.runtime.test.mjs src/game-world/worldTravel.runtime.test.mjs",
-    "test:world:browser": "node --test src/game-world/world.browser.test.mjs"
+    "test:world:browser": "node --test src/game-world/world.browser.test.mjs",
+    "test:settlement": "node --experimental-strip-types --test shared/world/settlement.test.ts",
+    "test:settlement:browser": "node --test src/game-world/settlement.browser.test.mjs",
+    "test:basin-environment": "node --experimental-strip-types --test shared/world/basinEnvironment.test.mjs src/game-world/basinEnvironmentPresentation.test.ts",
+    "test:basin-environment:browser": "node --test src/game-world/basinEnvironment.browser.test.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.5.0-beta",

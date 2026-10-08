@@ -1,5 +1,7 @@
+import { LocalMinimapProvider } from '../game-world/LocalMinimapProvider'
 import { Outlet } from 'react-router-dom'
 import { StartingProvider } from '../features/starting/StartingProvider'
+import { TutorialGuidanceProvider } from '../features/starting/TutorialGuidanceProvider'
 import { StartingObjective } from '../features/starting/StartingObjective'
 import { WorldLocationProvider } from '../game-world/WorldLocationProvider'
 import { PlayerBootstrapProvider } from './PlayerBootstrapProvider'
@@ -28,13 +30,13 @@ export function GameSession() {
         <DeploymentAccessBoundary>
           <PlantLifecycleProvider><GardenAuthorityProvider><GrowerAuthorityProvider><GameStateProvider>
             <PlayerAuthorityReconciler />
-            <MailStatusProvider><AdminAccessProvider><FeaturePanelProvider><SocialPanelProvider>
+            <MailStatusProvider><AdminAccessProvider><FeaturePanelProvider><SocialPanelProvider><LocalMinimapProvider><TutorialGuidanceProvider>
               <GameHeader />
               <GameMain />
               <FeaturePanelOverlay />
               <SocialOverlay />
               <LevelUpNotice />
-            </SocialPanelProvider></FeaturePanelProvider></AdminAccessProvider></MailStatusProvider>
+            </TutorialGuidanceProvider></LocalMinimapProvider></SocialPanelProvider></FeaturePanelProvider></AdminAccessProvider></MailStatusProvider>
           </GameStateProvider></GrowerAuthorityProvider></GardenAuthorityProvider></PlantLifecycleProvider>
         </DeploymentAccessBoundary>
       </StartingProvider></SocialProvider></WorldLocationProvider>
