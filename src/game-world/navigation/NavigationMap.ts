@@ -20,24 +20,32 @@ function crosses(a: Point, b: Point, r: Rect): boolean {
 /** Static visibility graph derived from the same rectangles registered with Arcade physics. */
 export class NavigationMap {
   readonly obstacles: readonly Rect[]
-  readonly nodes: readonly Point[]
+  private nodeList: readonly Point[] | null = null
   private readonly solids: readonly Rect[]
   private readonly physical: readonly Rect[]
   private readonly bounds: Rect
-  private readonly edges: { to: number; cost: number }[][]
+  private edges: { to: number; cost: number }[][] = []
 
-  constructor(width: number, height: number, obstacles: readonly Obstacle[], radius = 27, margin = 5) {
+  constructor(width: number, height: number, obstacles: readonly Obstacle[], radius = 27, margin = 5, deferGraph = false) {
     const expand = (amount: number) => obstacles.map((r) => ({ left: r.x - r.width / 2 - amount, right: r.x + r.width / 2 + amount, top: r.y - r.height / 2 - amount, bottom: r.y + r.height / 2 + amount }))
     this.solids = expand(0)
     this.obstacles = expand(radius + margin)
     this.physical = expand(radius - 0.1)
     this.bounds = { left: radius, top: radius, right: width - radius, bottom: height - radius }
+    if (!deferGraph) this.buildGraph()
+  }
+
+  /** Authority reads and straight checkpoints need collision queries, not a full graph. */
+  get nodes(): readonly Point[] { this.buildGraph(); return this.nodeList! }
+
+  private buildGraph() {
+    if (this.nodeList) return
     const candidates = this.obstacles.flatMap((r) => [{ x: r.left, y: r.top }, { x: r.right, y: r.top }, { x: r.left, y: r.bottom }, { x: r.right, y: r.bottom }])
-    this.nodes = candidates.filter((p, i) => this.walkable(p) && candidates.findIndex((q) => distance(p, q) < 0.01) === i)
-    this.edges = this.nodes.map(() => [])
-    for (let i = 0; i < this.nodes.length; i++) for (let j = i + 1; j < this.nodes.length; j++) {
-      if (!this.clear(this.nodes[i], this.nodes[j])) continue
-      const cost = distance(this.nodes[i], this.nodes[j])
+    this.nodeList = candidates.filter((p, i) => this.walkable(p) && candidates.findIndex((q) => distance(p, q) < 0.01) === i)
+    this.edges = this.nodeList.map(() => [])
+    for (let i = 0; i < this.nodeList.length; i++) for (let j = i + 1; j < this.nodeList.length; j++) {
+      if (!this.clear(this.nodeList[i], this.nodeList[j])) continue
+      const cost = distance(this.nodeList[i], this.nodeList[j])
       this.edges[i].push({ to: j, cost }); this.edges[j].push({ to: i, cost })
     }
   }

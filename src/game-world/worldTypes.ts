@@ -41,5 +41,5 @@ export interface FarmWorldProjection extends WorldProjection { locations: readon
 export interface TownWorldProjection extends WorldProjection { locations: readonly TownWorldLocationProjection[] }
 
 export type WorldIntent =
-  | { type: 'ENTER_LOCATION'; locationId: WorldLocationId }
+  | { type: 'ENTER_LOCATION'; locationId: WorldLocationId; position?: { x: number; y: number } }
   | { type: 'OPEN_PLAYER_PROFILE'; publicId: string }

@@ -1,6 +1,7 @@
 import { getChatLocation, sharesChatScope } from '../../shared/realtime/chatLocation.ts'
 import type { PublicChatMessageV1 } from '../../shared/realtime/protocolV1.ts'
 import type { Membership } from './presenceState.ts'
+import type { MovementAuthorityV1 } from '../../shared/api/movementV1.ts'
 import type { AreaDefinition } from '../../shared/realtime/areas.ts'
 import { layerId, presenceId, type LayerId } from '../../shared/realtime/identifiers.ts'
 import { MAX_CLIENT_FRAME_BYTES, MAX_SERVER_FRAME_BYTES, parseClientMessageText, type ServerMessageV1 } from '../../shared/realtime/protocolV1.ts'
@@ -164,6 +165,23 @@ export class AreaCoordinator {
     this.log('admission_accepted', undefined, result.membership.layerId)
     this.log('population_changed')
     return { ok: true }
+  }
+  movementScope(socket: PresenceSocket, raw: string | ArrayBuffer): Membership | null {
+    const connection = this.own(socket), now = this.now()
+    if (!connection || socket.readyState !== 1 || connection.authorizationExpiresAt <= now || now - connection.lastSeen >= STALE_AFTER_MS || typeof raw !== 'string') return null
+    const parsed = parseClientMessageText(raw)
+    if (!parsed.ok || parsed.message.type !== 'move' || parsed.message.sequence <= connection.member.sample.sequence) return null
+    this.resetWindow(connection, now)
+    if (connection.messages >= MAX_MESSAGES_PER_SECOND || connection.movements >= this.state.area.movement.maxUpdatesPerSecond) return null
+    return connection.member
+  }
+  movementAuthority(socket: PresenceSocket, authority: MovementAuthorityV1) { this.send(socket, { type: 'movement-authority', authority }) }
+  movementUnavailable(socket: PresenceSocket) { this.send(socket, { type: 'error', code: 'UNAVAILABLE', retryable: true }) }
+  rejectMovement(socket: PresenceSocket) {
+    const connection = this.own(socket)
+    if (!connection) return
+    this.resetWindow(connection, this.now()); connection.messages++; connection.movements++; connection.lastSeen = this.now()
+    this.persist(socket, connection)
   }
   message(socket: PresenceSocket, raw: string | ArrayBuffer): void {
     const connection = this.own(socket)

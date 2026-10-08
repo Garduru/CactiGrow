@@ -33,7 +33,7 @@ export function SocialProvider({ children }: { children: ReactNode }) {
   const currentAreaId = world.active ? world.location?.runtimeAreaId ?? null : inTown ? 'town' : ownPublicId ? `farm-${ownPublicId}` : null
   const entryPointId = world.active ? world.location?.entryId ?? 'default' : inTown ? resolveTownSpawnId(location.state) : 'chat-session'
   const townConnection = useMemo(() => new AreaConnection({ areaId: areaId(currentAreaId ?? 'town'), entryPointId,
-    origin: window.location.origin, admit: (request, signal) => browserRealtimeApiClient.requestRealtimeAdmission(world.active ? { ...request, worldFoundation: true } : request, signal) }), [currentAreaId, entryPointId, world.active])
+    origin: window.location.origin, recoverStalePresence: world.active, admit: (request, signal) => browserRealtimeApiClient.requestRealtimeAdmission(world.active ? { ...request, worldFoundation: true } : request, signal) }), [currentAreaId, entryPointId, world.active])
   const enabled = (import.meta.env.MODE !== 'production' || import.meta.env.VITE_CACTIGROW_REALTIME_ENABLED === 'true')
     && !(import.meta.env.DEV && new URLSearchParams(location.search).has('worldEdit'))
   useEffect(() => {

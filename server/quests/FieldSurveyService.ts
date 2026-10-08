@@ -1,3 +1,6 @@
+import type { MovementPort } from '../movement/movementPort.ts'
+import { readInteractionAuthority } from '../movement/interactionProximity.ts'
+import { movementNavigation } from '../movement/movementRules.ts'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { playerGrowerEvents, playerProfiles } from '../db/schema/index.ts'
@@ -56,11 +59,12 @@ export async function projectFieldSurvey(tx: StartingTransaction, playerId: stri
     status, acceptedAt: state.acceptedAt, completedAt: state.completedAt, rewardClaimed: reward !== null, objectives }
 }
 export class FieldSurveyService {
+  private readonly movement?: MovementPort
   private readonly database: CactiGrowDatabase
   private readonly environment: string
   private readonly now: () => Date
-  constructor(database: CactiGrowDatabase, options: { environment: string; now?: () => Date }) {
-    this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date())
+  constructor(database: CactiGrowDatabase, options: { movement?: MovementPort; environment: string; now?: () => Date }) {
+    this.movement = options.movement; this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date())
   }
   private assertEnvironment(dev = false) {
     if (!(dev ? ['staging', 'development'] : ['staging', 'test']).includes(this.environment)) throw ApiError.notFound('API route not found.')
@@ -96,15 +100,17 @@ export class FieldSurveyService {
       if (!starting.farmTutorialComplete) throw ApiError.conflict('Complete your Farm introduction before accepting the Field Survey.')
       const event = await latestWorld(tx, playerId), location = isWorldLocation(event?.payload) ? event.payload : initialLocation(publicId)
       if (location.revision !== command.expectedWorldRevision) throw ApiError.conflict('Your location changed. Reload the world.')
+      const authority = this.movement ? await readInteractionAuthority(tx, playerId, this.movement) : null
+      const position = authority?.position ?? command.position
       const area = findArea(location.areaId), npc = area?.interactables?.find(n => n.entityId === FIELD_SURVEY.npcEntityId && n.kind === 'npc' && !n.tutorial)
-      if (!area || area.areaId !== FIELD_SURVEY.npcAreaId || !npc || Math.hypot(command.position.x - npc.x, command.position.y - npc.y) > EXPLORATION_INTERACTION_RADIUS) {
+      if (!area || area.areaId !== FIELD_SURVEY.npcAreaId || !npc || Math.hypot(position.x - npc.x, position.y - npc.y) > EXPLORATION_INTERACTION_RADIUS) {
         throw ApiError.conflict('Return to Mara at Cross Path to discuss the survey.')
       }
       const exploration = await loadExplorationState(tx, playerId), now = this.now(), spawn = area.spawns.find(s => s.entryId === location.entryId)!
       const anchor = exploration.anchor?.worldRevision === location.revision && exploration.anchor.areaId === area.areaId ? exploration.anchor
         : { position: { x: spawn.x, y: spawn.y }, at: (event?.occurredAt ?? owner.initializedAt).toISOString() }
-      const navigation = validateExplorationReach(area, command.position, anchor, now)
-      if (!navigation.visible(command.position, npc)) throw ApiError.conflict('Approach Mara on clear ground.')
+      const navigation = authority ? movementNavigation(authority.runtimeAreaId) : validateExplorationReach(area, position, anchor, now)
+      if (!navigation.visible(position, npc)) throw ApiError.conflict('Approach Mara on clear ground.')
       const state = await loadFieldSurveyState(tx, playerId)
       let reward: FieldSurveyRewardV1 | undefined
       if (command.type === 'accept') {
@@ -125,7 +131,7 @@ export class FieldSurveyService {
         }
         state.completedAt = now.toISOString()
       }
-      exploration.anchor = { areaId: area.areaId, worldRevision: location.revision, position: { ...command.position }, at: now.toISOString() }
+      exploration.anchor = { areaId: area.areaId, worldRevision: location.revision, position: { ...position }, at: now.toISOString() }
       await saveExplorationState(tx, playerId, exploration, command.commandId, now, fingerprint)
       await saveFieldSurveyState(tx, playerId, state, command.commandId, now, fingerprint, reward)
       return { projection: await projectFieldSurvey(tx, playerId, starting, exploration), starting, ...(reward ? { reward } : {}) }

@@ -1,3 +1,4 @@
+import { movementTestNamespace } from '../movement/movementTestNamespace.mjs'
 import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
@@ -20,13 +21,14 @@ export async function verifyStartingUi({ database, playerId, handleApiRequest, c
   `},bundle:true,jsx:'automatic',platform:'browser',format:'iife',write:false,define:{'import.meta.env':JSON.stringify({MODE:'staging',DEV:false})},loader:{'.css':'empty'},logLevel:'silent'})
   const css=(await Promise.all(['src/index.css','src/styles/tokens.css','src/styles/game.css','src/features/starting/starting.css','src/game-world/localMinimap.css','src/features/devtools/devTools.css','src/features/admin/adminTools.css'].map(f=>readFile(f,'utf8')))).join('\n')
   const router=createApiRouter({authenticationConfigurationFactory:()=>({identityProvider:{verify:async()=>({provider:'test',subject:playerId,expiresAt:new Date(Date.now()+3600000).toISOString()})},createPlayerIdentityResolver:async()=>({resolve:async()=>({playerId})})})})
+  const movementNamespace=movementTestNamespace()
   const errors=[];let appearanceWrites=0
   const server=createServer(async(req,res)=>{
     try {
       if(req.url.startsWith('/api/')) {
         const chunks=[];for await(const c of req)chunks.push(c)
         if(req.method==='POST'&&req.url==='/api/v1/me/starting-experience'&&JSON.parse(Buffer.concat(chunks).toString()).type==='save-appearance')appearanceWrites++
-        const response=await handleApiRequest(new Request(`http://127.0.0.1${req.url}`,{method:req.method,headers:req.headers,...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})}),{CACTIGROW_ENVIRONMENT:'staging',CACTIGROW_VERSION:'starting-ui-fixture',CACTIGROW_REALTIME_ENABLED:'false',CACTIGROW_ACCESS_TEAM_DOMAIN:'https://fixture.invalid',CACTIGROW_ACCESS_AUDIENCE:'fixture-audience'},undefined,{router,createRequestDatabaseContext:()=>({getDatabase:async()=>database,dispose:async()=>{}}),reportUnexpectedError:e=>errors.push(e.message+': '+(e.cause?.message??''))})
+        const response=await handleApiRequest(new Request(`http://127.0.0.1${req.url}`,{method:req.method,headers:req.headers,...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})}),{AREA_PRESENCE:movementNamespace,CACTIGROW_ENVIRONMENT:'staging',CACTIGROW_VERSION:'starting-ui-fixture',CACTIGROW_REALTIME_ENABLED:'false',CACTIGROW_ACCESS_TEAM_DOMAIN:'https://fixture.invalid',CACTIGROW_ACCESS_AUDIENCE:'fixture-audience'},undefined,{router,createRequestDatabaseContext:()=>({getDatabase:async()=>database,dispose:async()=>{}}),reportUnexpectedError:e=>errors.push(e.message+': '+(e.cause?.message??''))})
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));return
       }
       if(req.url.startsWith('/assets/')) {const path=resolve('public','.'+req.url);if(!path.startsWith(resolve('public')+'\\'))throw new Error('Invalid asset path');res.setHeader('content-type',extname(path)==='.png'?'image/png':extname(path)==='.webp'?'image/webp':'image/svg+xml');res.end(await readFile(path));return}

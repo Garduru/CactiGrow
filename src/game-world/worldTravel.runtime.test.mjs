@@ -37,8 +37,12 @@ test('actual foundation page restores HUD Travel, Farm interiors and discovered 
         PhaserWorldCanvas:'return null',MenuDropdown:'return null',InGameChatHud:'return null',
         createFarmWorldGame:'return null',createTownWorldGame:'return null',createLdtkWorldGame:'return null',
       }
-      plugin.onResolve({filter:/\/(WorldLocationContext|useGameState|usePlantLifecycle|useGardenAuthority|useSocialState|useSocialPanel|useGrowerAuthority|useOwnPublicSkills|PhaserWorldHost|UtilityMenu|InGameChatHud|createFarmWorldGame|createTownWorldGame|createLdtkWorldGame)$/},args=>({path:args.path.split('/').at(-1),namespace:'fixture'}))
-      plugin.onLoad({filter:/.*/,namespace:'fixture'},args=>{const key={WorldLocationContext:'useWorldLocation',PhaserWorldHost:'PhaserWorldCanvas',UtilityMenu:'MenuDropdown'}[args.path]??args.path;return{contents:'export function '+key+'(){'+stubs[key]+'}',loader:'js'}})
+      plugin.onResolve({filter:/\/(browserApiClient|WorldLocationContext|useGameState|usePlantLifecycle|useGardenAuthority|useSocialState|useSocialPanel|useGrowerAuthority|useOwnPublicSkills|PhaserWorldHost|UtilityMenu|InGameChatHud|createFarmWorldGame|createTownWorldGame|createLdtkWorldGame)$/},args=>({path:args.path.split('/').at(-1),namespace:'fixture'}))
+      plugin.onLoad({filter:/.*/,namespace:'fixture'},args=>{
+        if(args.path==='browserApiClient')return{contents:`const authority=c=>({v:1,areaId:globalThis.travelFixture.world.location.areaId,runtimeAreaId:globalThis.travelFixture.world.location.runtimeAreaId,worldRevision:globalThis.travelFixture.world.location.revision,revision:1,position:c?.position??globalThis.travelFixture.world.location.position,previousPosition:globalThis.travelFixture.world.location.position,acceptedAt:Date.now(),serverNow:Date.now(),accepted:true,lastRejection:null,rejections:0,delta:0});export const browserApiClient={movementCheckpoint:async c=>authority(c),worldInteraction:async()=>authority()}`}
+        if(args.path==='PhaserWorldHost')return{resolveDir:process.cwd(),contents:`import {useEffect} from 'react';export function PhaserWorldCanvas({onIntent,createGame}){globalThis.travelFixture.intent=onIntent;useEffect(()=>{createGame(null,{});},[createGame]);return null}`}
+        if(args.path==='createFarmWorldGame')return{contents:`export function createFarmWorldGame(parent,bridge,options){options.foundation.bindBuildingWalk(id=>globalThis.travelFixture.walk=id);return null}`}
+        const key={WorldLocationContext:'useWorldLocation',PhaserWorldHost:'PhaserWorldCanvas',UtilityMenu:'MenuDropdown'}[args.path]??args.path;return{contents:'export function '+key+'(){'+stubs[key]+'}',loader:'js'}})
     }}]})
     await writeFile(file,built.outputFiles[0].contents)
     const {mount,act,calls}=await import(pathToFileURL(file).href)
@@ -53,7 +57,7 @@ test('actual foundation page restores HUD Travel, Farm interiors and discovered 
       const buttons=[...document.querySelectorAll('#world-travel-menu button')]
       assert.deepEqual(buttons.map(b=>b.textContent),expected)
       if(area==='path-2'){await act(async()=>buttons[0].click());assert.deepEqual(calls.at(-1),['travel','player-farm'])}
-      if(area==='player-farm'){await act(async()=>buttons[1].click());const path=JSON.parse(document.querySelector('#path').textContent);assert.equal(path.pathname,'/nursery');assert.equal(path.state.worldReturnTo,'/world')}
+      if(area==='player-farm'){await act(async()=>buttons[1].click());assert.equal(globalThis.travelFixture.walk,'nursery');assert.equal(JSON.parse(document.querySelector('#path').textContent).pathname,'/world','HUD building selection first requests normal approach');await act(async()=>{globalThis.travelFixture.intent({type:'ENTER_LOCATION',locationId:'nursery',position:{x:680,y:550}});await new Promise(r=>setTimeout(r,0))});const path=JSON.parse(document.querySelector('#path').textContent);assert.equal(path.pathname,'/nursery');assert.equal(path.state.worldReturnTo,'/world')}
       await act(async()=>root.unmount())
     }
   } finally {await unlink(file).catch(()=>{});delete globalThis.travelFixture;dom.window.close();for(const [key,d] of saved){if(d)Object.defineProperty(globalThis,key,d);else Reflect.deleteProperty(globalThis,key)}}

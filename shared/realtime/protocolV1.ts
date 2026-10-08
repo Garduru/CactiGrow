@@ -1,6 +1,7 @@
 import { getAreaDefinition, isPosition, isWithinArea, type Position } from './areas.ts'
 import { isCanonicalUuid, isGeneration, isSequence, type AreaId, type ConnectionGeneration, type LayerId, type PresenceId } from './identifiers.ts'
 import { isCharacterAppearance, type CharacterAppearance } from '../api/startingExperienceV1.ts'
+import { isMovementAuthorityV1, type MovementAuthorityV1 } from '../api/movementV1.ts'
 
 export const REALTIME_PROTOCOL_VERSION = 1 as const
 export const MAX_CLIENT_FRAME_BYTES = 1024
@@ -44,6 +45,7 @@ export type ClientMessageV1 =
 
 interface ServerEnvelope { readonly v: 1; readonly eventSequence: number }
 export type ServerMessageV1 = ServerEnvelope & (
+  | { readonly type: 'movement-authority'; readonly authority: MovementAuthorityV1 }
   | { readonly type: 'welcome'; readonly areaId: AreaId; readonly layerId: LayerId; readonly coordinateVersion: number; readonly selfPresenceId: PresenceId; readonly players: readonly PublicPresenceV1[]; readonly limits: ConnectionLimitsV1 }
   | { readonly type: 'joined'; readonly player: PublicPresenceV1 }
   | { readonly type: 'moved'; readonly presenceId: PresenceId; readonly generation: ConnectionGeneration; readonly sample: MovementSample; readonly acceptedAt: number }
@@ -110,6 +112,7 @@ export function isServerMessageV1(value: unknown): value is ServerMessageV1 {
   if (!isRecord(value) || value.v !== 1 || !isSequence(value.eventSequence)) return false
   const keys = (fields: string[]) => hasExactKeys(value, ['v', 'type', 'eventSequence', ...fields])
   switch (value.type) {
+    case 'movement-authority': return keys(['authority']) && isMovementAuthorityV1(value.authority)
     case 'welcome': {
       const area = getAreaDefinition(value.areaId)
       if (!keys(['areaId', 'layerId', 'coordinateVersion', 'selfPresenceId', 'players', 'limits'])

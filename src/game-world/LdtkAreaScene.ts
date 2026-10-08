@@ -1,3 +1,5 @@
+import { bindMovementAuthority } from './bindMovementAuthority.ts'
+import { PLAYER_MOVEMENT_SPEED } from '../../shared/world/movement.ts'
 import Phaser from 'phaser'
 import { bindLocalMinimap } from './bindLocalMinimap'
 import { bindTutorialWorldHighlight } from './tutorialWorldHighlight'
@@ -105,6 +107,7 @@ export class LdtkAreaScene extends Phaser.Scene {
     }
     this.interactionPrompt = this.add.text(0, 0, '', { fontSize: '13px', fontFamily: 'system-ui', color: '#fff3dc', backgroundColor: '#39281eee', padding: { x: 9, y: 5 } }).setOrigin(.5, 0).setDepth(WORLD_DEPTH.prompts).setVisible(false).setName('exploration-interaction-prompt')
     this.setupPresence()
+    bindMovementAuthority(this, this.player, () => this.navigation, this.options)
     if (this.options.guidance) bindTutorialWorldHighlight(this, this.options.guidance, key => {
       if (key.startsWith('entity:')) {
         const entity = area.interactables?.find(e => e.entityId === key.slice(7))
@@ -114,7 +117,7 @@ export class LdtkAreaScene extends Phaser.Scene {
       return exit ? { x: exit.x - exit.width/2, y: exit.y - exit.height/2, width: exit.width, height: exit.height } : undefined
     })
     bindLocalMinimap(this, this.options.minimap, area, this.player, () => this.navigation, this.options.pending, () => { this.interaction = null })
-    this.exits = new AreaExitController(area, onExit)
+    this.exits = new AreaExitController(area, id => onExit(id, { x: this.player.x, y: this.player.y }))
     drawFoundationExitDebug(this, this.options)
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT,E') as Record<string, Phaser.Input.Keyboard.Key>
     const release = bindWorldKeyboardFocus(this.game.canvas, this.input.keyboard!)
@@ -162,7 +165,7 @@ export class LdtkAreaScene extends Phaser.Scene {
       const position = { x: this.player.x, y: this.player.y }, dx = position.x - previous.x, dy = position.y - previous.y
       const moving = Math.abs(dx) + Math.abs(dy) > .01
       if (moving) facing = Math.abs(dx) > Math.abs(dy) ? dx > 0 ? 'east' : 'west' : dy > 0 ? 'south' : 'north'
-      connection.sampleMovement(position, facing, moving); previous = position
+      if (!this.options.movement) connection.sampleMovement(position, facing, moving); previous = position
     }
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, sample)
     const cleanup = () => { unsubscribe(); remotes.clear(); this.events.off(Phaser.Scenes.Events.POST_UPDATE, sample); this.events.off(Phaser.Scenes.Events.SHUTDOWN, cleanup); this.events.off(Phaser.Scenes.Events.DESTROY, cleanup) }
@@ -193,8 +196,8 @@ export class LdtkAreaScene extends Phaser.Scene {
     if (nearest && Phaser.Input.Keyboard.JustDown(this.keys.E)) this.approachEntity(nearest)
     const x = Number(this.keys.D.isDown || this.keys.RIGHT.isDown) - Number(this.keys.A.isDown || this.keys.LEFT.isDown)
     const y = Number(this.keys.S.isDown || this.keys.DOWN.isDown) - Number(this.keys.W.isDown || this.keys.UP.isDown)
-    if (x || y) { this.interaction = null; this.navigation.cancel(); const v = new Phaser.Math.Vector2(x, y).normalize().scale(245); body.setVelocity(v.x, v.y) }
-    else { const v = this.navigation.update(this.player, delta, 245, time); body.setVelocity(v.x, v.y) }
+    if (x || y) { this.interaction = null; this.navigation.cancel(); const v = new Phaser.Math.Vector2(x, y).normalize().scale(PLAYER_MOVEMENT_SPEED); body.setVelocity(v.x, v.y) }
+    else { const v = this.navigation.update(this.player, delta, PLAYER_MOVEMENT_SPEED, time); body.setVelocity(v.x, v.y) }
     this.exits.update(this.player)
     const target = this.options.area.interactables?.find(e => e.entityId === this.interaction)
     if (target && Math.hypot(this.player.x-target.x,this.player.y-target.y) <= 115) { this.interaction = null; this.navigation.cancel(); body.setVelocity(0); this.options.onInteract?.(target.entityId) }

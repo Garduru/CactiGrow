@@ -1,3 +1,5 @@
+import { createMovementPort } from '../movement/movementPort.ts'
+import { isMovementCheckpointV1 } from '../../shared/api/movementV1.ts'
 import { MarketplaceService } from '../gameplay/MarketplaceService.ts'
 import { SHOP_CATALOG, MAX_SHOP_QUANTITY } from '../gameplay/shopCatalog.ts'
 import { getRuntimeMetadata, type WorkerEnv } from '../env.ts'
@@ -119,7 +121,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       return withAuthenticatedPlayer(context, async ({ player }) => {
-        const service = new StartingExperienceService(await context.database.getDatabase())
+        const service = new StartingExperienceService(await context.database.getDatabase(), undefined, env.CACTIGROW_ENVIRONMENT === 'staging' ? createMovementPort(env) : undefined)
         if (request.method === 'GET') return successResponse({ ...await service.read(player.playerId), serverNow: new Date().toISOString() }, requestId)
         const command = await readJson(request)
         if (!isStartingCommand(command)) throw ApiError.validation('Invalid tutorial command.')
@@ -130,7 +132,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       return withAuthenticatedPlayer(context, async ({ player }) => {
-        const service = new TownContentService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+        const service = new TownContentService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT, ...(env.CACTIGROW_ENVIRONMENT === 'staging' ? { movement: createMovementPort(env) } : {}) })
         if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
         const command = await readJson(request)
         if (!isTownContentCommandV1(command)) throw ApiError.validation('Invalid Town conversation command.')
@@ -141,7 +143,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       return withAuthenticatedPlayer(context, async ({ player }) => {
-        const service = new FieldSurveyService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+        const service = new FieldSurveyService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT, ...(env.CACTIGROW_ENVIRONMENT === 'staging' ? { movement: createMovementPort(env) } : {}) })
         if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
         const command = await readJson(request)
         if (!isFieldSurveyCommandV1(command)) throw ApiError.validation('Invalid Field Survey command.')
@@ -154,25 +156,44 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
       return withAuthenticatedPlayer(context, async ({ player }) => {
         const command = await readJson(request)
         if (!isExplorationRestoreCommandV1(command)) throw ApiError.validation('Invalid exploration entry command.')
-        return successResponse(await new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT }).restoreEntry(player.playerId, command), requestId)
+        return successResponse(await new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT, ...(env.CACTIGROW_ENVIRONMENT === 'staging' ? { movement: createMovementPort(env) } : {}) }).restoreEntry(player.playerId, command), requestId)
       }, dependencies.authenticationConfigurationFactory)
     }
     if (url.pathname === '/api/v1/me/exploration') {
       if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       return withAuthenticatedPlayer(context, async ({ player }) => {
-        const service = new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+        const service = new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT, ...(env.CACTIGROW_ENVIRONMENT === 'staging' ? { movement: createMovementPort(env) } : {}) })
         if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
         const command = await readJson(request)
         if (!isExplorationCommandV1(command)) throw ApiError.validation('Invalid exploration command.')
         return successResponse(await service.execute(player.playerId, command), requestId)
       }, dependencies.authenticationConfigurationFactory)
     }
+    if (url.pathname === '/api/v1/me/movement' || url.pathname === '/api/v1/me/world-interaction') {
+      if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
+      if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = new WorldService(await context.database.getDatabase(), createMovementPort(env))
+        if (request.method === 'GET') {
+          if (url.pathname !== '/api/v1/me/movement') throw ApiError.methodNotAllowed()
+          return successResponse(await service.checkpoint(player.playerId), requestId)
+        }
+        const raw = await readJson(request)
+        if (url.pathname === '/api/v1/me/world-interaction') {
+          const input = raw as { entityId?: unknown }
+          if (!input || Object.keys(input).length !== 1 || typeof input.entityId !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(input.entityId)) throw ApiError.validation('Invalid interaction target.')
+          return successResponse(await service.checkpoint(player.playerId, undefined, input.entityId), requestId)
+        }
+        if (!isMovementCheckpointV1(raw)) throw ApiError.validation('Invalid movement checkpoint.')
+        return successResponse(await service.checkpoint(player.playerId, raw), requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
     if (url.pathname === '/api/v1/me/world') {
       if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
       if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
       return withAuthenticatedPlayer(context, async ({ player }) => {
-        const service = new WorldService(await context.database.getDatabase())
+        const service = new WorldService(await context.database.getDatabase(), env.CACTIGROW_ENVIRONMENT === 'staging' ? createMovementPort(env) : undefined)
         if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
         const raw = await readJson(request)
         if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw ApiError.validation('Invalid exit command.')
@@ -213,7 +234,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
         const service = new DevToolsService(await context.database.getDatabase(), getRuntimeMetadata(env).environment)
         if (url.pathname === '/api/v1/dev/field-survey') {
           if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
-          const survey = new FieldSurveyService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+          const survey = new FieldSurveyService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT, ...(env.CACTIGROW_ENVIRONMENT === 'staging' ? { movement: createMovementPort(env) } : {}) })
           if (request.method === 'GET') return successResponse(await survey.inspect(player.playerId), requestId)
           const command = await readJson(request)
           if (!isFieldSurveyDevCommandV1(command)) throw ApiError.validation('Invalid Field Survey development command.')
@@ -221,7 +242,7 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
         }
         if (url.pathname === '/api/v1/dev/exploration') {
           if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
-          const exploration = new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+          const exploration = new ExplorationService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT, ...(env.CACTIGROW_ENVIRONMENT === 'staging' ? { movement: createMovementPort(env) } : {}) })
           if (request.method === 'GET') return successResponse(await exploration.inspect(player.playerId), requestId)
           const command = await readJson(request)
           if (!isExplorationDevCommandV1(command)) throw ApiError.validation('Invalid exploration development command.')

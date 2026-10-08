@@ -10,8 +10,11 @@ import { AreaCoordinator, type PresenceSocket } from './AreaCoordinator.ts'
 import { areaCoordinatorName, CHECKPOINT_KEY, isTrustedAdmission, membershipKey, sameOwner, type TrustedAdmission } from './runtimeContracts.ts'
 import { CONNECTION_TTL_MS, TICKET_TTL_MS, TICKETS_KEY, MAX_CREDENTIAL_RECORDS, credentialHash, newCredential, pruneTickets, isTicketState, type TicketState } from './admissionTickets.ts'
 import { isRealtimeCredential, REALTIME_SUBPROTOCOL } from '../../shared/api/realtimeCredentialsV1.ts'
+import { MovementOwner, MOVEMENT_KEY, movementOwnerName } from '../movement/MovementOwner.ts'
+import { parseClientMessageText } from '../../shared/realtime/protocolV1.ts'
+import { isMovementAuthorityV1 } from '../../shared/api/movementV1.ts'
 
-export interface RealtimeEnv { AREA_PRESENCE: DurableObjectNamespace<AreaPresence> }
+export interface RealtimeEnv { AREA_PRESENCE: DurableObjectNamespace<AreaPresence>; CACTIGROW_ENVIRONMENT?: string }
 const SOCIAL_KEY = 'area-social-v1'
 interface AreaSocialProfile { playerId: string; publicId: string; displayName: string; blockedPublicIds: readonly string[] }
 function isAreaSocialProfile(value: unknown): value is AreaSocialProfile {
@@ -37,6 +40,7 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
   #pendingChats: { sender: Membership; message: PublicChatMessageV1 }[] = []
   #runtime?: AreaCoordinator
   #socialProfiles = new Map<string, AreaSocialProfile>()
+  #lastMovementAck = new Map<string, number>()
 
   constructor(ctx: DurableObjectState, env: RealtimeEnv) {
     super(ctx, env)
@@ -71,7 +75,7 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
       save: (value) => this.ctx.storage.kv.put(CHECKPOINT_KEY, value),
       routeChat: (sender, message) => { this.#pendingChats.push({ sender, message }) },
       isBlocked: (blockerPlayerId, blockedPublicId) => this.#socialProfiles.get(blockerPlayerId)?.blockedPublicIds.includes(blockedPublicId) ?? false,
-      removeSocial: (playerId) => { this.#socialProfiles.delete(playerId); this.#saveSocialProfiles() },
+      removeSocial: (playerId) => { this.#socialProfiles.delete(playerId); this.#lastMovementAck.delete(playerId); this.#saveSocialProfiles() },
       diagnostic: (event, fields) => console.info(JSON.stringify({ service: 'area-presence', event, ...fields })),
     }, saved, this.ctx.getWebSockets())
   }
@@ -89,6 +93,7 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
    */
   fetch(request: Request): Promise<Response> | Response {
     const path = new URL(request.url).pathname
+    if (path === '/movement' && request.method === 'POST') return this.#movementFetch(request)
     if (this.ctx.id.toString() === this.env.AREA_PRESENCE.idFromName(CHAT_DIRECTORY_NAME).toString()) return this.#directoryFetch(request)
     if (path === '/chat-deliver' && request.method === 'POST') return this.#deliver(request)
     if (path === '/chat-revoke' && request.method === 'POST') return this.#revoke(request)
@@ -102,6 +107,22 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
     let input: unknown
     try { input = JSON.parse(scope) } catch { return new Response('Invalid scope', { status: 403 }) }
     return this.#admit(input)
+  }
+  async #movementFetch(request: Request): Promise<Response> {
+    if (!['staging', 'test'].includes(this.env.CACTIGROW_ENVIRONMENT ?? '')) return new Response(null, { status: 404 })
+    const raw = await request.text()
+    if (raw.length > 4096) return new Response(null, { status: 413 })
+    let input: { playerId: string; command: unknown }
+    try { input = JSON.parse(raw) } catch { return new Response(null, { status: 400 }) }
+    if (!isCanonicalUuid(input?.playerId) || this.ctx.id.toString() !== this.env.AREA_PRESENCE.idFromName(movementOwnerName(input.playerId)).toString()) return new Response(null, { status: 403 })
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const owner = new MovementOwner({ get: () => this.ctx.storage.kv.get(MOVEMENT_KEY), put: state => this.ctx.storage.kv.put(MOVEMENT_KEY, state) })
+      try {
+        const result = owner.execute(input.playerId, input.command)
+        if ((input.command as { type?: string })?.type === 'move' && !result.accepted && (result.rejections === 1 || result.rejections % 20 === 0)) console.info(JSON.stringify({ service: 'movement-authority', playerId: input.playerId, areaId: result.runtimeAreaId, reason: result.lastRejection, rejections: result.rejections }))
+        return Response.json(result)
+      } catch { return new Response(null, { status: 409 }) }
+    })
   }
   async #syncSocial(request: Request): Promise<Response> {
     const text = await request.text()
@@ -214,7 +235,23 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
   }
   async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
     const chats = await this.ctx.blockConcurrencyWhile(async () => {
-      if (this.#runtime) this.#runtime.message(socket, message)
+      if (this.#runtime) {
+        const scope = ['staging', 'test'].includes(this.env.CACTIGROW_ENVIRONMENT ?? '') ? this.#runtime.movementScope(socket, message) : null
+        if (scope) {
+          const parsed = typeof message === 'string' ? parseClientMessageText(message) : null
+          if (parsed?.ok && parsed.message.type === 'move') {
+            const stub = this.env.AREA_PRESENCE.get(this.env.AREA_PRESENCE.idFromName(movementOwnerName(scope.playerId)))
+            const response = await stub.fetch(new Request('https://movement.internal/movement', { method: 'POST', body: JSON.stringify({ playerId: scope.playerId, command: { type: 'move', runtimeAreaId: scope.areaId, position: parsed.message.position } }) }))
+            const authority: unknown = response.ok ? await response.json() : null
+            if (!isMovementAuthorityV1(authority)) { this.#runtime.movementUnavailable(socket); return [] }
+            if (!authority.accepted || Date.now() - (this.#lastMovementAck.get(scope.playerId) ?? 0) >= 500) {
+              this.#runtime.movementAuthority(socket, authority); this.#lastMovementAck.set(scope.playerId, Date.now())
+            }
+            if (!authority.accepted) { this.#runtime.rejectMovement(socket); return [] }
+          }
+        }
+        this.#runtime.message(socket, message)
+      }
       else socket.close(1008, 'Missing Area state')
       const chats = this.#pendingChats.splice(0)
       await this.#schedule()

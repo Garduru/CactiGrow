@@ -1,3 +1,5 @@
+import { WorldMovementClient } from './WorldMovementClient.ts'
+import { browserApiClient } from '../services/api/browserApiClient'
 import { LocalMinimap } from './LocalMinimapView'
 import { useLocalMinimap } from './LocalMinimapContext'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -5,7 +7,6 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { authoredRoadExit, discoveredTravelAreas, findArea, zoneName } from '../../shared/world/world.ts'
 import { WorldNav } from '../components/layout/WorldNav'
 import type { GameplayCameraState } from './gameplayCamera'
-import type { WorldLocationId } from './worldTypes'
 import { useWorldLocation } from './WorldLocationContext'
 import { useSocialState } from '../features/social/useSocialState'
 import { useSocialPanel } from '../features/social/useSocialPanel'
@@ -46,7 +47,8 @@ export function LdtkWorldPage() {
   const tutorial = useStartingExperience(), [interaction, setInteraction] = useState<string | null>(null)
   const [interactionPoint, setInteractionPoint] = useState<WorldPoint | null>(null)
   const exploration = useExploration(), explorationRef = useRef(exploration)
-  const fieldRequest = useRef(false)
+  const fieldRequest = useRef(false), movementBusy = useRef(false), walkBuilding = useRef<((id: string) => void) | null>(null)
+  const [movementError, setMovementError] = useState('')
   useEffect(() => { explorationRef.current = exploration }, [exploration])
   const interactionRef = useRef(interaction), tutorialRef = useRef(tutorial)
   useEffect(() => { interactionRef.current = interaction; tutorialRef.current = tutorial }, [interaction, tutorial])
@@ -63,6 +65,8 @@ export function LdtkWorldPage() {
   const camera = useRef<GameplayCameraState>({})
   useEffect(() => { actions.current = world }, [world])
   const location = world.location, authoredArea = location ? findArea(location.areaId) : undefined
+  const movement = useMemo(() => location ? new WorldMovementClient(location, command => browserApiClient.movementCheckpoint(command)) : null, [location])
+  useEffect(() => { movement?.start(); return () => movement?.stop() }, [movement])
   const farmTutorialComplete = !!tutorial.state?.farmTutorialComplete
   const area = useMemo(() => authoredArea?.areaId === FIELD_SURVEY.npcAreaId && !farmTutorialComplete
     ? { ...authoredArea, interactables: authoredArea.interactables?.filter(entity => entity.entityId !== FIELD_SURVEY.npcEntityId) }
@@ -76,23 +80,41 @@ export function LdtkWorldPage() {
   const position = area?.areaType === 'farm' && route.state?.worldSpawn && route.state.worldRevision === location?.revision ? farmWorldSpawns[resolveFarmSpawnId(route.state)] : location?.position
   const createGame = useCallback((parent: HTMLElement, bridge: WorldBridge) => {
     if (!area || !position) throw new Error('World location unavailable.')
-    const foundation = { minimap: minimapStore, tutorialNow: () => tutorialRef.current.now(), area, position, guidance: () => guidanceRef.current, camera: camera.current, appearance,
+    const foundation = { movement: movement ?? undefined, clearInteraction: () => { interactionRef.current = null; setInteraction(null) }, bindBuildingWalk: (walk: ((id: string) => void) | null) => { walkBuilding.current = walk }, minimap: minimapStore, tutorialNow: () => tutorialRef.current.now(), area, position, guidance: () => guidanceRef.current, camera: camera.current, appearance,
       connection: social.connection,
       exploration: () => explorationRef.current.projection, explorationNow: () => explorationRef.current.now(),
-      onDiscover: (landmarkId: string, point: WorldPoint) => { if (fieldRequest.current || explorationRef.current.pending || actions.current.pending) return false; fieldRequest.current = true; void explorationRef.current.execute({ type: 'discover-landmark', landmarkId, position: point }).finally(() => { fieldRequest.current = false }); return true },
+      onDiscover: (landmarkId: string, point: WorldPoint) => {
+        if (fieldRequest.current || explorationRef.current.pending || actions.current.pending || movementBusy.current) return false
+        fieldRequest.current = true; movement?.setPosition(point)
+        void movement?.flush().then(() => explorationRef.current.execute({ type: 'discover-landmark', landmarkId, position: point })).catch(e => setMovementError(e instanceof Error ? e.message : 'Approach again.')).finally(() => { fieldRequest.current = false })
+        return true
+      },
       onInteract: (id: string, point?: WorldPoint) => {
-        const entity = area.interactables?.find(entity => entity.entityId === id)
-        if (area.areaId === TOWN_CONTENT.areaId && point && (id === TOWN_CONTENT.boardEntityId || TOWN_NPC_IDS.some(npcId => npcId === id))) { setInteractionPoint(point); setInteraction(id); return }
-        if (entity?.entityId === FIELD_SURVEY.npcEntityId && point) { setInteractionPoint(point); setInteraction(id); return }
-        if (entity && !entity.tutorial && point) { void explorationRef.current.execute({ type: entity.kind === 'inspectable' ? 'inspect' : 'harvest', entityId: id, position: point }); return }
-        setInteraction(id)
-      }, tutorialPot: () => tutorialRef.current.state?.pot ?? null, debug: import.meta.env.MODE === 'staging' && new URLSearchParams(route.search).has('worldDebug'), pending: () => actions.current.pending || !!interactionRef.current || tutorialRef.current.pending, onExit: (id: string) => { void actions.current.transition(id) } }
+        if (movementBusy.current || actions.current.pending) return
+        movementBusy.current = true; setMovementError(''); if (point) movement?.setPosition(point)
+        void movement?.flush().then(() => browserApiClient.worldInteraction(id)).then(() => {
+          const entity = area.interactables?.find(entity => entity.entityId === id)
+          if (area.areaId === TOWN_CONTENT.areaId && point && (id === TOWN_CONTENT.boardEntityId || TOWN_NPC_IDS.some(npcId => npcId === id))) { setInteractionPoint(point); setInteraction(id); return }
+          if (entity?.entityId === FIELD_SURVEY.npcEntityId && point) { setInteractionPoint(point); setInteraction(id); return }
+          if (entity && !entity.tutorial && point) { void explorationRef.current.execute({ type: entity.kind === 'inspectable' ? 'inspect' : 'harvest', entityId: id, position: point }); return }
+          setInteraction(id)
+        }).catch(e => setMovementError(e instanceof Error ? e.message : 'Approach again.')).finally(() => { movementBusy.current = false })
+      }, tutorialPot: () => tutorialRef.current.state?.pot ?? null, debug: import.meta.env.MODE === 'staging' && new URLSearchParams(route.search).has('worldDebug'),
+      pending: () => actions.current.pending || movementBusy.current || !!interactionRef.current || tutorialRef.current.pending,
+      onExit: (id: string, point?: WorldPoint) => {
+        if (movementBusy.current) return
+        movementBusy.current = true; setMovementError(''); if (point) movement?.setPosition(point)
+        void movement?.flush().then(() => actions.current.transition(id)).catch(e => setMovementError(e instanceof Error ? e.message : 'Approach the exit again.')).finally(() => { movementBusy.current = false })
+      } }
     if (area.areaType === 'farm') return createFarmWorldGame(parent, bridge, { spawnId: 'default', foundation })
     if (area.areaType === 'town') return createTownWorldGame(parent, bridge, { spawnId: 'farm-arrival', connection: social.connection, foundation })
     return createLdtkWorldGame(parent, foundation)
-  }, [area, position, social.connection, route.search, appearance, minimapStore])
+  }, [area, position, social.connection, route.search, appearance, minimapStore, movement])
   const intent = useCallback((intent: WorldIntent) => {
     if (intent.type === 'OPEN_PLAYER_PROFILE') { social.openProfile(intent.publicId); return }
+    if (!movement || movementBusy.current) return
+    movementBusy.current = true; setMovementError(''); if (intent.position) movement.setPosition(intent.position)
+    void movement.flush().then(() => browserApiClient.worldInteraction(intent.locationId)).then(() => {
     if (area?.areaType === 'farm') {
       if (intent.locationId === 'town') return // Outdoor roads activate only by walking into LDtk triggers.
       const destination = farm.locations.find(l => l.id === intent.locationId)
@@ -100,16 +122,17 @@ export function LdtkWorldPage() {
     } else if (area?.areaType === 'town') {
       if (intent.locationId === 'shop' || intent.locationId === 'market') panels.openFeature(intent.locationId)
     }
-  }, [area, farm.locations, navigate, panels, social, world])
+    }).catch(e => setMovementError(e instanceof Error ? e.message : 'Approach the entrance again.')).finally(() => { movementBusy.current = false })
+  }, [area, farm.locations, navigate, panels, social, world, movement])
   if (import.meta.env.MODE !== 'staging') return <Navigate to="/play" replace />
   if (!area || !location) return <section className="world-page"><p role="status">{world.error || 'Loading world…'}</p>{world.error && <button onClick={world.reload}>Retry</button>}</section>
   return <section className="world-page" aria-label={`${zoneName(area.zoneId)} · ${area.displayName}`}>
     <WorldNav<string> sceneName={area.displayName}
       destinations={[...(area.areaType === 'farm' ? farm.locations.filter(l => l.id !== 'town') : []), ...discoveredTravelAreas(location).map(a => ({ id: `world:${a.travelDestinationId}`, displayName: a.travelDisplayName ?? a.displayName }))]}
-      onTravel={id => { interactionRef.current = null; setInteraction(null); if (id.startsWith('world:')) void world.travel(id.slice(6)); else intent({ type: 'ENTER_LOCATION', locationId: id as WorldLocationId }) }} />
+      onTravel={id => { interactionRef.current = null; setInteraction(null); if (id.startsWith('world:')) void world.travel(id.slice(6)); else walkBuilding.current?.(id) }} />
     <div className="world-page__viewport">
       <PhaserWorldCanvas projection={projection} onIntent={intent} createGame={createGame} />
-      <div className="town-multiplayer-status" role="status">{world.pending ? 'Travelling…' : world.error || `${zoneName(area.zoneId)} · ${area.displayName}`}{world.error && <button onClick={world.reload}>Reload location</button>}</div>
+      <div className="town-multiplayer-status" role="status">{world.pending ? 'Travelling…' : movementError || world.error || `${zoneName(area.zoneId)} · ${area.displayName}`}{world.error && <button onClick={world.reload}>Reload location</button>}</div>
       <LocalMinimap areaId={area.areaId} hidden={!!interaction || dock.chatDockExpanded || panels.feature !== null || world.pending} />
       {!interaction && !dock.chatDockExpanded && panels.feature === null && <ExplorationNotice />}
       {dock.chatDockExpanded && <InGameChatHud mode={dock.activeTab === 'friends' ? 'world-chat' : dock.activeTab} onModeChange={dock.setActiveTab} />}

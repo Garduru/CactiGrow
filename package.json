@@ -68,7 +68,8 @@
     "test:field-survey:browser": "node --test src/features/field-survey/fieldSurvey.browser.test.mjs",
     "town:author": "node scripts/town-content-v1.mjs --all",
     "test:town-content": "node --experimental-strip-types --test --test-force-exit shared/world/townContent.test.mjs shared/world/townGeometry.test.ts shared/api/townContentV1.test.ts server/town/townContent.integration.test.mjs src/features/town-content/townContent.test.ts",
-    "test:town-content:browser": "node --test src/features/town-content/townContent.browser.test.mjs"
+    "test:town-content:browser": "node --test src/features/town-content/townContent.browser.test.mjs",
+    "test:movement": "node --experimental-strip-types --test server/movement/movement.test.ts src/game-world/WorldMovementClient.test.ts server/movement/movement.integration.test.mjs server/movement/movement.runtime.test.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.5.0-beta",

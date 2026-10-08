@@ -1,3 +1,5 @@
+import type { WorldMovementClient } from './WorldMovementClient.ts'
+import type { MovementAuthorityV1 } from '../../shared/api/movementV1.ts'
 import type { LocalMinimapStore } from './localMinimap.ts'
 import type Phaser from 'phaser'
 import type { WorldArea, WorldExit, WorldPoint } from '../../shared/world/types.ts'
@@ -24,8 +26,8 @@ export class AreaExitController {
     }
   }
 }
-export interface FoundationPresenceConnection { getSnapshot(): { readonly remotes: readonly PublicPresenceV1[] }; subscribe(listener: () => void): () => void; sampleMovement(position: WorldPoint, facing: Facing, moving: boolean): void }
-export interface FoundationSceneOptions { minimap?: LocalMinimapStore; tutorialNow?(): number; position: WorldPoint; area: WorldArea; onExit(id: string): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean; appearance?: CharacterAppearance; onInteract?(id: string, position?: WorldPoint): void; onDiscover?(id: string, position: WorldPoint): boolean; exploration?(): ExplorationProjectionV1 | null; explorationNow?(): number; connection?: FoundationPresenceConnection; guidance?(): string | null; tutorialPot?(): StartingExperienceV1['pot'] }
+export interface FoundationPresenceConnection { getSnapshot(): { readonly status?: string; readonly diagnostic?: string; readonly authority?: MovementAuthorityV1; readonly remotes: readonly PublicPresenceV1[] }; subscribe(listener: () => void): () => void; sampleMovement(position: WorldPoint, facing: Facing, moving: boolean): void }
+export interface FoundationSceneOptions { movement?: WorldMovementClient; clearInteraction?(): void; bindBuildingWalk?(walk: ((id: string) => void) | null): void; minimap?: LocalMinimapStore; tutorialNow?(): number; position: WorldPoint; area: WorldArea; onExit(id: string, position?: WorldPoint): void; pending(): boolean; camera?: GameplayCameraState; debug?: boolean; appearance?: CharacterAppearance; onInteract?(id: string, position?: WorldPoint): void; onDiscover?(id: string, position: WorldPoint): boolean; exploration?(): ExplorationProjectionV1 | null; explorationNow?(): number; connection?: FoundationPresenceConnection; guidance?(): string | null; tutorialPot?(): StartingExperienceV1['pot'] }
 export function drawFoundationExitDebug(scene: Phaser.Scene, options: FoundationSceneOptions) {
   if (!options.debug) return
   for (const exit of options.area.exits) {
@@ -43,7 +45,7 @@ export function drawFoundationExitDebug(scene: Phaser.Scene, options: Foundation
 export function bindFoundationExits(scene: Phaser.Scene, player: WorldPoint, options?: FoundationSceneOptions) {
   if (!options) return
   drawFoundationExitDebug(scene, options)
-  const controller = new AreaExitController(options.area, options.onExit)
+  const controller = new AreaExitController(options.area, id => options.onExit(id, { x: player.x, y: player.y }))
   const update = () => { if (!options.pending()) controller.update(player) }
   scene.events.on('update', update)
   const release = () => scene.events.off('update', update)

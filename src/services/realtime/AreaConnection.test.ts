@@ -38,9 +38,9 @@ class Socket extends EventTarget {
 const settle = async () => { await new Promise<void>((resolve) => setImmediate(resolve)) }
 const credential = { v: 1 as const, areaId: TOWN_AREA.areaId, socketPath: '/api/v1/realtime/areas/town', ticket: 'a'.repeat(64), reconnectToken: 'b'.repeat(64),
   expiresAt: new Date(100_000).toISOString(), authorizationExpiresAt: new Date(200_000).toISOString() }
-function harness(admit?: (input: RealtimeCredentialsRequestV1, signal: AbortSignal) => Promise<typeof credential>) {
+function harness(admit?: (input: RealtimeCredentialsRequestV1, signal: AbortSignal) => Promise<typeof credential>, recoverStalePresence = false) {
   const clock = new Clock(), sockets: Socket[] = [], requests: RealtimeCredentialsRequestV1[] = []
-  const connection = new AreaConnection({ areaId: TOWN_AREA.areaId, entryPointId: 'farm-arrival', origin: 'https://test', now: () => clock.time, schedule: clock.schedule,
+  const connection = new AreaConnection({ areaId: TOWN_AREA.areaId, entryPointId: 'farm-arrival', origin: 'https://test', recoverStalePresence, now: () => clock.time, schedule: clock.schedule,
     admit: (input, signal) => { requests.push(input); return admit ? admit(input, signal) : Promise.resolve(credential) },
     socket: (url, protocols) => { assert.equal(url, 'wss://test/api/v1/realtime/areas/town'); assert.equal(protocols[1], 'cactigrow.ticket.' + credential.ticket); const socket = new Socket(); sockets.push(socket); return socket as unknown as RealtimeSocket },
   })
@@ -129,6 +129,27 @@ test('Late admission after unmount cannot open a socket; authentication failures
   const denied = harness(async () => { throw new CactiGrowApiError('unauthenticated', 'Sign in', undefined, 401) })
   denied.connection.start(); denied.clock.advance(0); await settle(); denied.clock.advance(100_000)
   assert.equal(denied.requests.length, 1); assert.equal(denied.connection.getSnapshot().status, 'unavailable'); denied.connection.stop()
+})
+
+test('Staging world reload recovers after an old presence lease; repeated conflict stays bounded and stop cancels grace', async () => {
+  const conflict = () => new CactiGrowApiError('conflict', 'Presence already active', undefined, 409)
+  const h = harness(async () => { if (h.clock.time < 61_000) throw conflict(); return credential }, true)
+  h.connection.start(); h.clock.advance(0); await settle()
+  for (const delay of [1000, 3000, 8000]) { h.clock.advance(delay); await settle() }
+  assert.equal(h.requests.length, 4); assert.equal(h.connection.getSnapshot().status, 'reconnecting')
+  h.clock.advance(60_000); await settle(); h.sockets[0].receive(welcome())
+  assert.equal(h.connection.getSnapshot().status, 'connected'); assert.equal(h.requests.length, 5)
+  assert.equal(h.connection.getSnapshot().diagnostic, undefined); h.connection.stop()
+  const blocked = harness(async () => { throw conflict() }, true)
+  blocked.connection.start(); blocked.clock.advance(0); await settle()
+  for (const delay of [1000, 3000, 8000, 60_000]) { blocked.clock.advance(delay); await settle() }
+  assert.equal(blocked.requests.length, 5); assert.equal(blocked.connection.getSnapshot().status, 'unavailable')
+  blocked.connection.stop(); assert.equal(blocked.clock.jobs.size, 0)
+  const cancelled = harness(async () => { throw conflict() }, true)
+  cancelled.connection.start(); cancelled.clock.advance(0); await settle()
+  for (const delay of [1000, 3000, 8000]) { cancelled.clock.advance(delay); await settle() }
+  cancelled.connection.stop(); cancelled.clock.advance(60_000); await settle()
+  assert.equal(cancelled.requests.length, 4); assert.equal(cancelled.clock.jobs.size, 0)
 })
 
 test('Authorization expiry and browser backpressure stop sends and clear remote state', async () => {

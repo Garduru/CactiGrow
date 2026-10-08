@@ -1,3 +1,4 @@
+import type { MovementAuthorityV1 } from '../../../shared/api/movementV1.ts'
 import { isRealtimeCredentialsResponseV1, realtimeSocketProtocols, type RealtimeCredentialsRequestV1, type RealtimeCredentialsResponseV1 } from '../../../shared/api/realtimeCredentialsV1.ts'
 import { getAreaDefinition, isWithinArea, type Position } from '../../../shared/realtime/areas.ts'
 import type { AreaId, LayerId, PresenceId } from '../../../shared/realtime/identifiers.ts'
@@ -5,12 +6,13 @@ import { parseServerMessageText, type ClientMessageV1, type ConnectionLimitsV1, 
 import { CactiGrowApiError } from '../api/CactiGrowApiClient.ts'
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'unavailable'
-export interface AreaConnectionState { readonly status: ConnectionStatus; readonly remotes: readonly PublicPresenceV1[]; readonly chatMessages: readonly PublicChatMessageV1[]; readonly chatError?: string; readonly layerId?: LayerId }
+export interface AreaConnectionState { readonly authority?: MovementAuthorityV1; readonly diagnostic?: string; readonly status: ConnectionStatus; readonly remotes: readonly PublicPresenceV1[]; readonly chatMessages: readonly PublicChatMessageV1[]; readonly chatError?: string; readonly layerId?: LayerId }
 export type RealtimeSocket = Pick<WebSocket, 'readyState' | 'bufferedAmount' | 'send' | 'close' | 'addEventListener'>
 interface ConnectionOptions {
   areaId: AreaId
   entryPointId: string
   origin: string
+  recoverStalePresence?: boolean
   admit(input: RealtimeCredentialsRequestV1, signal: AbortSignal): Promise<RealtimeCredentialsResponseV1>
   socket?(url: string, protocols: string[]): RealtimeSocket
   now?(): number
@@ -27,7 +29,10 @@ export class AreaConnection {
   private state: AreaConnectionState = { status: 'idle', remotes: [], chatMessages: [] }
   private readonly remotes = new Map<PresenceId, PublicPresenceV1>()
   private chatMessages: PublicChatMessageV1[] = []
+  private authority?: MovementAuthorityV1
   private chatError: string | null = null
+  private diagnostic = ''
+  private conflictRecoveryUsed = false
   private active = false
   private epoch = 0
   private socket?: RealtimeSocket
@@ -56,13 +61,16 @@ export class AreaConnection {
   getSnapshot = (): AreaConnectionState => this.state
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   private publish(status = this.state.status, layerId = this.state.layerId) {
-    this.state = { status, remotes: [...this.remotes.values()], chatMessages: this.chatMessages,
+    this.state = { authority: this.authority, status, remotes: [...this.remotes.values()], chatMessages: this.chatMessages,
+      ...(this.diagnostic ? { diagnostic: this.diagnostic } : {}),
       ...(this.chatError ? { chatError: this.chatError } : {}), layerId }
     this.listeners.forEach((listener) => listener())
   }
   start() {
     if (this.active) return
     this.active = true; this.failures = 0
+    this.diagnostic = ''
+    this.conflictRecoveryUsed = false
     this.publish('connecting')
     // Strict Mode's setup/cleanup/setup cancels this task before any admission or socket exists.
     this.cancelTask = this.schedule(() => { void this.connect() }, 0)
@@ -81,16 +89,23 @@ export class AreaConnection {
     this.cancelTask?.(); this.cancelDeadline?.(); this.cancelHeartbeat?.(); this.abort?.abort()
     const socket = this.socket; this.socket = undefined
     try { socket?.close(1000, 'Town presence ended') } catch { /* already closed */ }
+    this.authority = undefined
     this.remotes.clear(); this.self = undefined; this.limits = undefined
     this.lastEvent = -1; this.sequence = 0; this.pingSequence = 0; this.lastSent = undefined; this.lastSentAt = -Infinity
     this.state = { status: this.state.status, remotes: [], chatMessages: this.chatMessages,
       ...(this.chatError ? { chatError: this.chatError } : {}) }
   }
-  private fail(retry = true) {
+  private fail(retry = true, diagnostic = 'transport-ended', stalePresence = false) {
     if (!this.active) return
+    this.diagnostic = diagnostic
     if (this.state.status === 'connected' && this.now() - this.connectedAt >= 60_000) this.failures = 0
     this.reset()
-    const delay = RETRY_DELAYS[this.failures++]
+    let delay = RETRY_DELAYS[this.failures++]
+    // A reload loses its private reconnect token before the old 60-second lease expires.
+    // One delayed staging-world retry recovers without replacing an active owner.
+    if (retry && delay === undefined && stalePresence && !this.conflictRecoveryUsed) {
+      this.conflictRecoveryUsed = true; delay = 60_000
+    }
     if (!retry || delay === undefined) { this.publish('unavailable'); return }
     this.publish('reconnecting')
     this.cancelTask = this.schedule(() => { void this.connect() }, delay)
@@ -106,7 +121,7 @@ export class AreaConnection {
         ...(this.reconnectTokens[0] ? { reconnectToken: this.reconnectTokens[0] } : {}) }, abort.signal)
       if (!owns()) return
       if (!isRealtimeCredentialsResponseV1(credentials) || credentials.areaId !== this.options.areaId
-        || Date.parse(credentials.expiresAt) <= this.now()) { this.fail(false); return }
+        || Date.parse(credentials.expiresAt) <= this.now()) { this.fail(false, 'invalid-admission-projection'); return }
       this.authorizationExpiresAt = Date.parse(credentials.authorizationExpiresAt)
       this.reconnectTokens = [credentials.reconnectToken, ...this.reconnectTokens].slice(0, 2)
       const url = new URL(credentials.socketPath, this.options.origin)
@@ -119,7 +134,7 @@ export class AreaConnection {
         if (!owns()) return
         if (typeof event.data !== 'string') { this.fail(false); return }
         const parsed = parseServerMessageText(event.data)
-        if (!parsed.ok) { this.fail(false); return }
+        if (!parsed.ok) { this.fail(false, `protocol-${parsed.code}`); return }
         this.receive(parsed.message)
       })
       socket.addEventListener('close', () => { if (owns()) this.fail() })
@@ -131,26 +146,32 @@ export class AreaConnection {
         this.fail(); return
       }
       const permanent = error instanceof CactiGrowApiError && (error.kind === 'unauthenticated' || error.kind === 'invalid-response' || [400, 403, 404].includes(error.status ?? 0))
-      this.fail(!permanent)
+      this.fail(!permanent, error instanceof CactiGrowApiError ? `admission-${error.status ?? error.kind}` : 'admission-unavailable',
+        !!this.options.recoverStalePresence && error instanceof CactiGrowApiError && error.status === 409)
     }
   }
   private receive(message: ServerMessageV1) {
     if (this.now() >= this.authorizationExpiresAt) { this.fail(false); return }
     if (message.eventSequence <= this.lastEvent) return
-    if (message.eventSequence !== this.lastEvent + 1) { this.fail(); return }
+    if (message.eventSequence !== this.lastEvent + 1) { this.fail(true, 'sequence-gap'); return }
     this.lastEvent = message.eventSequence; this.lastReceived = this.now()
     if (message.type === 'welcome') {
       if (this.self || message.areaId !== this.options.areaId) { this.fail(false); return }
       this.self = message.selfPresenceId; this.limits = message.limits
+      this.diagnostic = ''
       this.remotes.clear()
       message.players.forEach((player) => { if (player.presenceId !== this.self) this.remotes.set(player.presenceId, player) })
       this.cancelDeadline?.(); this.connectedAt = this.now(); this.reconnectTokens = this.reconnectTokens.slice(0, 1)
       this.publish('connected', message.layerId); this.heartbeat(); return
     }
     if (!this.self) { this.fail(false); return }
+    if (message.type === 'movement-authority') {
+      if (message.authority.runtimeAreaId !== this.options.areaId) return
+      this.authority = message.authority; this.publish(); return
+    }
     if (message.type === 'error') {
       if (message.code === 'CHAT_UNAVAILABLE') { this.chatError = 'Message unavailable. Check recipient availability, blocks or the send limit; use Mail for offline delivery.'; this.publish(); return }
-      this.fail(message.retryable); return
+      this.fail(message.retryable, `server-${message.code}`); return
     }
     if (message.type === 'chat') {
       this.chatError = null

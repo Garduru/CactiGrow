@@ -1,3 +1,5 @@
+import type { MovementPort } from '../movement/movementPort.ts'
+import { readInteractionAuthority, requireProximity, requireBuilding } from '../movement/interactionProximity.ts'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { bredSeeds, cloneLines, geneticProfiles, plantSpecimens, playerGardenSpecimens, playerGrowerEvents, playerOnboarding, playerPlantLifecycleVersions, playerProfiles, playerSeedStacks } from '../db/schema/index.ts'
@@ -11,9 +13,10 @@ import { retiredTutorialMaterial } from './StartingResetService.ts'
 export const TUTORIAL_SPECIES = 'echinopsis-pachanoi'
 export const TUTORIAL_GROWTH_MS = 15_000
 export class StartingExperienceService {
+  private readonly movement?: MovementPort
   private readonly database: CactiGrowDatabase
   private readonly now: () => Date
-  constructor(database: CactiGrowDatabase, now = () => new Date()) { this.database = database; this.now = now }
+  constructor(database: CactiGrowDatabase, now = () => new Date(), movement?: MovementPort) { this.database = database; this.now = now; this.movement = movement }
   private async load(tx: StartingTransaction, playerId: string) {
     const owner = await lockStartingOwner(tx, playerId)
     const state = await loadStartingState(tx, playerId, owner.profileId)
@@ -78,6 +81,10 @@ export class StartingExperienceService {
       } else if (command.type === 'visit-lab') {
         const [location] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'world-foundation-location-v1'))).orderBy(desc(sql`(${playerGrowerEvents.payload}->>'revision')::integer`)).limit(1)
         if ((location?.payload as { areaId?: string } | undefined)?.areaId !== 'player-farm' || state.farmStage !== 'lab') throw ApiError.conflict('Visit the Genetics Lab during your Farm introduction.')
+        if (this.movement) {
+          const authority = await readInteractionAuthority(tx, playerId, this.movement)
+          requireBuilding(authority, findArea(authority.areaId)!, 'lab')
+        }
         // Facility admission is recorded separately; it never fabricates GeneticKnowledge.
         state.farmStage = 'research'
       } else if (command.type === 'equip-tool') {
@@ -92,6 +99,7 @@ export class StartingExperienceService {
           const entity = findArea(areaId)?.interactables?.find(e => e.entityId === command.entityId)
           const kind = command.type === 'talk-guide' ? 'npc' : command.type === 'harvest-plant' ? 'harvestable' : 'tutorial-pot'
           if (!entity || entity.kind !== kind || !entity.tutorial) throw ApiError.forbidden()
+          if (this.movement) requireProximity(await readInteractionAuthority(tx, playerId, this.movement), findArea(areaId)!, entity, 96)
           if (command.type === 'talk-guide') {
             if (state.spawnStage !== 'meet-guide') throw ApiError.conflict('Mara has already given you the Field Knife. Follow your current objective.')
             state.ownedEquipment = ['field-knife']; state.spawnStage = 'equip-tool'

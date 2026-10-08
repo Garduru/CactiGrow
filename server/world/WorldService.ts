@@ -1,3 +1,9 @@
+import type { MovementPort } from '../movement/movementPort.ts'
+import type { MovementCheckpointV1 } from '../../shared/api/movementV1.ts'
+import { isMovementAuthorityV1 } from '../../shared/api/movementV1.ts'
+import { movementNavigation } from '../movement/movementRules.ts'
+import { requireRegion, requireBuilding, requireProximity } from '../movement/interactionProximity.ts'
+import { MOVEMENT_PERSIST_MS } from '../../shared/world/movement.ts'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { playerGrowerEvents, playerOnboarding, playerProfiles } from '../db/schema/index.ts'
@@ -36,7 +42,8 @@ export function resolveTravel(current: WorldLocation, command: TravelCommand, pu
 type Transaction = Parameters<Parameters<CactiGrowDatabase['transaction']>[0]>[0]
 export class WorldService {
   private readonly database: CactiGrowDatabase
-  constructor(database: CactiGrowDatabase) { this.database = database }
+  private readonly movement?: MovementPort
+  constructor(database: CactiGrowDatabase, movement?: MovementPort) { this.database = database; this.movement = movement }
   private async owner(tx: Transaction, playerId: string) {
     // The existing onboarding owner row serializes location changes; no gameplay values are changed.
     const [owner] = await tx.select({ id: playerOnboarding.playerId }).from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update')
@@ -47,33 +54,68 @@ export class WorldService {
   private async load(tx: Transaction, playerId: string, publicId: string): Promise<WorldLocation> {
     const [event] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents)
       .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, EVENT))).orderBy(desc(sql`(${playerGrowerEvents.payload}->>'revision')::integer`)).limit(1)
-    if (!isWorldLocation(event?.payload)) {
-      const fallback = initialLocation(publicId), old = event?.payload as { revision?: unknown } | undefined
-      if (typeof old?.revision === 'number' && Number.isSafeInteger(old.revision) && old.revision >= 0) fallback.revision = old.revision
-      return fallback
-    }
-    const s = event.payload
+    const valid = isWorldLocation(event?.payload)
+    const s = valid ? event!.payload as WorldLocation : initialLocation(publicId)
+    const old = event?.payload as { revision?: unknown } | undefined
+    if (!valid && typeof old?.revision === 'number' && Number.isSafeInteger(old.revision) && old.revision >= 0) s.revision = old.revision
     const area = findArea(s.areaId)!, spawn = area.spawns.find(entry => entry.entryId === s.entryId)!
-    // Checkpoints restore authored entries, including later LDtk spawn polish.
+    const [safe] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents)
+      .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'movement-safe-location-v1'), sql`${playerGrowerEvents.payload}->>'worldRevision' = ${String(s.revision)}`))
+      .orderBy(desc(playerGrowerEvents.occurredAt)).limit(1)
+    const saved = safe?.payload
+    const position = isMovementAuthorityV1(saved) && saved.areaId === area.areaId && saved.runtimeAreaId === runtimeAreaId(area, publicId) && movementNavigation(saved.runtimeAreaId).walkable(saved.position) ? saved.position : { x: spawn.x, y: spawn.y }
+    // Restore only a server-accepted position for this exact location revision.
     return { projectionVersion: 1, revision: s.revision, areaId: s.areaId, runtimeAreaId: runtimeAreaId(area, publicId), zoneId: s.zoneId,
-      entryId: s.entryId, position: { x: spawn.x, y: spawn.y }, discoveredAreaIds: s.discoveredAreaIds, discoveredTravelDestinationIds: s.discoveredTravelDestinationIds }
+      entryId: s.entryId, position: { ...position }, discoveredAreaIds: s.discoveredAreaIds, discoveredTravelDestinationIds: s.discoveredTravelDestinationIds }
   }
-  read(playerId: string) { return this.database.transaction(async tx => this.load(tx, playerId, await this.owner(tx, playerId))) }
-  transition(playerId: string, command: WorldCommand) {
+  private async accepted(playerId: string, location: WorldLocation) {
+    const authority = await this.movement?.read(playerId, location)
+    return authority ? { ...location, position: { ...authority.position } } : location
+  }
+  read(playerId: string) { return this.database.transaction(async tx => this.accepted(playerId, await this.load(tx, playerId, await this.owner(tx, playerId)))) }
+  checkpoint(playerId: string, command?: MovementCheckpointV1, targetId?: string) {
     return this.database.transaction(async tx => {
+      const current = await this.load(tx, playerId, await this.owner(tx, playerId))
+      if (!this.movement) throw ApiError.conflict('Movement authority unavailable.')
+      let authority = await this.movement.read(playerId, current)
+      if (command) authority = await this.movement.checkpoint(playerId, command)
+      if (targetId) {
+        const area = findArea(current.areaId)!, entity = area.interactables?.find(e => e.entityId === targetId)
+        if (entity) requireProximity(authority, area, entity, 96)
+        else requireBuilding(authority, area, targetId)
+      }
+      if (authority.accepted) {
+        const [latest] = await tx.select({ occurredAt: playerGrowerEvents.occurredAt }).from(playerGrowerEvents)
+          .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'movement-safe-location-v1'))).orderBy(desc(playerGrowerEvents.occurredAt)).limit(1)
+        if (!latest || authority.serverNow - latest.occurredAt.getTime() >= MOVEMENT_PERSIST_MS) await tx.insert(playerGrowerEvents).values({ id: crypto.randomUUID(), playerId, eventType: 'movement-safe-location-v1', sourceCommandId: crypto.randomUUID(), occurredAt: new Date(authority.serverNow), payload: authority })
+      }
+      return authority
+    })
+  }
+  async transition(playerId: string, command: WorldCommand) {
+    const location = await this.database.transaction(async tx => {
       const publicId = await this.owner(tx, playerId)
       const [receipt] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, EVENT), eq(playerGrowerEvents.sourceCommandId, command.commandId))).limit(1)
       if (receipt) {
         const saved = receipt.payload as { exitId?: string; travelDestinationId?: string; expectedRevision?: number }
         if (saved.exitId !== ('exitId' in command ? command.exitId : undefined) || saved.travelDestinationId !== ('travelDestinationId' in command ? command.travelDestinationId : undefined) || saved.expectedRevision !== command.expectedRevision) throw ApiError.conflict('Transition command ID was already used.')
         // Return current state on retry, never regress a client to a historical destination.
-        return this.load(tx, playerId, publicId)
+        return this.accepted(playerId, await this.load(tx, playerId, publicId))
       }
       const current = await this.load(tx, playerId, publicId)
+      if ('exitId' in command && this.movement) {
+        const authority = await this.movement.read(playerId, current), area = findArea(current.areaId)!
+        const exit = area.exits.find(e => e.exitId === command.exitId)
+        if (!exit) throw ApiError.forbidden()
+        requireRegion(authority, area, exit)
+      }
       const location = 'exitId' in command ? resolveExit(current, command, publicId) : resolveTravel(current, command, publicId)
       await progressWorldTutorial(tx, playerId, current.areaId, location.areaId, 'exitId' in command, command.commandId)
       await tx.insert(playerGrowerEvents).values({ id: crypto.randomUUID(), playerId, eventType: EVENT, sourceCommandId: command.commandId, occurredAt: new Date(), payload: { ...location, ...('exitId' in command ? { exitId: command.exitId } : { travelDestinationId: command.travelDestinationId }), expectedRevision: command.expectedRevision } })
       return location
     })
+    // Seed the destination only after its location transaction commits. A failed
+    // transaction must not advance the durable movement owner into another Area.
+    return this.movement ? this.read(playerId) : location
   }
 }

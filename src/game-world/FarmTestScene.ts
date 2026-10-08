@@ -1,3 +1,6 @@
+import { bindMovementAuthority } from './bindMovementAuthority.ts'
+import { NURSERY_COLLIDER_BOUNDS, NURSERY_ACTIVE_COLLIDER, HOME_COLLIDERS, LAB_PROVISIONAL_COLLIDERS, GARDEN_V1_EXTERIOR_COLLIDER, FARM_BOUNDARY_COLLIDERS, FARM_ROAD_COLLIDERS } from '../../shared/world/farmGeometry.ts'
+import { PLAYER_MOVEMENT_SPEED } from '../../shared/world/movement.ts'
 import { bindTutorialWorldHighlight } from './tutorialWorldHighlight'
 import { createPlayerCharacter, preloadCharacterArt } from './PlayerCharacter'
 import { configureGameplayCamera } from './gameplayCamera'
@@ -21,30 +24,9 @@ import { registeredPlantPigmentationAssets, registeredPlantStageAssets } from '.
 import type { GardenDisplayProjection } from './worldTypes'
 import type { EditorObject, WorldEditorController } from './editor/worldEditorState'
 
-const PLAYER_SPEED = 245
+const PLAYER_SPEED = PLAYER_MOVEMENT_SPEED
 const INTERACTION_DISTANCE = 165
 const NURSERY_V2_PRODUCTION_COLLIDER = { x: 650, y: 420, width: 500, height: 150 } as const
-const NURSERY_COLLIDER_BOUNDS = { left: 395, right: 935, top: 310, bottom: 455 } as const
-const NURSERY_ACTIVE_COLLIDER = {
-  x: (NURSERY_COLLIDER_BOUNDS.left + NURSERY_COLLIDER_BOUNDS.right) / 2,
-  y: (NURSERY_COLLIDER_BOUNDS.top + NURSERY_COLLIDER_BOUNDS.bottom) / 2,
-  width: NURSERY_COLLIDER_BOUNDS.right - NURSERY_COLLIDER_BOUNDS.left,
-  height: NURSERY_COLLIDER_BOUNDS.bottom - NURSERY_COLLIDER_BOUNDS.top,
-} as const
-const HOME_COLLIDERS = [
-  { name: 'main body', x: 1500, y: 702.5, width: 508, height: 115 },
-  { name: 'left wing', x: 1328, y: 632.5, width: 164, height: 35 },
-  { name: 'right wing', x: 1672, y: 632.5, width: 164, height: 35 },
-  { name: 'upper gable', x: 1500, y: 612.5, width: 240, height: 75 },
-  { name: 'chimney', x: 1588, y: 565, width: 56, height: 50 },
-] as const
-const LAB_PROVISIONAL_COLLIDERS = [
-  { name: 'lower body', x: 2382, y: 1257.5, width: 460, height: 135 },
-  { name: 'central dome', x: 2412.5, y: 1145, width: 205, height: 110 },
-  { name: 'right technical', x: 2558.5, y: 1148, width: 107, height: 104 },
-  { name: 'left AC', x: 2224, y: 1174, width: 72, height: 52 },
-] as const
-const GARDEN_V1_EXTERIOR_COLLIDER = { x: 2390, y: 420, width: 600, height: 220 } as const
 // The dynamic overview minimum may approach this floor only on pathological viewport shapes.
 const CAMERA_ZOOM_FLOOR = 0.1
 const MAX_CAMERA_ZOOM = 1.5
@@ -135,7 +117,13 @@ export class FarmTestScene extends Phaser.Scene {
     if (this.editor) this.setupEditor()
     this.rebuildNavigation()
     bindFoundationExits(this, this.player, this.foundation)
+    bindMovementAuthority(this, this.player, () => this.navigation, this.foundation)
     if (this.foundation) bindLocalMinimap(this, this.foundation.minimap, this.foundation.area, this.player, () => this.navigation, this.foundation.pending)
+    if (this.foundation?.bindBuildingWalk) {
+      this.foundation.bindBuildingWalk(id => { const layout = farmWorldLayout.find(l => l.id === id); if (layout) this.handleWorldTap(layout.interactionX ?? layout.x, layout.interactionY ?? layout.y) })
+      const release = () => this.foundation?.bindBuildingWalk?.(null)
+      this.events.once('shutdown', release); this.events.once('destroy', release)
+    }
     if (this.foundation?.guidance) bindTutorialWorldHighlight(this, this.foundation.guidance, key => key.startsWith('building:') ? this.editorVisuals.get(key.slice(9))?.main.getBounds() : undefined)
     if (this.debugWorld) this.setDevelopmentDebug(true)
 
@@ -270,11 +258,7 @@ export class FarmTestScene extends Phaser.Scene {
     for (let y = 150; y <= 1750; y += 120) {
       fence.fillStyle(0x8b6846).fillRect(63, y - 7, 54, 14).fillRect(2883, y - 7, 54, 14)
     }
-    this.addStaticCollider(1500, 90, 2820, 34)
-    this.addStaticCollider(90, 950, 34, 1720)
-    this.addStaticCollider(2910, 950, 34, 1720)
-    this.addStaticCollider(705, 1810, 1230, 34)
-    this.addStaticCollider(2295, 1810, 1230, 34)
+    FARM_BOUNDARY_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height))
   }
 
   private drawLandscaping() {
@@ -336,8 +320,7 @@ export class FarmTestScene extends Phaser.Scene {
       const right = this.add.rectangle(x + 135, y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
       const visual = this.add.rectangle(x, y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
       this.rememberVisual(layout.id, visual, [left, right])
-      this.addStaticCollider(x - 135, y, 24, 118, layout.id)
-      this.addStaticCollider(x + 135, y, 24, 118, layout.id)
+      FARM_ROAD_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
     } else {
       if (layout.visualKind === 'greenhouse') {
         const visual = this.add.image(NURSERY_V2_MAIN_ART.anchorX, NURSERY_V2_MAIN_ART.anchorY, NURSERY_V2_MAIN_ART.key)
@@ -850,7 +833,7 @@ export class FarmTestScene extends Phaser.Scene {
 
   private enterLocation(target: InteractionTarget) {
     this.navigation.cancel()
-    this.bridge.emitIntent({ type: 'ENTER_LOCATION', locationId: target.location.id })
+    this.bridge.emitIntent({ type: 'ENTER_LOCATION', locationId: target.location.id, ...(this.foundation?.movement ? { position: { x: this.player.x, y: this.player.y } } : {}) })
   }
 
   private getProgressText(location: FarmWorldLocationProjection) {

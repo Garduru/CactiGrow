@@ -1,3 +1,4 @@
+import { PLAYER_MOVEMENT_SPEED } from '../world/movement.ts'
 import { areaId, isCanonicalUuid, isSequence, type AreaId } from './identifiers.ts'
 import { areaFromRuntime, findArea } from '../world/world.ts'
 
@@ -29,7 +30,7 @@ export const TOWN_AREA: AreaDefinition = {
   entryPoints: { ...TOWN_ENTRY_POINTS, ...Object.fromEntries(findArea('town-p1')!.spawns.map(s => [s.entryId, { x: s.x, y: s.y }])) },
   // Provisional operational limits, not demonstrated realtime performance.
   layerCapacity: 32, populationLimit: 128, emptyLayerRetentionMs: 30_000,
-  movement: { speed: 245, maxUpdatesPerSecond: 10, positionTolerance: 2 },
+  movement: { speed: PLAYER_MOVEMENT_SPEED, maxUpdatesPerSecond: 10, positionTolerance: 2 },
 }
 
 const areas: readonly AreaDefinition[] = [TOWN_AREA]

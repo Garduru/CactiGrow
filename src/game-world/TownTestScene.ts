@@ -1,3 +1,5 @@
+import { bindMovementAuthority } from './bindMovementAuthority.ts'
+import { PLAYER_MOVEMENT_SPEED } from '../../shared/world/movement.ts'
 import { createNpcCharacter, createPlayerCharacter, preloadCharacterArt, updateCharacterMotion } from './PlayerCharacter'
 import { configureGameplayCamera } from './gameplayCamera'
 import { NavigationMap } from './navigation/NavigationMap'
@@ -23,7 +25,7 @@ import { TOWN_CONTENT, TOWN_INTERACTION_RADIUS, TOWN_NPC_IDS } from '../../share
 import { TOWN_BOUNDARY_COLLIDERS, TOWN_ROAD_POST_COLLIDERS } from '../../shared/world/townGeometry.ts'
 import type { WorldInteractable } from '../../shared/world/types.ts'
 
-const PLAYER_SPEED = 245
+const PLAYER_SPEED = PLAYER_MOVEMENT_SPEED
 const CAMERA_ZOOM_FLOOR = 0.1
 const MAX_CAMERA_ZOOM = 1.5
 const WORLD_OVERVIEW_MARGIN_SCALE = 0.94
@@ -108,6 +110,7 @@ export class TownTestScene extends Phaser.Scene {
     if (this.editor) this.setupEditor()
     this.rebuildNavigation()
     bindFoundationExits(this, this.player, this.foundation)
+    bindMovementAuthority(this, this.player, () => this.navigation, this.foundation)
     if (this.foundation) bindLocalMinimap(this, this.foundation.minimap, this.foundation.area, this.player, () => this.navigation, this.foundation.pending)
     if (this.debugWorld) this.setDevelopmentDebug(true)
 
@@ -322,7 +325,7 @@ export class TownTestScene extends Phaser.Scene {
       const dx = position.x - previous.x, dy = position.y - previous.y
       const moving = Math.abs(dx) + Math.abs(dy) > 0.01
       if (moving) facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'east' : 'west') : (dy > 0 ? 'south' : 'north')
-      connection.sampleMovement(position, facing, moving)
+      if (!this.foundation?.movement) connection.sampleMovement(position, facing, moving)
       previous = position
     }
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, sample)
@@ -631,6 +634,6 @@ export class TownTestScene extends Phaser.Scene {
       },
     }, performance.now())
   }
-  private enterLocation(target: TownInteractionTarget) { this.navigation.cancel(); this.bridge.emitIntent({ type: 'ENTER_LOCATION', locationId: target.location.id }) }
+  private enterLocation(target: TownInteractionTarget) { this.navigation.cancel(); this.bridge.emitIntent({ type: 'ENTER_LOCATION', locationId: target.location.id, ...(this.foundation?.movement ? { position: { x: this.player.x, y: this.player.y } } : {}) }) }
   private getPromptText(location: TownWorldLocationProjection) { return `${location.displayName}\n${location.interactionLabel}` }
 }

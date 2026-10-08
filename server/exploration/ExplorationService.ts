@@ -1,3 +1,6 @@
+import type { MovementPort } from '../movement/movementPort.ts'
+import { readInteractionAuthority } from '../movement/interactionProximity.ts'
+import { movementNavigation } from '../movement/movementRules.ts'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { playerGrowerEvents, playerPlantLifecycleVersions, playerProfiles, playerSeedStacks } from '../db/schema/index.ts'
@@ -29,12 +32,13 @@ function supportedNode(node: WorldInteractable) {
     && (node.requiredToolId === null || node.requiredToolId === 'field-knife') && node.rareRollEligible === false
 }
 export class ExplorationService {
+  private readonly movement?: MovementPort
   private readonly database: CactiGrowDatabase
   private readonly environment: string
   private readonly now: () => Date
   private readonly yield: (min: number, max: number) => number
-  constructor(database: CactiGrowDatabase, options: { environment: string; now?: () => Date; rollYield?: (min: number, max: number) => number }) {
-    this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date()); this.yield = options.rollYield ?? rollYield
+  constructor(database: CactiGrowDatabase, options: { movement?: MovementPort; environment: string; now?: () => Date; rollYield?: (min: number, max: number) => number }) {
+    this.movement = options.movement; this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date()); this.yield = options.rollYield ?? rollYield
   }
   private assertEnvironment(dev = false) {
     if (!(dev ? ['staging', 'development'] : ['staging', 'test']).includes(this.environment)) throw ApiError.notFound('API route not found.')
@@ -109,19 +113,21 @@ export class ExplorationService {
         .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, WORLD_EVENT))).orderBy(desc(sql`(${playerGrowerEvents.payload}->>'revision')::integer`)).limit(1)
       const location = isWorldLocation(event?.payload) ? event.payload : initialLocation(publicId)
       if (location.revision !== command.expectedWorldRevision) throw ApiError.conflict('Your location changed. Reload the world.')
+      const authority = this.movement ? await readInteractionAuthority(tx, playerId, this.movement) : null
+      const position = authority?.position ?? command.position
       const area = findArea(location.areaId)!
       if (!areas().some(a => a.areaId === area.areaId)) throw ApiError.forbidden()
       const landmark = command.type === 'discover-landmark' ? area.landmarks?.find(l => l.landmarkId === command.landmarkId) : undefined
       const entity = 'entityId' in command ? area.interactables?.find(n => n.entityId === command.entityId) : undefined
       if (command.type === 'discover-landmark') {
-        if (!landmark || Math.abs(command.position.x - landmark.x) > landmark.width / 2 || Math.abs(command.position.y - landmark.y) > landmark.height / 2) throw ApiError.conflict('Reach the landmark before recording it.')
+        if (!landmark || Math.abs(position.x - landmark.x) > landmark.width / 2 || Math.abs(position.y - landmark.y) > landmark.height / 2) throw ApiError.conflict('Reach the landmark before recording it.')
       } else if (!entity || entity.tutorial || (command.type === 'harvest' ? !supportedNode(entity) : entity.kind !== 'inspectable' || !entity.noteId || !entity.description)
-        || Math.hypot(command.position.x - entity.x, command.position.y - entity.y) > EXPLORATION_INTERACTION_RADIUS) throw ApiError.conflict('Approach this place before interacting.')
+        || Math.hypot(position.x - entity.x, position.y - entity.y) > EXPLORATION_INTERACTION_RADIUS) throw ApiError.conflict('Approach this place before interacting.')
       const spawn = area.spawns.find(s => s.entryId === location.entryId)!
       const anchor = state.anchor?.worldRevision === location.revision && state.anchor.areaId === area.areaId ? state.anchor
         : { position: { x: spawn.x, y: spawn.y }, at: (event?.occurredAt ?? owner.initializedAt).toISOString() }
-      const navigation = validateExplorationReach(area, command.position, anchor, now)
-      if (entity && !navigation.visible(command.position, entity)) throw ApiError.conflict('Approach this place on clear ground.')
+      const navigation = authority ? movementNavigation(authority.runtimeAreaId) : validateExplorationReach(area, position, anchor, now)
+      if (entity && !navigation.visible(position, entity)) throw ApiError.conflict('Approach this place on clear ground.')
       let reward: ExplorationRewardV1 | undefined
       if (command.type === 'harvest' && entity) {
         if (entity.requiredToolId && (starting.equipment.tool !== entity.requiredToolId || !starting.ownedEquipment.includes(entity.requiredToolId))) throw ApiError.conflict('Equip your Field Knife from Inventory before harvesting.')
@@ -140,7 +146,7 @@ export class ExplorationService {
         reward = { name: entity.displayName, speciesId: entity.speciesId!, quantity, harvestingXp: awardedXp }
       } else if (landmark) state.landmarks[landmark.landmarkId] ??= now.toISOString()
       else if (entity?.noteId) state.notes[entity.noteId] ??= now.toISOString()
-      state.anchor = { areaId: area.areaId, worldRevision: location.revision, position: { ...command.position }, at: now.toISOString() }
+      state.anchor = { areaId: area.areaId, worldRevision: location.revision, position: { ...position }, at: now.toISOString() }
       await saveExplorationState(tx, playerId, state, command.commandId, now, fingerprint, reward)
       return this.result(tx, playerId, state, starting, reward)
     })

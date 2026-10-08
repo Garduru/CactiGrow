@@ -1,3 +1,4 @@
+import { isMovementAuthorityV1, type MovementAuthorityV1, type MovementCheckpointV1 } from '../../../shared/api/movementV1.ts'
 import { isShopCatalogV1, isMarketplaceV1, type ShopCatalogV1, type MarketplaceV1 } from '../../../shared/api/commerceV1.ts'
 import { isWorldLocation } from '../../../shared/world/world.ts'
 import { isStartingExperience, type StartingCommand, type StartingExperienceV1 } from '../../../shared/api/startingExperienceV1.ts'
@@ -81,6 +82,10 @@ function isEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 }
 
 export class CactiGrowApiClient {
+  getMovement(signal?: AbortSignal): Promise<MovementAuthorityV1> { return this.execute('/api/v1/me/movement', { method: 'GET', signal }, isMovementAuthorityV1, 'Movement authority') }
+  movementCheckpoint(command: MovementCheckpointV1): Promise<MovementAuthorityV1> { return this.execute('/api/v1/me/movement', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isMovementAuthorityV1, 'Movement checkpoint') }
+  worldInteraction(entityId: string): Promise<MovementAuthorityV1> { return this.execute('/api/v1/me/world-interaction', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ entityId }) }, isMovementAuthorityV1, 'World interaction') }
+
   getTownContent(signal?: AbortSignal): Promise<TownContentResultV1> { return this.execute('/api/v1/me/town-content', { method: 'GET', signal }, isTownContentResultV1, 'Town notes') }
   townContentCommand(command: TownContentCommandV1): Promise<TownContentResultV1> { return this.execute('/api/v1/me/town-content', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isTownContentResultV1, 'Town conversation') }
   getFieldSurvey(signal?: AbortSignal): Promise<FieldSurveyResultV1> { return this.execute('/api/v1/me/field-survey', { method: 'GET', signal }, isFieldSurveyResultV1, 'Field Survey') }

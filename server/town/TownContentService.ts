@@ -1,3 +1,6 @@
+import type { MovementPort } from '../movement/movementPort.ts'
+import { readInteractionAuthority } from '../movement/interactionProximity.ts'
+import { movementNavigation } from '../movement/movementRules.ts'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
 import { playerGrowerEvents } from '../db/schema/index.ts'
@@ -44,11 +47,12 @@ async function projectTownContacts(tx: StartingTransaction, playerId: string, st
 }
 /** Small one-time Town notes reuse existing authority; no commerce, quest or social ownership. */
 export class TownContentService {
+  private readonly movement?: MovementPort
   private readonly database: CactiGrowDatabase
   private readonly environment: string
   private readonly now: () => Date
-  constructor(database: CactiGrowDatabase, options: { environment: string; now?: () => Date }) {
-    this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date())
+  constructor(database: CactiGrowDatabase, options: { movement?: MovementPort; environment: string; now?: () => Date }) {
+    this.movement = options.movement; this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date())
   }
   private assertEnvironment() {
     if (!['staging', 'test'].includes(this.environment)) throw ApiError.notFound('API route not found.')
@@ -79,8 +83,10 @@ export class TownContentService {
       if (!isWorldLocation(event?.payload) || event.payload.areaId !== TOWN_CONTENT.areaId) throw ApiError.conflict('Visit Town before speaking with its residents.')
       const location = event.payload
       if (location.revision !== command.expectedWorldRevision) throw ApiError.conflict('Your location changed. Reload the world.')
+      const authority = this.movement ? await readInteractionAuthority(tx, playerId, this.movement) : null
+      const position = authority?.position ?? command.position
       const area = findArea(location.areaId)!, npc = area.interactables?.find(entity => entity.entityId === command.entityId && entity.kind === 'npc' && !entity.tutorial)
-      if (!npc || Math.hypot(command.position.x - npc.x, command.position.y - npc.y) > TOWN_INTERACTION_RADIUS) throw ApiError.conflict('Approach this Town resident before talking.')
+      if (!npc || Math.hypot(position.x - npc.x, position.y - npc.y) > TOWN_INTERACTION_RADIUS) throw ApiError.conflict('Approach this Town resident before talking.')
       const [lastTalk] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents)
         .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, TOWN_CONTACT_RECEIPT),
           sql`${playerGrowerEvents.payload}->'anchor'->>'worldRevision' = ${String(location.revision)}`))
@@ -93,15 +99,15 @@ export class TownContentService {
       const anchor = explorationAnchor && (!previousTalkAnchor || Date.parse(explorationAnchor.at) > Date.parse(previousTalkAnchor.at)) ? explorationAnchor
         : previousTalkAnchor ?? { position: { x: spawn.x, y: spawn.y }, at: (event?.occurredAt ?? owner.initializedAt).toISOString() }
       // Town's preserved legacy rectangles are shared with the real scene, rather than its empty LDtk collision bridge.
-      const navigation = validateExplorationReach({ ...area, collision: TOWN_COLLIDERS.map(rectangle => ({ ...rectangle })) }, command.position, anchor, now)
-      if (!navigation.visible(command.position, npc)) throw ApiError.conflict('Approach this Town resident on clear ground.')
+      const navigation = authority ? movementNavigation(authority.runtimeAreaId) : validateExplorationReach({ ...area, collision: TOWN_COLLIDERS.map(rectangle => ({ ...rectangle })) }, position, anchor, now)
+      if (!navigation.visible(position, npc)) throw ApiError.conflict('Approach this Town resident on clear ground.')
       const contact = state.contacts.find(contact => contact.entityId === command.entityId)!, firstContact = contact.firstMetAt === null
       if (firstContact) {
         contact.firstMetAt = now.toISOString(); state.revision++
         await tx.insert(playerGrowerEvents).values({ id: crypto.randomUUID(), playerId, eventType: TOWN_CONTACT_EVENT, sourceCommandId: command.commandId, occurredAt: now, payload: state })
       }
       // Conversation receipts retain replay protection, without persisting dialogue choices or changing first-contact state again.
-      const nextAnchor: TownTalkAnchor = { revision: (previousTalkAnchor?.revision ?? 0) + 1, worldRevision: location.revision, position: { ...command.position }, at: now.toISOString() }
+      const nextAnchor: TownTalkAnchor = { revision: (previousTalkAnchor?.revision ?? 0) + 1, worldRevision: location.revision, position: { ...position }, at: now.toISOString() }
       await tx.insert(playerGrowerEvents).values({ id: crypto.randomUUID(), playerId, eventType: TOWN_CONTACT_RECEIPT, sourceCommandId: command.commandId, occurredAt: now, payload: { fingerprint, firstContact, anchor: nextAnchor } })
       return { projection: await projectTownContacts(tx, playerId, state), firstContact }
     })
