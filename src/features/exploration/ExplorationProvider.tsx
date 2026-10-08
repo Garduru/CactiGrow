@@ -5,6 +5,7 @@ import { useWorldLocation } from '../../game-world/WorldLocationContext'
 import { browserApiClient } from '../../services/api/browserApiClient'
 import { CactiGrowApiError } from '../../services/api/CactiGrowApiClient'
 import { useStartingExperience } from '../starting/StartingContext'
+import { useFieldSurvey } from '../field-survey/FieldSurveyContext'
 import { TutorialClock } from '../starting/tutorialClock'
 import type { ExplorationCommandV1, ExplorationProjectionV1, ExplorationResultV1, ExplorationDevCommandV1, ExplorationRestoreCommandV1 } from '../../../shared/api/explorationV1.ts'
 import { ExplorationContext, type ExplorationIntent, type ExplorationNotice } from './ExplorationContext'
@@ -14,7 +15,7 @@ import './exploration.css'
 /** Durable exploration comes only from the authenticated projection; no frame polling. */
 export function ExplorationProvider({ children }: { children: ReactNode }) {
   const bootstrap = usePlayerBootstrap(), world = useWorldLocation(), lifecycle = usePlantLifecycle(), starting = useStartingExperience()
-  const applyStarting = starting.applyProjection, refreshLifecycle = lifecycle.refresh
+  const applyStarting = starting.applyProjection, refreshLifecycle = lifecycle.refresh, applySurvey = useFieldSurvey().applyProjection
   const active = import.meta.env.MODE === 'staging'
   const playerId = active && bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
   const [loaded, setLoaded] = useState<{ playerId: string; projection: ExplorationProjectionV1 } | null>(null)
@@ -38,9 +39,9 @@ export function ExplorationProvider({ children }: { children: ReactNode }) {
     try {
       const boot = entry.current?.playerId === playerId && !entry.current.restored ? entry.current : null
       const result = boot ? await browserApiClient.restoreExplorationEntry(boot.command, signal) : await browserApiClient.getExploration(signal)
-      if (!signal?.aborted && request === generation.current && identity.current === playerId) { if (boot) boot.restored = true; apply(result.projection); applyStarting?.(result.starting); setError(''); if (boot) setNotice(null) }
+      if (!signal?.aborted && request === generation.current && identity.current === playerId) { if (boot) boot.restored = true; apply(result.projection); applyStarting?.(result.starting); if (result.fieldSurvey) applySurvey(result.fieldSurvey); setError(''); if (boot) setNotice(null) }
     } catch (reason) { if (!signal?.aborted && request === generation.current && identity.current === playerId) { const message = reason instanceof Error ? reason.message : 'Exploration unavailable.'; setError(message); publish('Field record unavailable.', message, true, 'Retry field record') } }
-  }, [apply, playerId, applyStarting, publish])
+  }, [apply, playerId, applyStarting, applySurvey, publish])
   const locationRevision = world.location?.revision
   useEffect(() => {
     if (!playerId || locationRevision === undefined || entry.current?.playerId === playerId && entry.current.restored) return
@@ -48,16 +49,17 @@ export function ExplorationProvider({ children }: { children: ReactNode }) {
     const controller = new AbortController(), request = ++generation.current
     const boot = entry.current
     void browserApiClient.restoreExplorationEntry(boot.command, controller.signal).then(result => {
-      if (!controller.signal.aborted && request === generation.current && identity.current === playerId) { boot.restored = true; apply(result.projection); applyStarting?.(result.starting); setError('') }
+      if (!controller.signal.aborted && request === generation.current && identity.current === playerId) { boot.restored = true; apply(result.projection); applyStarting?.(result.starting); if (result.fieldSurvey) applySurvey(result.fieldSurvey); setError('') }
     }).catch(reason => { if (!controller.signal.aborted && request === generation.current && identity.current === playerId) { const message = reason instanceof Error ? reason.message : 'Exploration unavailable.'; setError(message); publish('Field record unavailable.', message, true, 'Retry field record') } })
     return () => controller.abort()
-  }, [apply, applyStarting, playerId, locationRevision, publish])
+  }, [apply, applyStarting, applySurvey, playerId, locationRevision, publish])
   const reconcile = useCallback(async (result: ExplorationResultV1) => {
     generation.current += 1
     apply(result.projection)
     applyStarting?.(result.starting)
+    if (result.fieldSurvey) applySurvey(result.fieldSurvey)
     if (result.reward) await refreshLifecycle()
-  }, [apply, applyStarting, refreshLifecycle])
+  }, [apply, applyStarting, applySurvey, refreshLifecycle])
   const execute = useCallback(async (intent: ExplorationIntent) => {
     if (!playerId || !world.location) return false
     if (busy.current) { if (intent.type !== 'discover-landmark') publish('Finishing your last field action. Try again in a moment.'); return false }
@@ -106,12 +108,12 @@ export function ExplorationProvider({ children }: { children: ReactNode }) {
     try {
       const result = await browserApiClient.resetExploration({ v: 1, commandId: crypto.randomUUID(), type, expectedRevision: projection.revision })
       if (identity.current !== playerId) return false
-      generation.current += 1; apply(result.projection); applyStarting?.(result.starting); retry.current = null
+      generation.current += 1; apply(result.projection); applyStarting?.(result.starting); if (result.fieldSurvey) applySurvey(result.fieldSurvey); retry.current = null
       publish(type === 'reset-landmarks' ? 'First Basin landmark discoveries reset.' : 'Wild resource cooldowns reset.')
       return true
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Exploration reset unavailable.'); return false }
     finally { busy.current = false; setPending(false) }
-  }, [apply, playerId, projection, publish, applyStarting])
+  }, [apply, playerId, projection, publish, applyStarting, applySurvey])
   const dismissNotice = useCallback(() => setNotice(null), [])
   useEffect(() => { if (!notice || notice.retryable) return; const timer = window.setTimeout(dismissNotice, 7000); return () => window.clearTimeout(timer) }, [notice, dismissNotice])
   return <ExplorationContext.Provider value={{ active, projection, pending, error, notice, now, refresh, execute, reset, dismissNotice, retryNotice }}>{children}</ExplorationContext.Provider>

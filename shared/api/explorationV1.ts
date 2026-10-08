@@ -1,6 +1,7 @@
 import { isCanonicalUuid } from '../realtime/identifiers.ts'
 import { isStartingExperience, type StartingExperienceV1 } from './startingExperienceV1.ts'
 import type { WorldPoint } from '../world/types.ts'
+import { isFieldSurveyProjectionV1, type FieldSurveyProjectionV1 } from './fieldSurveyV1.ts'
 
 export const EXPLORATION_INTERACTION_RADIUS = 96
 export interface ExplorationProjectionV1 {
@@ -19,7 +20,7 @@ export type ExplorationCommandV1 = ExplorationCommandBase & (
 )
 export type ExplorationCommandInput = ExplorationCommandV1 extends infer C ? C extends ExplorationCommandV1 ? Omit<C, 'commandId' | 'v'> : never : never
 export interface ExplorationRewardV1 { name: string; speciesId: string; quantity: number; harvestingXp: number }
-export interface ExplorationResultV1 { projection: ExplorationProjectionV1; starting: StartingExperienceV1; reward?: ExplorationRewardV1 }
+export interface ExplorationResultV1 { projection: ExplorationProjectionV1; starting: StartingExperienceV1; reward?: ExplorationRewardV1; fieldSurvey?: FieldSurveyProjectionV1 }
 export type ExplorationDevCommandV1 = { v: 1; commandId: string; type: 'reset-landmarks' | 'reset-cooldowns'; expectedRevision: number }
 export type ExplorationRestoreCommandV1 = { v: 1; commandId: string; expectedWorldRevision: number }
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
@@ -54,6 +55,7 @@ export function isExplorationProjectionV1(value: unknown): value is ExplorationP
 }
 export function isExplorationResultV1(value: unknown): value is ExplorationResultV1 {
   return record(value) && isExplorationProjectionV1(value.projection) && isStartingExperience(value.starting)
+    && (value.fieldSurvey === undefined || isFieldSurveyProjectionV1(value.fieldSurvey))
     && (value.reward === undefined || (record(value.reward) && typeof value.reward.name === 'string' && value.reward.name.length <= 100
       && id(value.reward.speciesId) && Number.isSafeInteger(value.reward.quantity) && (value.reward.quantity as number) >= 3 && (value.reward.quantity as number) <= 10
       && revision(value.reward.harvestingXp)))

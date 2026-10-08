@@ -1,0 +1,20 @@
+.field-survey-objective { width:min(320px,calc(100% - 24px)); }
+.field-survey-objective .starting-objective__toggle { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:15px; }
+.field-survey-objective .starting-objective__toggle > span { flex:none; }
+.game-main:has(> .world-page) > .field-survey-objective { position:absolute; z-index:145; top:80px; left:12px; margin:0; }
+.game-main:has(.tutorial-dialog-backdrop,.plant-details-overlay,.breeding-overlay) > .field-survey-objective { display:none; }
+.game-main:has(.local-minimap):has(.exploration-notice) > .field-survey-objective { display:none; }
+.field-survey-objectives { list-style:none; margin:10px 0; padding:0; font-size:12px; line-height:1.4; }
+.field-survey-objectives li { display:flex; gap:7px; align-items:flex-start; margin:7px 0; }
+.field-survey-objectives li > span:first-child { flex:none; width:15px; color:var(--cg-text-muted); }
+.field-survey-objectives li > span:nth-child(2) { flex:1; min-width:0; overflow-wrap:anywhere; }
+.field-survey-objectives li > strong { flex:none; color:var(--cg-warning); font-weight:500; }
+.field-survey-objectives .field-survey-objectives__complete { color:var(--cg-success); }
+.field-survey-objective p { font-size:12px; }
+.field-survey-dialog button { display:inline-flex; max-width:100%; justify-content:center; }
+.field-survey-dialog small { display:block; margin:10px 0; color:var(--cg-warning); }
+.field-survey-journal { margin:22px 0; padding:16px; border:1px solid var(--cg-border-interactive); border-radius:var(--cg-radius-sm); background:var(--cg-surface-raised); overflow-wrap:anywhere; }
+.field-survey-journal h2 { margin:8px 0; color:var(--cg-text); font-family:var(--cg-font-display); }
+.field-survey-journal p { line-height:1.5; font-size:13px; }
+.field-survey-journal small,.field-survey-journal__notes { color:var(--cg-text-muted); }
+@media(max-width:480px) { .field-survey-objective { width:min(280px,calc(100% - 24px)); } .field-survey-objective > div { max-height:34vh; } .field-survey-journal { padding:12px; } }

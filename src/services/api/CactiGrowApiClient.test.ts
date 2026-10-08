@@ -8,6 +8,40 @@ import { getHeaderPlayerValues } from '../../components/layout/headerPlayerModel
 import type { GrowerAlphaProjectionV1 } from '../../../shared/api/growerAlphaV1.ts'
 import { reconcilePlanting } from '../../app/reconcilePlanting.ts'
 import type { PlantLifecycleProjectionV3 } from '../../../shared/api/plantLifecycleV3.ts'
+import { FIELD_SURVEY, type FieldSurveyResultV1 } from '../../../shared/api/fieldSurveyV1.ts'
+
+const surveyResult: FieldSurveyResultV1 = {
+  projection: { projectionVersion: 1, revision: 1, progressRevision: 4, status: 'available', acceptedAt: null, completedAt: null, rewardClaimed: false,
+    objectives: { landmarks: FIELD_SURVEY.landmarkIds.map(landmarkId => ({ landmarkId, discoveredAt: null })), sanPedroHarvested: false, peyoteHarvested: false, caveEntered: false, caveLandmarkDiscovered: false, caveNoteInspected: false } },
+  starting: { projectionVersion: 1, revision: 1, compatibilityComplete: true, nameComplete: true, appearance: { skin: 0, shirt: 0 }, appearanceComplete: true, spawnTutorialComplete: true, farmTutorialComplete: true, spawnStage: 'complete', farmStage: 'complete', equipment: { tool: null, head: null, body: null, accessory: null }, ownedEquipment: [], harvestingXp: 0, tutorialSeedAvailable: false, pot: null, tutorialParentIds: [], offspringSeedId: null },
+}
+
+test('Field Survey reads use authenticated owner scope, propagate abort and reject malformed progress', async () => {
+  const signal = new AbortController().signal
+  let valid = true
+  const client = new CactiGrowApiClient({ getCredentials: () => ({ 'x-test-player': 'survey-player' }), fetch: async (url, init) => {
+    assert.equal(String(url), '/api/v1/me/field-survey'); assert.equal(init?.method, 'GET'); assert.equal(init?.signal, signal)
+    assert.equal(new Headers(init?.headers).get('x-test-player'), 'survey-player')
+    return response({ ok: true, data: valid ? surveyResult : { ...surveyResult, projection: { ...surveyResult.projection, progressRevision: -1 } }, meta: { requestId: 'survey' } })
+  } })
+  assert.deepEqual(await client.getFieldSurvey(signal), surveyResult)
+  valid = false
+  await assert.rejects(client.getFieldSurvey(signal), error => error instanceof CactiGrowApiError && error.kind === 'invalid-response')
+})
+
+test('Field Survey conversations carry only physical NPC intent; quest reset uses the development owner endpoint', async () => {
+  const requests: { path: string; body: unknown }[] = []
+  const client = new CactiGrowApiClient({ fetch: async (url, init) => {
+    assert.equal(init?.method, 'POST')
+    requests.push({ path: String(url), body: JSON.parse(String(init?.body)) })
+    return response({ ok: true, data: surveyResult, meta: { requestId: 'survey' } })
+  } })
+  const command = { v: 1 as const, commandId: '80000000-0000-4000-8000-000000000008', type: 'accept' as const, entityId: FIELD_SURVEY.npcEntityId, expectedWorldRevision: 2, position: { x: 720, y: 500 } }
+  await client.fieldSurveyCommand(command)
+  const reset = { v: 1 as const, commandId: command.commandId, type: 'reset-field-survey' as const, expectedRevision: 1 }
+  await client.resetFieldSurvey(reset)
+  assert.deepEqual(requests, [{ path: '/api/v1/me/field-survey', body: command }, { path: '/api/v1/dev/field-survey', body: reset }])
+})
 
 test('HUD uses the live authoritative sale balance instead of the login snapshot', () => {
   const live = { player: { tokenBalance: 75, skills: { cultivationXp: 100 } } } as GrowerAlphaProjectionV1

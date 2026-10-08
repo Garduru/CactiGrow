@@ -82,7 +82,7 @@ test('settlement art preserves all eleven authored authority Levels and both com
   const project = source()
   assert.deepEqual(project.levels.map(level => level.identifier).sort(), Object.keys(AUTHORITY_LEVELS).sort())
   for (const level of project.levels) {
-    const protectedLevel = { ...level, layerInstances: level.layerInstances.filter(layer => !['Tiles', 'AutoLayer'].includes(layer.__type)).map(layer => layer.__type === 'Entities' ? {...layer,entityInstances:layer.entityInstances.filter(e=>!e.__tags?.includes(EXPLORATION_TAG))}:layer) }
+    const protectedLevel = { ...level, layerInstances: level.layerInstances.filter(layer => !['Tiles', 'AutoLayer'].includes(layer.__type)).map(layer => layer.__type === 'Entities' ? {...layer,entityInstances:layer.entityInstances.filter(e=>!e.__tags?.includes(EXPLORATION_TAG)&&!e.__tags?.includes('first-basin-field-survey-v1'))}:layer) }
     assert.equal(hash(protectedLevel), AUTHORITY_LEVELS[level.identifier], `${level.identifier}: metadata, fields, topology, IntGrid and entities remain unchanged`)
     if (UNTARGETED_LEVELS[level.identifier]) assert.equal(hash(level), UNTARGETED_LEVELS[level.identifier], `${level.identifier}: complete untouched Level payload`)
   }

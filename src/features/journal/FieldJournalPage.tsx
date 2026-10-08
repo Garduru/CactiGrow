@@ -3,6 +3,7 @@ import { species } from '../../data/species'
 import { useGameState } from '../../game/useGameState'
 import { discoverySourceLabels, getDiscoveredSpeciesCount, getJournalCompletion, getShinyDiscoveryCount } from './journalModel'
 import { ExplorationJournal } from '../exploration/ExplorationJournal'
+import { FieldSurveyJournal } from '../field-survey/FieldSurveyJournal'
 
 export function FieldJournalPage() {
   const { state } = useGameState()
@@ -68,6 +69,7 @@ export function FieldJournalPage() {
           )
         })}
       </div>
+      <FieldSurveyJournal />
       <ExplorationJournal />
     </section>
   )

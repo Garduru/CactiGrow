@@ -32,7 +32,7 @@ test('exploration content is additive to every accepted Level and original entit
   assert.equal(p.levels.length,11)
   for(const level of p.levels){
     const original=structuredClone(level)
-    for(const layer of original.layerInstances)layer.entityInstances=layer.entityInstances.filter(e=>!e.__tags.includes(EXPLORATION_TAG))
+    for(const layer of original.layerInstances)layer.entityInstances=layer.entityInstances.filter(e=>!e.__tags.includes(EXPLORATION_TAG)&&!e.__tags.includes('first-basin-field-survey-v1'))
     assert.equal(hash(original),beforeLevels[level.identifier],`${level.identifier}: art, IntGrid, topology, exits, entries and original entities`)
   }
   const harvest=p.defs.entities.find(d=>d.identifier==='HarvestablePlant')

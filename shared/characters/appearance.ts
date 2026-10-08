@@ -38,4 +38,4 @@ export const NPC_APPEARANCES = {
   mara: { npcId: 'mara', displayName: 'Mara', role: 'Field guide', appearance: { skin: 2, shirt: 1, body: 1, hair: 1, hairColor: 3, pants: 1, hat: 1, accessory: 1 } satisfies CharacterAppearance },
 } as const
 /** Presentation aliases keep existing authored/persisted entity IDs unchanged. */
-export const NPC_PRESET_BY_ENTITY_ID: Partial<Record<string, keyof typeof NPC_APPEARANCES>> = { 'mara-guide': 'mara' }
+export const NPC_PRESET_BY_ENTITY_ID: Partial<Record<string, keyof typeof NPC_APPEARANCES>> = { 'mara-guide': 'mara', 'mara-basin-survey': 'mara' }

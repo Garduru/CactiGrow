@@ -11,6 +11,7 @@ import { EXPLORATION_EVENT, loadExplorationState, saveExplorationState, type Exp
 import { validateExplorationReach } from './explorationReach.ts'
 import { addXp } from '../../src/features/progression/progressionModel.ts'
 import { establishCommoditySeedGenetics } from '../gameplay/plantLifecycleRules.ts'
+import { projectFieldSurvey } from '../quests/FieldSurveyService.ts'
 
 const WORLD_EVENT = 'world-foundation-location-v1'
 const areas = () => WORLD.areas.filter(a => a.zoneId === 'first-basin' && !['farm', 'town'].includes(a.areaType))
@@ -57,13 +58,16 @@ export class ExplorationService {
       landmarks: areas().flatMap(a => (a.landmarks ?? []).map(l => ({ landmarkId: l.landmarkId, areaId: a.areaId, discoveredAt: state.landmarks[l.landmarkId] ?? null }))),
       notes: areas().flatMap(a => (a.interactables ?? []).filter(n => n.kind === 'inspectable' && n.noteId).map(n => ({ noteId: n.noteId!, areaId: a.areaId, discoveredAt: state.notes[n.noteId!] ?? null }))) }
   }
+  private async result(tx: StartingTransaction, playerId: string, state: ExplorationCheckpoint, starting: StartingExperienceV1, reward?: ExplorationRewardV1): Promise<ExplorationResultV1> {
+    return { projection: this.project(state, starting), starting, fieldSurvey: await projectFieldSurvey(tx, playerId, starting, state), ...(reward ? { reward } : {}) }
+  }
   async read(playerId: string): Promise<ExplorationResultV1> {
     this.assertEnvironment()
-    return this.database.transaction(async tx => { const { state, starting } = await this.load(tx, playerId); return { projection: this.project(state, starting), starting } })
+    return this.database.transaction(async tx => { const { state, starting } = await this.load(tx, playerId); return this.result(tx, playerId, state, starting) })
   }
   async inspect(playerId: string): Promise<ExplorationResultV1> {
     this.assertEnvironment(true)
-    return this.database.transaction(async tx => { const { state, starting } = await this.load(tx, playerId); return { projection: this.project(state, starting), starting } })
+    return this.database.transaction(async tx => { const { state, starting } = await this.load(tx, playerId); return this.result(tx, playerId, state, starting) })
   }
   async restoreEntry(playerId: string, command: ExplorationRestoreCommandV1): Promise<ExplorationResultV1> {
     this.assertEnvironment()
@@ -74,7 +78,7 @@ export class ExplorationService {
         .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, EXPLORATION_EVENT), eq(playerGrowerEvents.sourceCommandId, command.commandId))).limit(1)
       if (receipt) {
         if ((receipt.payload as { fingerprint: string }).fingerprint !== fingerprint) throw ApiError.conflict('Exploration command ID was already used.')
-        return { projection: this.project(state, starting), starting }
+        return this.result(tx, playerId, state, starting)
       }
       const [event] = await tx.select({ payload: playerGrowerEvents.payload }).from(playerGrowerEvents)
         .where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, WORLD_EVENT))).orderBy(desc(sql`(${playerGrowerEvents.payload}->>'revision')::integer`)).limit(1)
@@ -85,7 +89,7 @@ export class ExplorationService {
       // Start its movement plausibility window anew, without clearing resources or discoveries.
       state.anchor = { areaId: area.areaId, worldRevision: location.revision, position: { x: spawn.x, y: spawn.y }, at: now.toISOString() }
       await saveExplorationState(tx, playerId, state, command.commandId, now, fingerprint)
-      return { projection: this.project(state, starting), starting }
+      return this.result(tx, playerId, state, starting)
     })
   }
   async execute(playerId: string, command: ExplorationCommandV1): Promise<ExplorationResultV1> {
@@ -98,7 +102,7 @@ export class ExplorationService {
       if (receipt) {
         const saved = receipt.payload as { fingerprint: string; reward?: ExplorationRewardV1 }
         if (saved.fingerprint !== fingerprint) throw ApiError.conflict('Exploration command ID was already used.')
-        return { projection: this.project(state, starting), starting, ...(saved.reward ? { reward: saved.reward } : {}) }
+        return this.result(tx, playerId, state, starting, saved.reward)
       }
       if (!starting.nameComplete || !starting.appearanceComplete || !starting.spawnTutorialComplete || !starting.farmTutorialComplete) throw ApiError.conflict('Complete your Farm introduction before exploring farther.')
       const [event] = await tx.select({ payload: playerGrowerEvents.payload, occurredAt: playerGrowerEvents.occurredAt }).from(playerGrowerEvents)
@@ -138,7 +142,7 @@ export class ExplorationService {
       else if (entity?.noteId) state.notes[entity.noteId] ??= now.toISOString()
       state.anchor = { areaId: area.areaId, worldRevision: location.revision, position: { ...command.position }, at: now.toISOString() }
       await saveExplorationState(tx, playerId, state, command.commandId, now, fingerprint, reward)
-      return { projection: this.project(state, starting), starting, ...(reward ? { reward } : {}) }
+      return this.result(tx, playerId, state, starting, reward)
     })
   }
   async reset(playerId: string, command: ExplorationDevCommandV1): Promise<ExplorationResultV1> {
@@ -156,7 +160,7 @@ export class ExplorationService {
         else state.cooldowns = {}
         await saveExplorationState(tx, playerId, state, command.commandId, this.now(), fingerprint)
       }
-      return { projection: this.project(state, starting), starting }
+      return this.result(tx, playerId, state, starting)
     })
   }
 }

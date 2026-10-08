@@ -19,6 +19,7 @@ test('production hides menu, refuses direct panel opening and excludes developer
       if (mode === 'production' || mode === 'unknown') {
         assert.equal(source.includes('Copied clean debug snapshot'), false)
         assert.equal(source.includes('Reset Full Character Onboarding'), false)
+        assert.equal(source.includes('Reset own Field Survey quest only'), false)
       }
       await writeFile(file, source)
       const { act, mount } = await import(pathToFileURL(file).href)

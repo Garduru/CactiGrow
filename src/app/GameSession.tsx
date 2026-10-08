@@ -22,6 +22,8 @@ import { AdminAccessProvider } from '../features/admin/AdminAccessProvider'
 import { PlayerAuthorityReconciler } from './PlayerAuthorityReconciler'
 import { MailStatusProvider } from '../features/mail/mailStatus'
 import { ExplorationProvider } from '../features/exploration/ExplorationProvider'
+import { FieldSurveyProvider } from '../features/field-survey/FieldSurveyProvider'
+import { FieldSurveyObjective } from '../features/field-survey/FieldSurveyObjective'
 
 /** One provider tree shared by all game routes; the public website needs no player session. */
 export function GameSession() {
@@ -29,7 +31,7 @@ export function GameSession() {
     <PlayerBootstrapProvider>
       <WorldLocationProvider><SocialProvider><StartingProvider>
         <DeploymentAccessBoundary>
-          <PlantLifecycleProvider><GardenAuthorityProvider><GrowerAuthorityProvider><GameStateProvider><ExplorationProvider>
+          <PlantLifecycleProvider><GardenAuthorityProvider><GrowerAuthorityProvider><GameStateProvider><FieldSurveyProvider><ExplorationProvider>
             <PlayerAuthorityReconciler />
             <MailStatusProvider><AdminAccessProvider><FeaturePanelProvider><SocialPanelProvider><LocalMinimapProvider><TutorialGuidanceProvider>
               <GameHeader />
@@ -38,7 +40,7 @@ export function GameSession() {
               <SocialOverlay />
               <LevelUpNotice />
             </TutorialGuidanceProvider></LocalMinimapProvider></SocialPanelProvider></FeaturePanelProvider></AdminAccessProvider></MailStatusProvider>
-          </ExplorationProvider></GameStateProvider></GrowerAuthorityProvider></GardenAuthorityProvider></PlantLifecycleProvider>
+          </ExplorationProvider></FieldSurveyProvider></GameStateProvider></GrowerAuthorityProvider></GardenAuthorityProvider></PlantLifecycleProvider>
         </DeploymentAccessBoundary>
       </StartingProvider></SocialProvider></WorldLocationProvider>
     </PlayerBootstrapProvider>
@@ -47,5 +49,5 @@ export function GameSession() {
 
 function GameMain() {
   const menu = useFeaturePanel()
-  return <main id="main-content" className="game-main" inert={menu.feature !== null && !(menu.feature === 'devtools' && menu.worldPreview)}><StartingObjective /><Outlet /></main>
+  return <main id="main-content" className="game-main" inert={menu.feature !== null && !(menu.feature === 'devtools' && menu.worldPreview)}><StartingObjective /><FieldSurveyObjective /><Outlet /></main>
 }

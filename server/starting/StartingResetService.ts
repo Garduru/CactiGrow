@@ -7,6 +7,7 @@ import { isStartingResetCommand, type StartingResetCommand, type StartingResetRe
 import { initialLocation } from '../../shared/world/world.ts'
 import { initialStartingState, loadStartingState, lockStartingOwner, saveStartingState, STARTING_PROFILE, TUTORIAL_ORIGIN } from './startingState.ts'
 import { loadExplorationState } from '../exploration/explorationState.ts'
+import { loadFieldSurveyReward } from '../quests/fieldSurveyState.ts'
 
 export const STARTING_RESET_EVENT = 'starting-experience-reset-v1'
 const WORLD_EVENT = 'world-foundation-location-v1'
@@ -67,7 +68,7 @@ export class StartingResetService {
       if (retiredSpecimenIds.length) await tx.delete(playerGardenDisplays).where(and(eq(playerGardenDisplays.playerId, target), inArray(playerGardenDisplays.specimenId, retiredSpecimenIds)))
       const now = new Date(), starting = initialStartingState(false), location = initialLocation(profile.publicId)
       // Tutorial reset retires tutorial progress only; ordinary exploration XP remains earned.
-      starting.harvestingXp = (await loadExplorationState(tx, target)).wildHarvestingXp
+      starting.harvestingXp = (await loadExplorationState(tx, target)).wildHarvestingXp + ((await loadFieldSurveyReward(tx, target))?.harvestingXp ?? 0)
       starting.nameComplete = command.mode === 'tutorial'; starting.revision = previous.revision
       location.revision = Number((world?.payload as { revision?: number } | undefined)?.revision ?? 0) + 1
       await tx.update(playerOnboarding).set({ profileId: STARTING_PROFILE, tutorialStartedAt: null, tutorialCompletedAt: null, version: owner.version + 1 }).where(eq(playerOnboarding.playerId, target))

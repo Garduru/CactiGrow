@@ -30,6 +30,8 @@ import { WorldTutorialDialog } from '../features/starting/WorldTutorialDialog'
 import { useExploration } from '../features/exploration/ExplorationContext'
 import { ExplorationNotice } from '../features/exploration/ExplorationNotice'
 import type { WorldPoint } from '../../shared/world/types.ts'
+import { FIELD_SURVEY } from '../../shared/api/fieldSurveyV1.ts'
+import { FieldSurveyDialog } from '../features/field-survey/FieldSurveyDialog'
 function roadLabel(areaId: string) {
   const exit = authoredRoadExit(findArea(areaId)!)
   return `Road to ${exit?.targetAreaId ? findArea(exit.targetAreaId)?.displayName ?? 'unavailable route' : 'unavailable route'}`
@@ -40,6 +42,7 @@ export function LdtkWorldPage() {
   const world = useWorldLocation(), social = useSocialState(), dock = useSocialPanel(), route = useLocation(), navigate = useNavigate()
   const { state } = useGameState(), lifecycle = usePlantLifecycle(), garden = useGardenAuthority(), panels = useFeaturePanel()
   const tutorial = useStartingExperience(), [interaction, setInteraction] = useState<string | null>(null)
+  const [interactionPoint, setInteractionPoint] = useState<WorldPoint | null>(null)
   const exploration = useExploration(), explorationRef = useRef(exploration)
   const fieldRequest = useRef(false)
   useEffect(() => { explorationRef.current = exploration }, [exploration])
@@ -57,7 +60,11 @@ export function LdtkWorldPage() {
   const actions = useRef(world)
   const camera = useRef<GameplayCameraState>({})
   useEffect(() => { actions.current = world }, [world])
-  const location = world.location, area = location ? findArea(location.areaId) : undefined
+  const location = world.location, authoredArea = location ? findArea(location.areaId) : undefined
+  const farmTutorialComplete = !!tutorial.state?.farmTutorialComplete
+  const area = useMemo(() => authoredArea?.areaId === FIELD_SURVEY.npcAreaId && !farmTutorialComplete
+    ? { ...authoredArea, interactables: authoredArea.interactables?.filter(entity => entity.entityId !== FIELD_SURVEY.npcEntityId) }
+    : authoredArea, [authoredArea, farmTutorialComplete])
   const farm = useMemo(() => {
     const plants = lifecycle.state.authority === 'server' && lifecycle.state.status === 'ready' ? lifecycle.state.projection.ownedSpecimens : state.ownedPlants
     const p = createFarmWorldProjection(state.property, state.geneticsLab, plants, garden.projection?.displayAssignments ?? state.gardenDisplayAssignments)
@@ -73,6 +80,7 @@ export function LdtkWorldPage() {
       onDiscover: (landmarkId: string, point: WorldPoint) => { if (fieldRequest.current || explorationRef.current.pending || actions.current.pending) return false; fieldRequest.current = true; void explorationRef.current.execute({ type: 'discover-landmark', landmarkId, position: point }).finally(() => { fieldRequest.current = false }); return true },
       onInteract: (id: string, point?: WorldPoint) => {
         const entity = area.interactables?.find(entity => entity.entityId === id)
+        if (entity?.entityId === FIELD_SURVEY.npcEntityId && point) { setInteractionPoint(point); setInteraction(id); return }
         if (entity && !entity.tutorial && point) { void explorationRef.current.execute({ type: entity.kind === 'inspectable' ? 'inspect' : 'harvest', entityId: id, position: point }); return }
         setInteraction(id)
       }, tutorialPot: () => tutorialRef.current.state?.pot ?? null, debug: import.meta.env.MODE === 'staging' && new URLSearchParams(route.search).has('worldDebug'), pending: () => actions.current.pending || !!interactionRef.current || tutorialRef.current.pending, onExit: (id: string) => { void actions.current.transition(id) } }
@@ -102,7 +110,7 @@ export function LdtkWorldPage() {
       <LocalMinimap areaId={area.areaId} hidden={!!interaction || dock.chatDockExpanded || panels.feature !== null || world.pending} />
       {!interaction && !dock.chatDockExpanded && panels.feature === null && <ExplorationNotice />}
       {dock.chatDockExpanded && <InGameChatHud mode={dock.activeTab === 'friends' ? 'world-chat' : dock.activeTab} onModeChange={dock.setActiveTab} />}
-      {interaction && area.interactables?.find(e => e.entityId === interaction) && <WorldTutorialDialog key={interaction} entity={area.interactables.find(e => e.entityId === interaction)!} close={() => setInteraction(null)} />}
+      {interaction === FIELD_SURVEY.npcEntityId && interactionPoint ? <FieldSurveyDialog position={interactionPoint} close={() => setInteraction(null)} /> : interaction && area.interactables?.find(e => e.entityId === interaction) && <WorldTutorialDialog key={interaction} entity={area.interactables.find(e => e.entityId === interaction)!} close={() => setInteraction(null)} />}
     </div>
   </section>
 }

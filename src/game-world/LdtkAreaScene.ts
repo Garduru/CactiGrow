@@ -188,7 +188,7 @@ export class LdtkAreaScene extends Phaser.Scene {
     const nearest = (this.options.area.interactables ?? []).filter(entity => !entity.tutorial && Math.hypot(this.player.x - entity.x, this.player.y - entity.y) <= 150 && this.navigation.map.visible(this.player, entity)).sort((a, b) => Math.hypot(this.player.x - a.x, this.player.y - a.y) - Math.hypot(this.player.x - b.x, this.player.y - b.y))[0]
     if (this.interactionPrompt) {
       this.interactionPrompt.setVisible(!!nearest)
-      if (nearest) this.interactionPrompt.setPosition(nearest.x, nearest.y + 24).setText(`${nearest.displayName} · ${nearest.kind === 'inspectable' ? 'E / tap to inspect' : wildNodeAvailable(exploration, nearest.entityId, now) ? 'E / tap to harvest' : 'Pods regrowing'}`)
+      if (nearest) this.interactionPrompt.setPosition(nearest.x, nearest.y + 24).setText(`${nearest.displayName} · ${nearest.kind === 'npc' ? 'E / tap to talk' : nearest.kind === 'inspectable' ? 'E / tap to inspect' : wildNodeAvailable(exploration, nearest.entityId, now) ? 'E / tap to harvest' : 'Pods regrowing'}`)
     }
     if (nearest && Phaser.Input.Keyboard.JustDown(this.keys.E)) this.approachEntity(nearest)
     const x = Number(this.keys.D.isDown || this.keys.RIGHT.isDown) - Number(this.keys.A.isDown || this.keys.LEFT.isDown)
