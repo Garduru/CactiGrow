@@ -26,13 +26,14 @@ const beforeLevels={
 const NODE_IDS=['cross-wild-san-pedro','path-2-wild-san-pedro','path-2-wild-peyote','path-3-wild-san-pedro','path-3-wild-peyote','path-4-wild-san-pedro','path-4-wild-peyote','basin-san-pedro-entrance','basin-peyote-west','basin-san-pedro-wash','basin-peyote-south','basin-san-pedro-cairn','basin-peyote-ridge']
 const LANDMARK_IDS=['entrance-grove','mesa-shoulder','dry-wash','cairn','eastern-ridge','seeping-stone']
 const INSPECTION_IDS=['cross-trail-cairn','path-2-roadside-cairn','path-3-canyon-cairn','cave-mineral-seam','path-4-trail-cairn','basin-trail-cairn','path-5-route-marker']
+const TOWN_IDS=['town-rosa-steward','town-tomas-shopkeeper','town-inez-botanist','town-community-board']
 
 test('exploration content is additive to every accepted Level and original entity field contract',()=>{
   const p=source()
   assert.equal(p.levels.length,11)
   for(const level of p.levels){
     const original=structuredClone(level)
-    for(const layer of original.layerInstances)layer.entityInstances=layer.entityInstances.filter(e=>!e.__tags.includes(EXPLORATION_TAG)&&!e.__tags.includes('first-basin-field-survey-v1'))
+    for(const layer of original.layerInstances)layer.entityInstances=layer.entityInstances.filter(e=>!e.__tags.includes(EXPLORATION_TAG)&&!e.__tags.includes('first-basin-field-survey-v1')&&!TOWN_IDS.includes(e.fieldInstances.find(f=>f.__identifier==='entityId')?.__value))
     assert.equal(hash(original),beforeLevels[level.identifier],`${level.identifier}: art, IntGrid, topology, exits, entries and original entities`)
   }
   const harvest=p.defs.entities.find(d=>d.identifier==='HarvestablePlant')
@@ -93,7 +94,7 @@ test('six broad discovery regions cover existing Basin landmarks and cave format
 })
 
 test('cave inspection and blocked Path 5 remain modest and independent from Travel or rewards',()=>{
-  const world=parseWorld(source()),notes=world.areas.flatMap(a=>a.interactables??[]).filter(e=>e.kind==='inspectable')
+  const world=parseWorld(source()),notes=world.areas.flatMap(a=>a.interactables??[]).filter(e=>e.kind==='inspectable'&&e.entityId!=='town-community-board')
   assert.deepEqual(notes.map(e=>e.entityId).sort(),INSPECTION_IDS.toSorted())
   assert.equal(new Set(notes.map(e=>e.noteId)).size,notes.length)
   assert.ok(notes.every(e=>!e.tutorial&&e.description&&e.harvestingXp===undefined&&e.rewardTable===undefined))

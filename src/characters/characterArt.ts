@@ -1,4 +1,4 @@
-import { HAIR_COLORS, PANTS_COLORS, SHIRT_COLORS, SKIN_COLORS, resolveCharacterAppearance, type CharacterAppearance } from '../../shared/characters/appearance.ts'
+import { HAIR_COLORS, PANTS_COLORS, SHIRT_COLORS, SKIN_COLORS, NPC_APPEARANCES, resolveCharacterAppearance, type CharacterAppearance } from '../../shared/characters/appearance.ts'
 import { CHARACTER_REGISTRATION } from './characterRegistration.generated.ts'
 import { CHARACTER_FIT } from './characterFit.generated.ts'
 
@@ -8,13 +8,16 @@ export const CHARACTER_ATLAS_WIDTH = CHARACTER_ART_WIDTH * 5
 export const CHARACTER_ATLAS_HEIGHT = CHARACTER_ART_HEIGHT * 4
 export const CHARACTER_DIRECTIONS = ['south', 'west', 'east', 'north'] as const
 export type CharacterFacing = typeof CHARACTER_DIRECTIONS[number]
-export interface CharacterArtOptions { facing?: CharacterFacing; frame?: number; npcId?: 'mara' }
+export interface CharacterArtOptions { facing?: CharacterFacing; frame?: number; npcId?: keyof typeof NPC_APPEARANCES }
 export const CHARACTER_MODULES = {
   masculine: '/assets/characters/player/masculine/desert-grower-masculine-poses-v02.webp',
   masculineMask: '/assets/characters/player/masculine/desert-grower-masculine-pigments-v02.png',
   feminine: '/assets/characters/player/feminine/desert-grower-feminine-poses-v02.webp',
   feminineMask: '/assets/characters/player/feminine/desert-grower-feminine-pigments-v02.png',
   mara: '/assets/characters/npc/mara/desert-mara-poses-v03.webp',
+  rosa: '/assets/characters/npc/rosa/desert-rosa-idle-v01.webp',
+  tomas: '/assets/characters/npc/tomas/desert-tomas-idle-v01.webp',
+  inez: '/assets/characters/npc/inez/desert-inez-idle-v01.webp',
   masculineArms: CHARACTER_FIT.bodies.masculine.armMask.url,
   feminineArms: CHARACTER_FIT.bodies.feminine.armMask.url,
   cropped: CHARACTER_FIT.hair.cropped.front.url,
@@ -147,7 +150,7 @@ function strap(context: CanvasRenderingContext2D, source: CanvasImageSource, pla
 function pouch(context: CanvasRenderingContext2D, sources: CharacterArtSources, plan: Composition) {
   directional(context, sources.satchel, plan.row, CHARACTER_FIT.satchel.frames[plan.row].bagCenter, plan.pouch, plan.pouchScale)
 }
-function frameArt(context: CanvasRenderingContext2D, sources: CharacterArtSources, appearance: Required<CharacterAppearance>, row: number, frame: number, body: CanvasImageSource, hair: CanvasImageSource | undefined, backHair: CanvasImageSource | undefined, npcId?: 'mara', croppedBody = false) {
+function frameArt(context: CanvasRenderingContext2D, sources: CharacterArtSources, appearance: Required<CharacterAppearance>, row: number, frame: number, body: CanvasImageSource, hair: CanvasImageSource | undefined, backHair: CanvasImageSource | undefined, npcId?: keyof typeof NPC_APPEARANCES, croppedBody = false) {
   const column = Math.max(0, Math.min(4, Math.trunc(frame)))
   const plan = resolveCharacterComposition(appearance, { facing: CHARACTER_DIRECTIONS[row], frame: column, npcId })
   if (!npcId) {
@@ -156,7 +159,7 @@ function frameArt(context: CanvasRenderingContext2D, sources: CharacterArtSource
   }
   context.drawImage(body, croppedBody ? 0 : column * CHARACTER_ART_WIDTH, croppedBody ? 0 : row * CHARACTER_ART_HEIGHT,
     CHARACTER_ART_WIDTH, CHARACTER_ART_HEIGHT, 0, 0, CHARACTER_ART_WIDTH, CHARACTER_ART_HEIGHT)
-  if (npcId === 'mara') return
+  if (npcId) return
   if (plan.accessory) {
     const accessory = document.createElement('canvas'); accessory.width = 128; accessory.height = 224
     const layer = accessory.getContext('2d')!

@@ -4,6 +4,7 @@ import { isStartingExperience, type StartingCommand, type StartingExperienceV1 }
 import { isStartingResetResult, type StartingResetCommand } from '../../../shared/api/startingResetV1.ts'
 import { isExplorationResultV1, type ExplorationCommandV1, type ExplorationDevCommandV1, type ExplorationResultV1, type ExplorationRestoreCommandV1 } from '../../../shared/api/explorationV1.ts'
 import { isFieldSurveyResultV1, type FieldSurveyCommandV1, type FieldSurveyDevCommandV1, type FieldSurveyResultV1 } from '../../../shared/api/fieldSurveyV1.ts'
+import { isTownContentResultV1, type TownContentCommandV1, type TownContentResultV1 } from '../../../shared/api/townContentV1.ts'
 import type { WorldLocation } from '../../../shared/world/types.ts'
 import { isAdminSession, isAdminPlayer, isAdminInspection, isAdminListing, isAdminAudit, isAdminResult, isAdminRoleEntry, isAdminSpecimen, adminPageValidator, type AdminSession, type AdminMutation, type AdminAction } from '../../../shared/api/adminV1.ts'
 import { isDevCommandResult, isDevSpecimenDiagnostics, type DevCommand, type DevCommandResult, type DevSpecimenDiagnostics } from '../../../shared/api/devToolsV1.ts'
@@ -80,6 +81,8 @@ function isEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 }
 
 export class CactiGrowApiClient {
+  getTownContent(signal?: AbortSignal): Promise<TownContentResultV1> { return this.execute('/api/v1/me/town-content', { method: 'GET', signal }, isTownContentResultV1, 'Town notes') }
+  townContentCommand(command: TownContentCommandV1): Promise<TownContentResultV1> { return this.execute('/api/v1/me/town-content', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isTownContentResultV1, 'Town conversation') }
   getFieldSurvey(signal?: AbortSignal): Promise<FieldSurveyResultV1> { return this.execute('/api/v1/me/field-survey', { method: 'GET', signal }, isFieldSurveyResultV1, 'Field Survey') }
   fieldSurveyCommand(command: FieldSurveyCommandV1): Promise<FieldSurveyResultV1> { return this.execute('/api/v1/me/field-survey', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isFieldSurveyResultV1, 'Field Survey') }
   resetFieldSurvey(command: FieldSurveyDevCommandV1): Promise<FieldSurveyResultV1> { return this.execute('/api/v1/dev/field-survey', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(command) }, isFieldSurveyResultV1, 'developer Field Survey') }

@@ -4,6 +4,7 @@ import { useGameState } from '../../game/useGameState'
 import { discoverySourceLabels, getDiscoveredSpeciesCount, getJournalCompletion, getShinyDiscoveryCount } from './journalModel'
 import { ExplorationJournal } from '../exploration/ExplorationJournal'
 import { FieldSurveyJournal } from '../field-survey/FieldSurveyJournal'
+import { TownContentJournal } from '../town-content/TownContentJournal'
 
 export function FieldJournalPage() {
   const { state } = useGameState()
@@ -70,6 +71,7 @@ export function FieldJournalPage() {
         })}
       </div>
       <FieldSurveyJournal />
+      <TownContentJournal />
       <ExplorationJournal />
     </section>
   )

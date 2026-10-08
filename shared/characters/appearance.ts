@@ -36,6 +36,12 @@ export function characterAppearanceKey(appearance: CharacterAppearance): string 
 }
 export const NPC_APPEARANCES = {
   mara: { npcId: 'mara', displayName: 'Mara', role: 'Field guide', appearance: { skin: 2, shirt: 1, body: 1, hair: 1, hairColor: 3, pants: 1, hat: 1, accessory: 1 } satisfies CharacterAppearance },
+  rosa: { npcId: 'rosa', displayName: 'Rosa', role: 'Town steward', appearance: { skin: 2, shirt: 0, body: 1 } satisfies CharacterAppearance },
+  tomas: { npcId: 'tomas', displayName: 'Tomas', role: 'Supplies shopkeeper', appearance: { skin: 0, shirt: 3, body: 0 } satisfies CharacterAppearance },
+  inez: { npcId: 'inez', displayName: 'Inez', role: 'Botanist', appearance: { skin: 2, shirt: 2, body: 1 } satisfies CharacterAppearance },
 } as const
 /** Presentation aliases keep existing authored/persisted entity IDs unchanged. */
-export const NPC_PRESET_BY_ENTITY_ID: Partial<Record<string, keyof typeof NPC_APPEARANCES>> = { 'mara-guide': 'mara', 'mara-basin-survey': 'mara' }
+export const NPC_PRESET_BY_ENTITY_ID: Partial<Record<string, keyof typeof NPC_APPEARANCES>> = {
+  'mara-guide': 'mara', 'mara-basin-survey': 'mara',
+  'town-rosa-steward': 'rosa', 'town-tomas-shopkeeper': 'tomas', 'town-inez-botanist': 'inez',
+}

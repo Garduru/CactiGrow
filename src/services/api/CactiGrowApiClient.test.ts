@@ -9,6 +9,26 @@ import type { GrowerAlphaProjectionV1 } from '../../../shared/api/growerAlphaV1.
 import { reconcilePlanting } from '../../app/reconcilePlanting.ts'
 import type { PlantLifecycleProjectionV3 } from '../../../shared/api/plantLifecycleV3.ts'
 import { FIELD_SURVEY, type FieldSurveyResultV1 } from '../../../shared/api/fieldSurveyV1.ts'
+import { TOWN_NPC_IDS, type TownContentResultV1 } from '../../../shared/api/townContentV1.ts'
+
+test('Town notes read once by owner scope, reject malformed contacts, and talk carries physical intent', async () => {
+  const signal = new AbortController().signal, requests: { path: string; body: unknown }[] = []
+  const result: TownContentResultV1 = { projection: { projectionVersion: 1, revision: 0, contacts: TOWN_NPC_IDS.map(entityId => ({ entityId, firstMetAt: null })), townDiscoveredAt: null } }
+  let valid = true
+  const client = new CactiGrowApiClient({ getCredentials: () => ({ 'x-test-player': 'town-owner' }), fetch: async (url, init) => {
+    assert.equal(String(url), '/api/v1/me/town-content')
+    assert.equal(new Headers(init?.headers).get('x-test-player'), 'town-owner')
+    if (init?.method === 'GET') assert.equal(init.signal, signal)
+    else requests.push({ path: String(url), body: JSON.parse(String(init?.body)) })
+    return response({ ok: true, data: valid ? result : { projection: { ...result.projection, contacts: [] } }, meta: { requestId: 'town' } })
+  } })
+  assert.deepEqual(await client.getTownContent(signal), result)
+  const command = { v: 1 as const, commandId: '80000000-0000-4000-8000-000000000008', type: 'talk' as const, entityId: TOWN_NPC_IDS[0], expectedWorldRevision: 2, position: { x: 960, y: 1215 } }
+  assert.deepEqual(await client.townContentCommand(command), result)
+  assert.deepEqual(requests, [{ path: '/api/v1/me/town-content', body: command }])
+  valid = false
+  await assert.rejects(client.getTownContent(signal), error => error instanceof CactiGrowApiError && error.kind === 'invalid-response')
+})
 
 const surveyResult: FieldSurveyResultV1 = {
   projection: { projectionVersion: 1, revision: 1, progressRevision: 4, status: 'available', acceptedAt: null, completedAt: null, rewardClaimed: false,

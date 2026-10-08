@@ -14,6 +14,7 @@ const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Obje
 const hash=v=>createHash('sha256').update(JSON.stringify(canonical(v))).digest('hex')
 const TARGETS=['Cross_Path_1','Path_2','Path_3','Basin_Cave','Path_4','The_First_Basin','Path_5_Under_Construction']
 const EXTENSION='/assets/world/tiles/world-first-basin-extension-v01.png'
+const TOWN_IDS=['town-rosa-steward','town-tomas-shopkeeper','town-inez-botanist','town-community-board']
 // Captured from accepted Settlement Art V1 before this milestone; no ignored
 // evidence files or generated expectations are needed to run these checks.
 const BASELINE_LEVELS={
@@ -33,7 +34,11 @@ const BASELINE_DEFS={
 
 test('First Basin preserves four complete accepted Levels and every existing definition',()=>{
   const project=source()
-  for(const[name,baseline]of Object.entries(BASELINE_LEVELS))assert.equal(hash(project.levels.find(l=>l.identifier===name)),baseline,name)
+  for(const[name,baseline]of Object.entries(BASELINE_LEVELS)){
+    const level=structuredClone(project.levels.find(l=>l.identifier===name))
+    for(const layer of level.layerInstances)layer.entityInstances=layer.entityInstances.filter(e=>!TOWN_IDS.includes(e.fieldInstances.find(f=>f.__identifier==='entityId')?.__value))
+    assert.equal(hash(level),baseline,name)
+  }
   for(const[group,baseline]of Object.entries(BASELINE_DEFS)){
     const retained=project.defs[group].filter(d=>baseline.uids.includes(d.uid)).map(originalDefinition)
     assert.deepEqual(retained.map(d=>d.uid),baseline.uids,group)

@@ -14,7 +14,7 @@ interface AuthoredTile { px: number[]; src: number[]; f: number }
 interface AuthoredLayer extends Record<string, unknown> {
   __identifier: string; __type: string; __gridSize: number; __cWid: number; __cHei: number
   __pxTotalOffsetX: number; __pxTotalOffsetY: number; __tilesetDefUid: number
-  gridTiles: AuthoredTile[]; entityInstances: { __tags?: string[] }[]
+  gridTiles: AuthoredTile[]; entityInstances: { __tags?: string[]; fieldInstances?: { __identifier: string; __value: unknown }[] }[]
 }
 interface AuthoredLevel extends Record<string, unknown> {
   identifier: string; pxWid: number; pxHei: number; layerInstances: AuthoredLayer[]
@@ -74,6 +74,7 @@ const RUNTIME_AUTHORITY: Record<string, string> = {
   'the-first-basin': 'e6dd603d153d2e224de55600080ae82014a6f41951fb31aee6ed9228c9e01da5',
 }
 const LAYER_NAMES = ['Ground', 'GroundVariation', 'Paths', 'StructureGrounding', 'Decorations', 'BoundaryEdges'] as const
+const TOWN_IDS = ['town-rosa-steward', 'town-tomas-shopkeeper', 'town-inez-botanist', 'town-community-board']
 // Runtime samples the atlas inside its one-pixel inset. Source baseline122
 // therefore reaches this position in the 128-unit square display envelope.
 const SETTLEMENT_PROP_FOOT = (122 - 1) / (128 - 2) * 128
@@ -82,7 +83,7 @@ test('settlement art preserves all eleven authored authority Levels and both com
   const project = source()
   assert.deepEqual(project.levels.map(level => level.identifier).sort(), Object.keys(AUTHORITY_LEVELS).sort())
   for (const level of project.levels) {
-    const protectedLevel = { ...level, layerInstances: level.layerInstances.filter(layer => !['Tiles', 'AutoLayer'].includes(layer.__type)).map(layer => layer.__type === 'Entities' ? {...layer,entityInstances:layer.entityInstances.filter(e=>!e.__tags?.includes(EXPLORATION_TAG)&&!e.__tags?.includes('first-basin-field-survey-v1'))}:layer) }
+    const protectedLevel = { ...level, layerInstances: level.layerInstances.filter(layer => !['Tiles', 'AutoLayer'].includes(layer.__type)).map(layer => layer.__type === 'Entities' ? {...layer,entityInstances:layer.entityInstances.filter(e=>!e.__tags?.includes(EXPLORATION_TAG)&&!e.__tags?.includes('first-basin-field-survey-v1')&&!e.fieldInstances?.some(f=>f.__identifier==='entityId'&&typeof f.__value==='string'&&TOWN_IDS.includes(f.__value)))}:layer) }
     assert.equal(hash(protectedLevel), AUTHORITY_LEVELS[level.identifier], `${level.identifier}: metadata, fields, topology, IntGrid and entities remain unchanged`)
     if (UNTARGETED_LEVELS[level.identifier]) assert.equal(hash(level), UNTARGETED_LEVELS[level.identifier], `${level.identifier}: complete untouched Level payload`)
   }

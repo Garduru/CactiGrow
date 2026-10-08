@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import type { WorldArea, WorldData, WorldPoint, WorldVisualLayer } from '../shared/world/types.ts'
+import { TOWN_NPC_ENTITY_IDS, TOWN_BOARD_ENTITY_ID } from '../shared/api/townContentV1.ts'
 
 /** One Level-local transform for authored entity positions and IntGrid rectangles. */
 export function topologyToRuntime(area: Pick<WorldArea, 'width' | 'height' | 'topology'>, point: WorldPoint): WorldPoint {
@@ -51,12 +52,21 @@ export function parseWorld(input: unknown, version = 'test'): WorldData {
         const iid = text(e.iid)
         if (entities.has(iid)) throw new Error('Duplicate entity IID.')
         entities.set(iid, { areaId, levelIid: text(l.iid), layerIid: text(layer.iid), entity: e })
-        if (!['AreaSpawn', 'AreaExit', 'TutorialNpc', 'HarvestablePlant', 'TutorialPot', 'LandmarkRegion', 'EnvironmentalInspectable'].includes(text(e.__identifier))) continue
+        if (!['AreaSpawn', 'AreaExit', 'TutorialNpc', 'HarvestablePlant', 'TutorialPot', 'LandmarkRegion', 'EnvironmentalInspectable', 'TownNpc', 'TownNoticeBoard'].includes(text(e.__identifier))) continue
         const ef = fields(e.fieldInstances), px = list(e.px)
         const authored = { x: number(px[0]) + number(layer.__pxTotalOffsetX), y: number(px[1]) + number(layer.__pxTotalOffsetY) }
         if (!lockedTemplate && (ef.runtimeX != null || ef.runtimeY != null)) throw new Error('Runtime entity overrides are reserved for locked Farm/Town templates.')
         const { x, y } = lockedTemplate ? { x: ef.runtimeX == null ? authored.x : number(ef.runtimeX), y: ef.runtimeY == null ? authored.y : number(ef.runtimeY) } : topologyToRuntime(area, authored)
         if ((ef.runtimeX == null) !== (ef.runtimeY == null) || x < 0 || y < 0 || x >= width || y >= height) throw new Error(`Invalid entity position in ${areaId}`)
+        if (e.__identifier === 'TownNpc' || e.__identifier === 'TownNoticeBoard') {
+          const entityId = id(ef.entityId), npc = e.__identifier === 'TownNpc'
+          if (areaId !== 'town-p1' || area.areaType !== 'town' || ef.tutorial !== false || ef.runtimeX == null || ef.runtimeY == null
+            || (npc ? !TOWN_NPC_ENTITY_IDS.includes(entityId as typeof TOWN_NPC_ENTITY_IDS[number]) : entityId !== TOWN_BOARD_ENTITY_ID)) throw new Error('Invalid authored Town content.')
+          const entity: NonNullable<WorldArea['interactables']>[number] = { entityId, kind: npc ? 'npc' : 'inspectable', displayName: text(ef.displayName), tutorial: false, x, y }
+          if (!npc) entity.description = text(ef.description)
+          area.interactables ??= []; area.interactables.push(entity)
+          continue
+        }
         if (e.__identifier === 'AreaSpawn') area.spawns.push({ entryId: id(ef.entryId), x, y })
         else if (e.__identifier === 'LandmarkRegion') {
           if (lockedTemplate || area.zoneId !== 'first-basin') throw new Error('Invalid exploration landmark Area.')

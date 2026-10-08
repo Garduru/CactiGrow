@@ -65,7 +65,10 @@
     "test:exploration": "node --experimental-strip-types --test --test-force-exit shared/world/basinExploration.test.mjs shared/api/explorationV1.test.ts server/exploration/explorationReach.test.ts server/exploration/exploration.integration.test.mjs src/features/exploration/explorationPresentation.test.ts",
     "test:exploration:browser": "node --test src/features/exploration/exploration.browser.test.mjs",
     "test:field-survey": "node --experimental-strip-types --test --test-force-exit shared/world/fieldSurvey.test.mjs shared/api/fieldSurveyV1.test.ts server/quests/fieldSurvey.integration.test.mjs",
-    "test:field-survey:browser": "node --test src/features/field-survey/fieldSurvey.browser.test.mjs"
+    "test:field-survey:browser": "node --test src/features/field-survey/fieldSurvey.browser.test.mjs",
+    "town:author": "node scripts/town-content-v1.mjs --all",
+    "test:town-content": "node --experimental-strip-types --test --test-force-exit shared/world/townContent.test.mjs shared/world/townGeometry.test.ts shared/api/townContentV1.test.ts server/town/townContent.integration.test.mjs src/features/town-content/townContent.test.ts",
+    "test:town-content:browser": "node --test src/features/town-content/townContent.browser.test.mjs"
   },
   "dependencies": {
     "@neondatabase/auth": "0.5.0-beta",

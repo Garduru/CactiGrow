@@ -38,6 +38,8 @@ import { ExplorationService } from '../exploration/ExplorationService.ts'
 import { isExplorationCommandV1, isExplorationDevCommandV1, isExplorationRestoreCommandV1 } from '../../shared/api/explorationV1.ts'
 import { FieldSurveyService } from '../quests/FieldSurveyService.ts'
 import { isFieldSurveyCommandV1, isFieldSurveyDevCommandV1 } from '../../shared/api/fieldSurveyV1.ts'
+import { TownContentService } from '../town/TownContentService.ts'
+import { isTownContentCommandV1 } from '../../shared/api/townContentV1.ts'
 
 export interface ApiRequestContext {
   request: Request
@@ -122,6 +124,17 @@ export function createApiRouter(dependencies: ApiRouterDependencies = {}): ApiRo
         const command = await readJson(request)
         if (!isStartingCommand(command)) throw ApiError.validation('Invalid tutorial command.')
         return successResponse({ ...await service.execute(player.playerId, command), serverNow: new Date().toISOString() }, requestId)
+      }, dependencies.authenticationConfigurationFactory)
+    }
+    if (url.pathname === '/api/v1/me/town-content') {
+      if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.notFound()
+      if (request.method !== 'GET' && request.method !== 'POST') throw ApiError.methodNotAllowed()
+      return withAuthenticatedPlayer(context, async ({ player }) => {
+        const service = new TownContentService(await context.database.getDatabase(), { environment: env.CACTIGROW_ENVIRONMENT })
+        if (request.method === 'GET') return successResponse(await service.read(player.playerId), requestId)
+        const command = await readJson(request)
+        if (!isTownContentCommandV1(command)) throw ApiError.validation('Invalid Town conversation command.')
+        return successResponse(await service.execute(player.playerId, command), requestId)
       }, dependencies.authenticationConfigurationFactory)
     }
     if (url.pathname === '/api/v1/me/field-survey') {

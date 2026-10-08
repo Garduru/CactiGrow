@@ -66,3 +66,16 @@ test('both body types and new hairstyles round-trip through public presence with
     assert.equal(isPublicPresenceV1({ ...publicPresence, appearance: { ...appearance, gender: 'feminine' } }), false)
   }
 })
+
+test('Town NPC identities and bespoke assets cannot enter saved player appearances or public presence', () => {
+  for (const npcId of ['rosa', 'tomas', 'inez'] as const) {
+    const appearance = { skin: 1, shirt: 2, body: 0, npcId }
+    assert.equal(isCharacterAppearance(appearance), false)
+    assert.equal(isStartingCommand({ type: 'save-appearance', commandId: uuid(20), appearance }), false)
+    assert.equal(isCharacterAppearance({ skin: 1, shirt: 2, assetUrl: `/assets/characters/npc/${npcId}/desert-${npcId}-idle-v01.webp` }), false)
+    const joined = joinPresence(createAreaPresenceState(TOWN_AREA, 0), { playerId: playerId(uuid(1)), presenceId: presenceId(uuid(2)), newLayerId: layerId(uuid(3)), entryPointId: 'farm-arrival', appearance: { skin: 1, shirt: 2 } }, 1)
+    assert.ok(joined.ok)
+    assert.equal(isPublicPresenceV1({ ...toPublicPresence(joined.membership), appearance }), false)
+    assert.notEqual(NPC_APPEARANCES[npcId].npcId, 'mara')
+  }
+})

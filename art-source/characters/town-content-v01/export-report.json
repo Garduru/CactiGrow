@@ -1,0 +1,305 @@
+{
+  "version": "town-content-v01",
+  "mode": "stationary-four-direction-idle",
+  "frameSize": [
+    128,
+    224
+  ],
+  "atlasSize": [
+    640,
+    896
+  ],
+  "bodyBaseline": 216,
+  "bodyHeight": 198,
+  "bodyWidthLimit": 108,
+  "npcs": {
+    "rosa": {
+      "source": "desert-rosa-idle-master-v01.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSha256": "4920179e62439c5359d0aed18cf9afcf3572c7b5908fde848434863f178699ac",
+      "url": "/assets/characters/npc/rosa/desert-rosa-idle-v01.webp",
+      "bytes": 97442,
+      "sha256": "2d3b5ceb814dd87c9bdad285b00f16760ed8fe258d5b076ebb8cb27db73fb8e6",
+      "scale": 0.3283582089552239,
+      "uniqueIdleDirections": 4,
+      "walkingAuthored": false,
+      "frames": [
+        {
+          "direction": "south",
+          "sourceCell": [
+            0,
+            0
+          ],
+          "sourceBounds": [
+            208,
+            10,
+            495,
+            612
+          ],
+          "alphaBounds": [
+            17,
+            18,
+            111,
+            216
+          ],
+          "sha256": "e12aeacbabfe93d429d0c409f0f40dd5f0f04a1b6672d12528d6b4cda94c1710"
+        },
+        {
+          "direction": "west",
+          "sourceCell": [
+            0,
+            1
+          ],
+          "sourceBounds": [
+            227,
+            8,
+            469,
+            611
+          ],
+          "alphaBounds": [
+            24,
+            18,
+            103,
+            216
+          ],
+          "sha256": "759349eeec513d84b4871d45d10fd6798b830c7f2bdd76474e0d82453b077d85"
+        },
+        {
+          "direction": "east",
+          "sourceCell": [
+            1,
+            0
+          ],
+          "sourceBounds": [
+            163,
+            14,
+            400,
+            613
+          ],
+          "alphaBounds": [
+            25,
+            19,
+            103,
+            216
+          ],
+          "sha256": "ef31eee26d36e82f68afe3004390c3be8e9d35ed0fe3390a3f31181b788d0dd7"
+        },
+        {
+          "direction": "north",
+          "sourceCell": [
+            1,
+            1
+          ],
+          "sourceBounds": [
+            145,
+            6,
+            430,
+            608
+          ],
+          "alphaBounds": [
+            17,
+            18,
+            111,
+            216
+          ],
+          "sha256": "31ce02d870aefb8eb218cc37c537741b0afb1698f92a23b2963717ffbb6f688f"
+        }
+      ]
+    },
+    "tomas": {
+      "source": "desert-tomas-idle-master-v01.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSha256": "05fedcfd457abfc955c2c0120552620e1caaa0fd5a615af84ebdc6869979d2e1",
+      "url": "/assets/characters/npc/tomas/desert-tomas-idle-v01.webp",
+      "bytes": 94706,
+      "sha256": "ebed737c18ae5157bcb1d4ebc7e1f04cdee1c1ca699468396804656828991194",
+      "scale": 0.3185840707964602,
+      "uniqueIdleDirections": 4,
+      "walkingAuthored": false,
+      "frames": [
+        {
+          "direction": "south",
+          "sourceCell": [
+            0,
+            0
+          ],
+          "sourceBounds": [
+            180,
+            11,
+            519,
+            613
+          ],
+          "alphaBounds": [
+            10,
+            24,
+            118,
+            216
+          ],
+          "sha256": "7a764663a4d8c099bed5be879272564da2a8a3594c33dd01b876df8395f67cae"
+        },
+        {
+          "direction": "west",
+          "sourceCell": [
+            0,
+            1
+          ],
+          "sourceBounds": [
+            240,
+            6,
+            453,
+            605
+          ],
+          "alphaBounds": [
+            30,
+            25,
+            98,
+            216
+          ],
+          "sha256": "81a7d72244f33f0811e6997547b804825c02d3a7dc100a78f74c642785c85b78"
+        },
+        {
+          "direction": "east",
+          "sourceCell": [
+            1,
+            0
+          ],
+          "sourceBounds": [
+            192,
+            16,
+            404,
+            614
+          ],
+          "alphaBounds": [
+            30,
+            25,
+            98,
+            216
+          ],
+          "sha256": "b027eea27414309ab1619b67d98eecdb285cb12f3342722055682923ca879ebb"
+        },
+        {
+          "direction": "north",
+          "sourceCell": [
+            1,
+            1
+          ],
+          "sourceBounds": [
+            142,
+            6,
+            476,
+            601
+          ],
+          "alphaBounds": [
+            11,
+            26,
+            117,
+            216
+          ],
+          "sha256": "6e8bea2f6f1836b21bc312247afaa5341d93b067333e0b451bcaf7fce7f72953"
+        }
+      ]
+    },
+    "inez": {
+      "source": "desert-inez-idle-master-v01.png",
+      "sourceSize": [
+        1254,
+        1254
+      ],
+      "sourceSha256": "5624a30868c77d6fa30cc78adc4c88f9cff05c5e5099d5a5624f45b2ce860022",
+      "url": "/assets/characters/npc/inez/desert-inez-idle-v01.webp",
+      "bytes": 62434,
+      "sha256": "c254fa9516aca1467a5a23057218badf46dc82dc968a0d7678a44ab242599526",
+      "scale": 0.32195121951219513,
+      "uniqueIdleDirections": 4,
+      "walkingAuthored": false,
+      "frames": [
+        {
+          "direction": "south",
+          "sourceCell": [
+            0,
+            0
+          ],
+          "sourceBounds": [
+            257,
+            2,
+            465,
+            617
+          ],
+          "alphaBounds": [
+            30,
+            18,
+            97,
+            216
+          ],
+          "sha256": "6e7f50ba14d5166472e370118396a852d47b2020f896c03279cd3be6c6c6e858"
+        },
+        {
+          "direction": "west",
+          "sourceCell": [
+            0,
+            1
+          ],
+          "sourceBounds": [
+            285,
+            3,
+            427,
+            615
+          ],
+          "alphaBounds": [
+            41,
+            19,
+            87,
+            216
+          ],
+          "sha256": "f589356ac33238d2d1ee19d6f9f7f7e87c33335115ba88d522e795a4eb4e6cd2"
+        },
+        {
+          "direction": "east",
+          "sourceCell": [
+            1,
+            0
+          ],
+          "sourceBounds": [
+            202,
+            0,
+            339,
+            615
+          ],
+          "alphaBounds": [
+            42,
+            18,
+            86,
+            216
+          ],
+          "sha256": "267cd62ad049dfe7e3e0b5807135b55f5cd73d0c87f00f23c76bf7cf93c3a364"
+        },
+        {
+          "direction": "north",
+          "sourceCell": [
+            1,
+            1
+          ],
+          "sourceBounds": [
+            186,
+            3,
+            389,
+            616
+          ],
+          "alphaBounds": [
+            32,
+            19,
+            97,
+            216
+          ],
+          "sha256": "08cb4c4d8b544ec6839e15c74d46e78cce4526f80ed35a5738d503ef54448a4d"
+        }
+      ]
+    }
+  }
+}

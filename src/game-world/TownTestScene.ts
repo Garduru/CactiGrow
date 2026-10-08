@@ -1,4 +1,4 @@
-import { createPlayerCharacter, preloadCharacterArt, updateCharacterMotion } from './PlayerCharacter'
+import { createNpcCharacter, createPlayerCharacter, preloadCharacterArt, updateCharacterMotion } from './PlayerCharacter'
 import { configureGameplayCamera } from './gameplayCamera'
 import { NavigationMap } from './navigation/NavigationMap'
 import { bindFoundationExits, type FoundationSceneOptions } from './AreaExitController'
@@ -18,7 +18,10 @@ import type { EditorObject, WorldEditorController } from './editor/worldEditorSt
 import type { AreaConnection } from '../services/realtime/AreaConnection'
 import type { Facing } from '../../shared/realtime/protocolV1'
 import { RemotePlayers } from './RemotePlayers'
-import { DEFAULT_APPEARANCE } from '../../shared/characters/appearance'
+import { DEFAULT_APPEARANCE, NPC_PRESET_BY_ENTITY_ID } from '../../shared/characters/appearance'
+import { TOWN_CONTENT, TOWN_INTERACTION_RADIUS, TOWN_NPC_IDS } from '../../shared/api/townContentV1.ts'
+import { TOWN_BOUNDARY_COLLIDERS, TOWN_ROAD_POST_COLLIDERS } from '../../shared/world/townGeometry.ts'
+import type { WorldInteractable } from '../../shared/world/types.ts'
 
 const PLAYER_SPEED = 245
 const CAMERA_ZOOM_FLOOR = 0.1
@@ -30,6 +33,7 @@ interface TownInteractionTarget {
   layout: TownLocationLayout
   prompt: Phaser.GameObjects.Text
 }
+interface TownContentTarget { entity: WorldInteractable; prompt: Phaser.GameObjects.Text }
 
 interface PendingWorldTap {
   pointerId: number
@@ -55,6 +59,7 @@ export class TownTestScene extends Phaser.Scene {
   private navigation = new NavigationController(new NavigationMap(TOWN_WORLD_WIDTH, TOWN_WORLD_HEIGHT, []))
   private pathDebug: Phaser.GameObjects.Graphics | null = null
   private readonly interactionTargets: TownInteractionTarget[] = []
+  private readonly contentTargets: TownContentTarget[] = []
   private readonly staticColliders: Phaser.GameObjects.Rectangle[] = []
   private unsubscribeProjection: (() => void) | null = null
   private baseCameraZoom = 1
@@ -96,6 +101,7 @@ export class TownTestScene extends Phaser.Scene {
     this.drawBoundary()
     this.createLocations(this.bridge.getProjection().locations.filter((location): location is TownWorldLocationProjection => location.id === 'shop' || location.id === 'market' || location.id === 'farm'))
     this.createPlayer()
+    this.createTownContent()
     this.setupPresence()
     this.createInput()
     this.configureCamera()
@@ -170,8 +176,10 @@ export class TownTestScene extends Phaser.Scene {
     }
     this.drawNavigationPath()
 
-    const nearby = this.getNearestInteraction()
-    this.interactionTargets.forEach((target) => target.prompt.setVisible(target === nearby))
+    const nearby = this.getNearestInteraction(), content = this.getNearestTownContent()
+    const contentFirst = content && (!nearby || Math.hypot(this.player.x - content.entity.x, this.player.y - content.entity.y) < Math.hypot(this.player.x - this.getInteraction(nearby.layout).x, this.player.y - this.getInteraction(nearby.layout).y))
+    this.interactionTargets.forEach((target) => target.prompt.setVisible(!contentFirst && target === nearby))
+    this.contentTargets.forEach((target) => target.prompt.setVisible(!!contentFirst && target === content))
   }
 
   private drawGroundAndPaths() {
@@ -204,11 +212,7 @@ export class TownTestScene extends Phaser.Scene {
   private drawBoundary() {
     const wall = this.add.graphics().setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
     wall.lineStyle(18, 0x584432, 1).strokeRect(60, 50, TOWN_WORLD_WIDTH - 120, TOWN_WORLD_HEIGHT - 100)
-    this.addStaticCollider(TOWN_WORLD_WIDTH / 2, 58, TOWN_WORLD_WIDTH - 120, 30)
-    this.addStaticCollider(68, TOWN_WORLD_HEIGHT / 2, 30, TOWN_WORLD_HEIGHT - 100)
-    this.addStaticCollider(TOWN_WORLD_WIDTH - 68, TOWN_WORLD_HEIGHT / 2, 30, TOWN_WORLD_HEIGHT - 100)
-    this.addStaticCollider(475, TOWN_WORLD_HEIGHT - 58, 820, 30)
-    this.addStaticCollider(1725, TOWN_WORLD_HEIGHT - 58, 820, 30)
+    TOWN_BOUNDARY_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height))
   }
 
   private createLocations(locations: readonly TownWorldLocationProjection[]) {
@@ -222,6 +226,22 @@ export class TownTestScene extends Phaser.Scene {
       }).setOrigin(0.5).setDepth(WORLD_DEPTH.prompts).setVisible(false)
       this.interactionTargets.push({ location, layout, prompt })
     })
+  }
+
+  private createTownContent() {
+    if (import.meta.env.MODE !== 'staging' || this.foundation?.area.areaId !== TOWN_CONTENT.areaId) return
+    for (const entity of this.foundation.area.interactables ?? []) {
+      if (entity.entityId !== TOWN_CONTENT.boardEntityId && !TOWN_NPC_IDS.some(id => id === entity.entityId)) continue
+      if (entity.kind === 'npc') {
+        const preset = NPC_PRESET_BY_ENTITY_ID[entity.entityId]
+        if (preset) createNpcCharacter(this, entity.x, entity.y, preset, () => this.player).setName(`town-npc:${entity.entityId}`)
+      }
+      // The board already belongs to accepted settlement artwork. Only its target is added.
+      const prompt = this.add.text(entity.x, entity.y + 28, `${entity.displayName} · E / tap to ${entity.kind === 'npc' ? 'talk' : 'read'}`, {
+        color: '#fff3dc', backgroundColor: '#39281eee', fontFamily: 'system-ui', fontSize: '13px', padding: { x: 9, y: 5 },
+      }).setOrigin(.5, 0).setDepth(WORLD_DEPTH.prompts).setVisible(false).setName('town-content-prompt')
+      this.contentTargets.push({ entity, prompt })
+    }
   }
 
   private drawLocation(layout: TownLocationLayout) {
@@ -250,8 +270,7 @@ export class TownTestScene extends Phaser.Scene {
       const right = this.add.rectangle(layout.x + 135, layout.y, 24, 118, 0x745237).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
       const main = this.add.rectangle(layout.x, layout.y - 45, 290, 56, 0x4e3828).setStrokeStyle(4, 0xa27a51).setDepth(WORLD_DEPTH.foreground).setVisible(!this.settlementRendered)
       this.rememberVisual(layout.id, main, [left, right])
-      this.addStaticCollider(layout.x - 135, layout.y, 24, 118, layout.id)
-      this.addStaticCollider(layout.x + 135, layout.y, 24, 118, layout.id)
+      TOWN_ROAD_POST_COLLIDERS.forEach(({ x, y, width, height }) => this.addStaticCollider(x, y, width, height, layout.id))
       return
     }
 
@@ -358,7 +377,7 @@ export class TownTestScene extends Phaser.Scene {
     })
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _over: Phaser.GameObjects.GameObject[], _dx: number, deltaY: number) => this.setUserZoom((this.foundation ? this.cameras.main.zoom : this.targetCameraZoom) * Math.exp(-deltaY * 0.0012)))
     this.game.canvas.tabIndex = 0
-    this.game.canvas.setAttribute('aria-label', 'Interactive Town graybox. Use arrow keys or WASD to move and E to enter a nearby location.')
+    this.game.canvas.setAttribute('aria-label', 'Interactive Town. Use arrow keys or WASD to move, E near a person or location, or tap to approach.')
   }
 
   private configureCamera() {
@@ -466,6 +485,9 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   private handleWorldTap(worldX: number, worldY: number) {
+    if (this.foundation?.pending()) return
+    const content = this.contentTargets.find(({ entity }) => Math.hypot(worldX - entity.x, worldY - (entity.y - (entity.kind === 'npc' ? 40 : 0))) <= (entity.kind === 'npc' ? 75 : 95))
+    if (content) { this.approachTownContent(content); return }
     const target = this.interactionTargets.find((candidate) => {
       const point = this.getInteraction(candidate.layout)
       const onBody = this.ownedColliders.get(candidate.location.id)?.some((collider) => {
@@ -593,7 +615,22 @@ export class TownTestScene extends Phaser.Scene {
   private getInteraction(layout: TownLocationLayout) { return this.editor?.getSnapshot().objects.find((object) => object.id === layout.id)?.interaction ?? { x: layout.interactionX, y: layout.interactionY, radius: layout.interactionRadius } }
   private isInInteractionRange(target: TownInteractionTarget) { const point = this.getInteraction(target.layout); return Phaser.Math.Distance.Between(this.player.x, this.player.y, point.x, point.y) <= point.radius }
   private getNearestInteraction() { return this.interactionTargets.filter((target) => this.isInInteractionRange(target)).sort((a, b) => { const first = this.getInteraction(a.layout); const second = this.getInteraction(b.layout); return Phaser.Math.Distance.Between(this.player.x, this.player.y, first.x, first.y) - Phaser.Math.Distance.Between(this.player.x, this.player.y, second.x, second.y) })[0] ?? null }
-  private activateNearestInteraction() { const target = this.getNearestInteraction(); if (target) this.enterLocation(target) }
+  private getNearestTownContent() { return this.contentTargets.filter(({ entity }) => Math.hypot(this.player.x - entity.x, this.player.y - entity.y) <= TOWN_INTERACTION_RADIUS && this.navigation.map.visible(this.player, entity)).sort((a, b) => Math.hypot(this.player.x - a.entity.x, this.player.y - a.entity.y) - Math.hypot(this.player.x - b.entity.x, this.player.y - b.entity.y))[0] ?? null }
+  private activateNearestInteraction() {
+    const target = this.getNearestInteraction(), content = this.getNearestTownContent()
+    if (content && (!target || Math.hypot(this.player.x - content.entity.x, this.player.y - content.entity.y) < Math.hypot(this.player.x - this.getInteraction(target.layout).x, this.player.y - this.getInteraction(target.layout).y))) this.approachTownContent(content)
+    else if (target) this.enterLocation(target)
+  }
+  private approachTownContent(target: TownContentTarget) {
+    if (this.foundation?.pending()) return
+    const entity = target.entity
+    this.navigation.approach(this.player, { id: entity.entityId, position: () => entity, radius: TOWN_INTERACTION_RADIUS,
+      approach: { x: entity.x, y: entity.y + 65 }, activate: () => {
+        this.navigation.cancel(); (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0)
+        this.foundation?.onInteract?.(entity.entityId, { x: this.player.x, y: this.player.y })
+      },
+    }, performance.now())
+  }
   private enterLocation(target: TownInteractionTarget) { this.navigation.cancel(); this.bridge.emitIntent({ type: 'ENTER_LOCATION', locationId: target.location.id }) }
   private getPromptText(location: TownWorldLocationProjection) { return `${location.displayName}\n${location.interactionLabel}` }
 }

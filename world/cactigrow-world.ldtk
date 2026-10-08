@@ -11,7 +11,7 @@
   "iid": "727348e0-bde0-11f1-9dd1-ad2fbff7de78",
   "jsonVersion": "1.5.3",
   "appBuildId": 473703,
-  "nextUid": 214,
+  "nextUid": 227,
   "identifierStyle": "Capitalize",
   "toc": [
     {
@@ -4859,6 +4859,489 @@
             "doc": null,
             "__type": "String",
             "uid": 213,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          }
+        ]
+      },
+      {
+        "identifier": "TownNpc",
+        "uid": 214,
+        "tags": [
+          "town-content-v1"
+        ],
+        "exportToToc": false,
+        "allowOutOfBounds": false,
+        "doc": "Town Content V1: optional presentation/service interaction. Explicit locked-template runtime coordinates; no collision.",
+        "width": 32,
+        "height": 32,
+        "resizableX": false,
+        "resizableY": false,
+        "minWidth": null,
+        "maxWidth": null,
+        "minHeight": null,
+        "maxHeight": null,
+        "keepAspectRatio": false,
+        "tileOpacity": 1,
+        "fillOpacity": 1,
+        "lineOpacity": 1,
+        "hollow": false,
+        "color": "#DDB46B",
+        "renderMode": "Rectangle",
+        "showName": true,
+        "tilesetId": null,
+        "tileRenderMode": "FitInside",
+        "tileRect": null,
+        "uiTileRect": null,
+        "nineSliceBorders": [],
+        "maxCount": 0,
+        "limitScope": "PerLevel",
+        "limitBehavior": "MoveLastOne",
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "fieldDefs": [
+          {
+            "identifier": "entityId",
+            "doc": null,
+            "__type": "String",
+            "uid": 215,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "displayName",
+            "doc": null,
+            "__type": "String",
+            "uid": 216,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "tutorial",
+            "doc": null,
+            "__type": "Bool",
+            "uid": 217,
+            "type": "F_Bool",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "runtimeX",
+            "doc": null,
+            "__type": "EntityRef",
+            "uid": 218,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "runtimeY",
+            "doc": null,
+            "__type": "EntityRef",
+            "uid": 219,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          }
+        ]
+      },
+      {
+        "identifier": "TownNoticeBoard",
+        "uid": 220,
+        "tags": [
+          "town-content-v1"
+        ],
+        "exportToToc": false,
+        "allowOutOfBounds": false,
+        "doc": "Town Content V1: optional presentation/service interaction. Explicit locked-template runtime coordinates; no collision.",
+        "width": 32,
+        "height": 32,
+        "resizableX": false,
+        "resizableY": false,
+        "minWidth": null,
+        "maxWidth": null,
+        "minHeight": null,
+        "maxHeight": null,
+        "keepAspectRatio": false,
+        "tileOpacity": 1,
+        "fillOpacity": 1,
+        "lineOpacity": 1,
+        "hollow": false,
+        "color": "#83B49A",
+        "renderMode": "Rectangle",
+        "showName": true,
+        "tilesetId": null,
+        "tileRenderMode": "FitInside",
+        "tileRect": null,
+        "uiTileRect": null,
+        "nineSliceBorders": [],
+        "maxCount": 0,
+        "limitScope": "PerLevel",
+        "limitBehavior": "MoveLastOne",
+        "pivotX": 0.5,
+        "pivotY": 0.5,
+        "fieldDefs": [
+          {
+            "identifier": "entityId",
+            "doc": null,
+            "__type": "String",
+            "uid": 221,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "displayName",
+            "doc": null,
+            "__type": "String",
+            "uid": 222,
+            "type": "F_String",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "tutorial",
+            "doc": null,
+            "__type": "Bool",
+            "uid": 223,
+            "type": "F_Bool",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "runtimeX",
+            "doc": null,
+            "__type": "EntityRef",
+            "uid": 224,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "runtimeY",
+            "doc": null,
+            "__type": "EntityRef",
+            "uid": 225,
+            "type": "F_Int",
+            "isArray": false,
+            "canBeNull": false,
+            "arrayMinLength": null,
+            "arrayMaxLength": null,
+            "editorDisplayMode": "NameAndValue",
+            "editorDisplayScale": 1,
+            "editorDisplayPos": "Above",
+            "editorLinkStyle": "CurvedArrow",
+            "editorDisplayColor": null,
+            "editorAlwaysShow": false,
+            "editorShowInWorld": true,
+            "editorCutLongValues": true,
+            "editorTextSuffix": null,
+            "editorTextPrefix": null,
+            "useForSmartColor": false,
+            "exportToToc": false,
+            "searchable": false,
+            "min": null,
+            "max": null,
+            "regex": null,
+            "acceptFileTypes": null,
+            "defaultOverride": null,
+            "textLanguageMode": null,
+            "symmetricalRef": false,
+            "autoChainRef": false,
+            "allowOutOfLevelRef": true,
+            "allowedRefs": "Any",
+            "allowedRefsEntityUid": null,
+            "allowedRefTags": [],
+            "tilesetUid": null
+          },
+          {
+            "identifier": "description",
+            "doc": null,
+            "__type": "String",
+            "uid": 226,
             "type": "F_String",
             "isArray": false,
             "canBeNull": false,
@@ -86862,6 +87345,412 @@
               "width": 48,
               "__worldX": 728,
               "__worldY": 224
+            },
+            {
+              "__identifier": "TownNpc",
+              "__grid": [
+                11,
+                19
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#DDB46B",
+              "__tags": [
+                "town-content-v1"
+              ],
+              "__tile": null,
+              "defUid": 214,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__value": "town-rosa-steward",
+                  "__type": "String",
+                  "defUid": 215,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "town-rosa-steward"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__value": "Rosa",
+                  "__type": "String",
+                  "defUid": 216,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Rosa"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__value": false,
+                  "__type": "Bool",
+                  "defUid": 217,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeX",
+                  "__value": 960,
+                  "__type": "Int",
+                  "defUid": 218,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        960
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeY",
+                  "__value": 1150,
+                  "__type": "Int",
+                  "defUid": 219,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        1150
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "8f0e8217-413d-5c5d-a40c-7c7065382cb8",
+              "px": [
+                189,
+                319
+              ],
+              "width": 32,
+              "__worldX": 701,
+              "__worldY": 159
+            },
+            {
+              "__identifier": "TownNpc",
+              "__grid": [
+                11,
+                10
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#DDB46B",
+              "__tags": [
+                "town-content-v1"
+              ],
+              "__tile": null,
+              "defUid": 214,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__value": "town-tomas-shopkeeper",
+                  "__type": "String",
+                  "defUid": 215,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "town-tomas-shopkeeper"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__value": "Tomas",
+                  "__type": "String",
+                  "defUid": 216,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Tomas"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__value": false,
+                  "__type": "Bool",
+                  "defUid": 217,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeX",
+                  "__value": 930,
+                  "__type": "Int",
+                  "defUid": 218,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        930
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeY",
+                  "__value": 625,
+                  "__type": "Int",
+                  "defUid": 219,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        625
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "24bf3ac5-8e31-5dbe-97ea-4ef00b47ff4d",
+              "px": [
+                183,
+                173
+              ],
+              "width": 32,
+              "__worldX": 695,
+              "__worldY": 13
+            },
+            {
+              "__identifier": "TownNpc",
+              "__grid": [
+                19,
+                16
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#DDB46B",
+              "__tags": [
+                "town-content-v1"
+              ],
+              "__tile": null,
+              "defUid": 214,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__value": "town-inez-botanist",
+                  "__type": "String",
+                  "defUid": 215,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "town-inez-botanist"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__value": "Inez",
+                  "__type": "String",
+                  "defUid": 216,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Inez"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__value": false,
+                  "__type": "Bool",
+                  "defUid": 217,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeX",
+                  "__value": 1570,
+                  "__type": "Int",
+                  "defUid": 218,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        1570
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeY",
+                  "__value": 940,
+                  "__type": "Int",
+                  "defUid": 219,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        940
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "ebf7b8c4-0c20-5d6a-b617-d060baf942bc",
+              "px": [
+                308,
+                261
+              ],
+              "width": 32,
+              "__worldX": 820,
+              "__worldY": 101
+            },
+            {
+              "__identifier": "TownNoticeBoard",
+              "__grid": [
+                6,
+                13
+              ],
+              "__pivot": [
+                0.5,
+                0.5
+              ],
+              "__smartColor": "#83B49A",
+              "__tags": [
+                "town-content-v1"
+              ],
+              "__tile": null,
+              "defUid": 220,
+              "fieldInstances": [
+                {
+                  "__identifier": "entityId",
+                  "__value": "town-community-board",
+                  "__type": "String",
+                  "defUid": 221,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "town-community-board"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "displayName",
+                  "__value": "Community notice board",
+                  "__type": "String",
+                  "defUid": 222,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "Community notice board"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "tutorial",
+                  "__value": false,
+                  "__type": "Bool",
+                  "defUid": 223,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Bool",
+                      "params": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeX",
+                  "__value": 500,
+                  "__type": "Int",
+                  "defUid": 224,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        500
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "runtimeY",
+                  "__value": 795,
+                  "__type": "Int",
+                  "defUid": 225,
+                  "realEditorValues": [
+                    {
+                      "id": "V_Int",
+                      "params": [
+                        795
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "__identifier": "description",
+                  "__value": "News from the Basin and the growers who gather here.",
+                  "__type": "String",
+                  "defUid": 226,
+                  "realEditorValues": [
+                    {
+                      "id": "V_String",
+                      "params": [
+                        "News from the Basin and the growers who gather here."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "height": 32,
+              "iid": "c3576f2b-87d4-5cb1-af37-26f1495069da",
+              "px": [
+                98,
+                220
+              ],
+              "width": 32,
+              "__worldX": 610,
+              "__worldY": 60
             }
           ]
         },

@@ -1,0 +1,11 @@
+.town-content-dialog { box-sizing:border-box; max-width:100%; }
+.town-content-actions { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+.town-content-actions > button { flex:1 1 140px; margin:0; max-width:100%; }
+.town-content-notice { margin:12px 0; padding:12px; border:1px solid var(--cg-border-interactive); border-radius:var(--cg-radius-sm); background:var(--cg-surface); }
+.town-content-notice h3 { margin:0 0 8px; color:var(--cg-text); font-family:var(--cg-font-display); }
+.town-content-notice strong { color:var(--cg-warning); font-size:12px; }
+.town-content-notice small,.town-content-future { color:var(--cg-text-muted); font-size:12px; line-height:1.5; }
+.town-content-journal { margin:22px 0; padding:16px; border:1px solid var(--cg-border-interactive); border-radius:var(--cg-radius-sm); background:var(--cg-surface-raised); overflow-wrap:anywhere; }
+.town-content-journal h2 { margin:0 0 8px; color:var(--cg-text); font-family:var(--cg-font-display); }
+.town-content-journal p { font-size:13px; line-height:1.5; }
+@media(max-width:480px) { .town-content-actions > button { flex-basis:100%; } .town-content-dialog { padding:14px; } }

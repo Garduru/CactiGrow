@@ -32,6 +32,8 @@ import { ExplorationNotice } from '../features/exploration/ExplorationNotice'
 import type { WorldPoint } from '../../shared/world/types.ts'
 import { FIELD_SURVEY } from '../../shared/api/fieldSurveyV1.ts'
 import { FieldSurveyDialog } from '../features/field-survey/FieldSurveyDialog'
+import { TOWN_CONTENT, TOWN_NPC_IDS } from '../../shared/api/townContentV1.ts'
+import { TownContentDialog } from '../features/town-content/TownContentDialog'
 function roadLabel(areaId: string) {
   const exit = authoredRoadExit(findArea(areaId)!)
   return `Road to ${exit?.targetAreaId ? findArea(exit.targetAreaId)?.displayName ?? 'unavailable route' : 'unavailable route'}`
@@ -80,6 +82,7 @@ export function LdtkWorldPage() {
       onDiscover: (landmarkId: string, point: WorldPoint) => { if (fieldRequest.current || explorationRef.current.pending || actions.current.pending) return false; fieldRequest.current = true; void explorationRef.current.execute({ type: 'discover-landmark', landmarkId, position: point }).finally(() => { fieldRequest.current = false }); return true },
       onInteract: (id: string, point?: WorldPoint) => {
         const entity = area.interactables?.find(entity => entity.entityId === id)
+        if (area.areaId === TOWN_CONTENT.areaId && point && (id === TOWN_CONTENT.boardEntityId || TOWN_NPC_IDS.some(npcId => npcId === id))) { setInteractionPoint(point); setInteraction(id); return }
         if (entity?.entityId === FIELD_SURVEY.npcEntityId && point) { setInteractionPoint(point); setInteraction(id); return }
         if (entity && !entity.tutorial && point) { void explorationRef.current.execute({ type: entity.kind === 'inspectable' ? 'inspect' : 'harvest', entityId: id, position: point }); return }
         setInteraction(id)
@@ -110,7 +113,7 @@ export function LdtkWorldPage() {
       <LocalMinimap areaId={area.areaId} hidden={!!interaction || dock.chatDockExpanded || panels.feature !== null || world.pending} />
       {!interaction && !dock.chatDockExpanded && panels.feature === null && <ExplorationNotice />}
       {dock.chatDockExpanded && <InGameChatHud mode={dock.activeTab === 'friends' ? 'world-chat' : dock.activeTab} onModeChange={dock.setActiveTab} />}
-      {interaction === FIELD_SURVEY.npcEntityId && interactionPoint ? <FieldSurveyDialog position={interactionPoint} close={() => setInteraction(null)} /> : interaction && area.interactables?.find(e => e.entityId === interaction) && <WorldTutorialDialog key={interaction} entity={area.interactables.find(e => e.entityId === interaction)!} close={() => setInteraction(null)} />}
+      {interaction && area.areaId === TOWN_CONTENT.areaId && interactionPoint ? <TownContentDialog key={interaction} entityId={interaction} position={interactionPoint} close={() => setInteraction(null)} /> : interaction === FIELD_SURVEY.npcEntityId && interactionPoint ? <FieldSurveyDialog position={interactionPoint} close={() => setInteraction(null)} /> : interaction && area.interactables?.find(e => e.entityId === interaction) && <WorldTutorialDialog key={interaction} entity={area.interactables.find(e => e.entityId === interaction)!} close={() => setInteraction(null)} />}
     </div>
   </section>
 }

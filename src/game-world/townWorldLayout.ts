@@ -1,43 +1,7 @@
-import type { TownWorldLocationId, TownWorldSpawnId } from './worldTypes'
+import type { TownWorldSpawnId } from './worldTypes'
 import { TOWN_ENTRY_POINTS } from '../../shared/realtime/areas.ts'
-export { TOWN_WORLD_WIDTH, TOWN_WORLD_HEIGHT, TOWN_PLAYER_SPAWN } from '../../shared/realtime/areas.ts'
-
-export interface TownColliderLayout {
-  id: string
-  label: string
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-export interface TownLocationLayout {
-  id: TownWorldLocationId
-  x: number
-  y: number
-  width: number
-  height: number
-  colliderX?: number
-  colliderY?: number
-  colliderWidth?: number
-  colliderHeight?: number
-  colliders?: readonly TownColliderLayout[]
-  interactionX: number
-  interactionY: number
-  interactionRadius: number
-  approachX: number
-  approachY: number
-  tapRadius: number
-  visualKind: 'shop' | 'market' | 'farm-exit'
-}
-
-export const townWorldLayout: readonly TownLocationLayout[] = [
-  { id: 'shop', x: 650, y: 360, width: 420, height: 250, colliderX: 649, colliderY: 336, colliderWidth: 460, colliderHeight: 261, interactionX: 650, interactionY: 505, interactionRadius: 105, approachX: 650, approachY: 560, tapRadius: 210, visualKind: 'shop' },
-  { id: 'market', x: 1510, y: 380, width: 570, height: 270, colliders: [
-    { id: 'main-lower-structure', label: 'Main lower structure', x: 1511, y: 365, width: 666, height: 205 },
-    { id: 'upper-central-structure', label: 'Upper central structure', x: 1510, y: 243, width: 312, height: 60 },
-  ], interactionX: 1510, interactionY: 468, interactionRadius: 213, approachX: 1510, approachY: 590, tapRadius: 270, visualKind: 'market' },
-  { id: 'farm', x: 1100, y: 1420, width: 340, height: 90, interactionX: 1100, interactionY: 1370, interactionRadius: 130, approachX: 1100, approachY: 1300, tapRadius: 220, visualKind: 'farm-exit' },
-]
+export { TOWN_PLAYER_SPAWN } from '../../shared/realtime/areas.ts'
+export { TOWN_LOCATION_LAYOUT as townWorldLayout, TOWN_WORLD_WIDTH, TOWN_WORLD_HEIGHT } from '../../shared/world/townGeometry.ts'
+export type { TownLocationLayout, TownColliderLayout } from '../../shared/world/townGeometry.ts'
 
 export const townWorldSpawns: Readonly<Record<TownWorldSpawnId, Readonly<{ x: number; y: number }>>> = TOWN_ENTRY_POINTS
