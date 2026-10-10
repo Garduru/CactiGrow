@@ -21,9 +21,10 @@ import { OfficialHomePage } from '../features/website/OfficialHomePage'
 import { CANONICAL_FARM_PATH } from './farmReturnNavigation'
 import { FeatureContent } from '../features/menu/FeatureContent'
 
-const FarmWorldPage = import.meta.env.MODE !== 'staging' ? lazy(() => import('../game-world/FarmWorldPage').then((module) => ({ default: module.FarmWorldPage }))) : null
-const TownWorldPage = import.meta.env.MODE !== 'staging' ? lazy(() => import('../game-world/TownWorldPage').then((module) => ({ default: module.TownWorldPage }))) : null
-const LdtkWorldPage = import.meta.env.MODE === 'staging' ? lazy(() => import('../game-world/LdtkWorldPage').then(m => ({ default: m.LdtkWorldPage }))) : null
+const foundationEnabled = import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production'
+const FarmWorldPage = !foundationEnabled ? lazy(() => import('../game-world/FarmWorldPage').then((module) => ({ default: module.FarmWorldPage }))) : null
+const TownWorldPage = !foundationEnabled ? lazy(() => import('../game-world/TownWorldPage').then((module) => ({ default: module.TownWorldPage }))) : null
+const LdtkWorldPage = foundationEnabled ? lazy(() => import('../game-world/LdtkWorldPage').then(m => ({ default: m.LdtkWorldPage }))) : null
 
 export function AppRouter() {
   return <BrowserRouter><AppRoutes /></BrowserRouter>

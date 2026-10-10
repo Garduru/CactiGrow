@@ -4,6 +4,7 @@ import { ApiError } from '../api/errors.ts'
 import type { StartingTransaction } from '../starting/startingState.ts'
 import type { WorldPoint } from '../../shared/world/types.ts'
 import type { ExplorationRewardV1 } from '../../shared/api/explorationV1.ts'
+import type { WildFindOutcome } from '../../shared/api/wildGeneticsV1.ts'
 
 export const EXPLORATION_EVENT = 'first-basin-exploration-checkpoint-v1'
 export interface ExplorationCheckpoint {
@@ -13,6 +14,8 @@ export interface ExplorationCheckpoint {
   landmarks: Record<string, string>
   notes: Record<string, string>
   wildHarvestingXp: number
+  collectedPopulations?: Record<string, string>
+  forcedWildOutcome?: WildFindOutcome
   anchor: { areaId: string; worldRevision: number; position: WorldPoint; at: string } | null
 }
 const timestamps = (value: unknown) => !!value && typeof value === 'object' && !Array.isArray(value)
@@ -25,11 +28,13 @@ export async function loadExplorationState(tx: StartingTransaction, playerId: st
   const s = event.payload as ExplorationCheckpoint
   if (s.projectionVersion !== 1 || !Number.isSafeInteger(s.revision) || s.revision < 0
     || !Number.isSafeInteger(s.wildHarvestingXp) || s.wildHarvestingXp < 0 || !timestamps(s.cooldowns) || !timestamps(s.landmarks) || !timestamps(s.notes)
+    || (s.collectedPopulations !== undefined && !timestamps(s.collectedPopulations)) || (s.forcedWildOutcome !== undefined && !['normal', 'uncommon', 'rare'].includes(s.forcedWildOutcome))
     || (s.anchor !== null && (!s.anchor || typeof s.anchor.areaId !== 'string' || !Number.isSafeInteger(s.anchor.worldRevision) || s.anchor.worldRevision < 0
       || !s.anchor.position || ![s.anchor.position.x, s.anchor.position.y].every(Number.isFinite) || !Number.isFinite(Date.parse(s.anchor.at))))) {
     throw ApiError.conflict('The exploration checkpoint needs recovery. No rewards were changed.')
   }
   return { projectionVersion: 1, revision: s.revision, cooldowns: { ...s.cooldowns }, landmarks: { ...s.landmarks }, notes: { ...s.notes }, wildHarvestingXp: s.wildHarvestingXp,
+    ...(s.collectedPopulations ? { collectedPopulations: { ...s.collectedPopulations } } : {}), ...(s.forcedWildOutcome ? { forcedWildOutcome: s.forcedWildOutcome } : {}),
     anchor: s.anchor ? { ...s.anchor, position: { ...s.anchor.position } } : null }
 }
 export async function saveExplorationState(tx: StartingTransaction, playerId: string, state: ExplorationCheckpoint, commandId: string, now: Date, fingerprint: string, reward?: ExplorationRewardV1) {

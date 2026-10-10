@@ -13,7 +13,7 @@ import './fieldSurvey.css'
 /** One optional survey consumes existing server history; it owns no exploration truth. */
 export function FieldSurveyProvider({ children }: { children: ReactNode }) {
   const bootstrap = usePlayerBootstrap(), world = useWorldLocation(), starting = useStartingExperience(), grower = useGrowerAuthority()
-  const active = import.meta.env.MODE === 'staging'
+  const active = (import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production')
   const playerId = active && bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
   const [loaded, setLoaded] = useState<{ playerId: string; projection: FieldSurveyProjectionV1 } | null>(null)
   const [pending, setPending] = useState(false), [error, setError] = useState('')

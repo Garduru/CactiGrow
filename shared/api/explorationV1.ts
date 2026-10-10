@@ -2,6 +2,7 @@ import { isCanonicalUuid } from '../realtime/identifiers.ts'
 import { isStartingExperience, type StartingExperienceV1 } from './startingExperienceV1.ts'
 import type { WorldPoint } from '../world/types.ts'
 import { isFieldSurveyProjectionV1, type FieldSurveyProjectionV1 } from './fieldSurveyV1.ts'
+import { isWildSeedLotV1, type WildSeedLotV1, type WildFindOutcome } from './wildGeneticsV1.ts'
 
 export const EXPLORATION_INTERACTION_RADIUS = 96
 export interface ExplorationProjectionV1 {
@@ -12,6 +13,7 @@ export interface ExplorationProjectionV1 {
   nodes: { entityId: string; areaId: string; readyAt: string | null }[]
   landmarks: { landmarkId: string; areaId: string; discoveredAt: string | null }[]
   notes: { noteId: string; areaId: string; discoveredAt: string | null }[]
+  populations?: { populationId: string; label: string; observedAt: string | null; collectedAt: string | null }[]
 }
 type ExplorationCommandBase = { v: 1; commandId: string; expectedWorldRevision: number; position: WorldPoint }
 export type ExplorationCommandV1 = ExplorationCommandBase & (
@@ -19,9 +21,9 @@ export type ExplorationCommandV1 = ExplorationCommandBase & (
   | { type: 'discover-landmark'; landmarkId: string }
 )
 export type ExplorationCommandInput = ExplorationCommandV1 extends infer C ? C extends ExplorationCommandV1 ? Omit<C, 'commandId' | 'v'> : never : never
-export interface ExplorationRewardV1 { name: string; speciesId: string; quantity: number; harvestingXp: number }
+export interface ExplorationRewardV1 { name: string; speciesId: string; quantity: number; harvestingXp: number; geneticLot?: WildSeedLotV1 }
 export interface ExplorationResultV1 { projection: ExplorationProjectionV1; starting: StartingExperienceV1; reward?: ExplorationRewardV1; fieldSurvey?: FieldSurveyProjectionV1 }
-export type ExplorationDevCommandV1 = { v: 1; commandId: string; type: 'reset-landmarks' | 'reset-cooldowns'; expectedRevision: number }
+export type ExplorationDevCommandV1 = { v: 1; commandId: string; type: 'reset-landmarks' | 'reset-cooldowns'; expectedRevision: number } | { v: 1; commandId: string; type: 'force-wild-outcome'; expectedRevision: number; outcome: WildFindOutcome }
 export type ExplorationRestoreCommandV1 = { v: 1; commandId: string; expectedWorldRevision: number }
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const id = (value: unknown): value is string => typeof value === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(value)
@@ -37,9 +39,9 @@ export function isExplorationCommandV1(value: unknown): value is ExplorationComm
     && Object.keys(value).sort().join(',') === ['v', 'commandId', 'type', 'expectedWorldRevision', 'position', target].sort().join(',')
 }
 export function isExplorationDevCommandV1(value: unknown): value is ExplorationDevCommandV1 {
-  return record(value) && Object.keys(value).sort().join(',') === 'commandId,expectedRevision,type,v'
+  return record(value) && Object.keys(value).sort().join(',') === (value.type === 'force-wild-outcome' ? 'commandId,expectedRevision,outcome,type,v' : 'commandId,expectedRevision,type,v')
     && value.v === 1 && isCanonicalUuid(value.commandId) && revision(value.expectedRevision)
-    && (value.type === 'reset-landmarks' || value.type === 'reset-cooldowns')
+    && (value.type === 'reset-landmarks' || value.type === 'reset-cooldowns' || value.type === 'force-wild-outcome' && ['normal', 'uncommon', 'rare'].includes(String(value.outcome)))
 }
 export function isExplorationRestoreCommandV1(value: unknown): value is ExplorationRestoreCommandV1 {
   return record(value) && Object.keys(value).sort().join(',') === 'commandId,expectedWorldRevision,v'
@@ -49,6 +51,7 @@ export function isExplorationProjectionV1(value: unknown): value is ExplorationP
   if (!record(value) || value.projectionVersion !== 1 || !timestamp(value.serverNow) || !revision(value.revision)
     || !revision(value.harvestingXp) || !Array.isArray(value.nodes) || !Array.isArray(value.landmarks) || !Array.isArray(value.notes)) return false
   return value.nodes.length <= 100 && value.landmarks.length <= 100 && value.notes.length <= 100
+    && (value.populations === undefined || Array.isArray(value.populations) && value.populations.length <= 100 && value.populations.every(p => record(p) && id(p.populationId) && typeof p.label === 'string' && p.label.length <= 120 && optionalTimestamp(p.observedAt) && optionalTimestamp(p.collectedAt)))
     && value.nodes.every(n => record(n) && id(n.entityId) && id(n.areaId) && optionalTimestamp(n.readyAt))
     && value.landmarks.every(n => record(n) && id(n.landmarkId) && id(n.areaId) && optionalTimestamp(n.discoveredAt))
     && value.notes.every(n => record(n) && id(n.noteId) && id(n.areaId) && optionalTimestamp(n.discoveredAt))
@@ -58,5 +61,5 @@ export function isExplorationResultV1(value: unknown): value is ExplorationResul
     && (value.fieldSurvey === undefined || isFieldSurveyProjectionV1(value.fieldSurvey))
     && (value.reward === undefined || (record(value.reward) && typeof value.reward.name === 'string' && value.reward.name.length <= 100
       && id(value.reward.speciesId) && Number.isSafeInteger(value.reward.quantity) && (value.reward.quantity as number) >= 3 && (value.reward.quantity as number) <= 10
-      && revision(value.reward.harvestingXp)))
+      && revision(value.reward.harvestingXp) && (value.reward.geneticLot === undefined || isWildSeedLotV1(value.reward.geneticLot))))
 }

@@ -1,5 +1,6 @@
 import { isCommoditySeedStackV1, isNurserySlotIdV1, isPlantSpecimenV1, type CommoditySeedStackV1, type NurserySlotIdV1, type PlantGeneticsV1, type PlantSpecimenV1 } from './plantLifecycleV1.ts'
 import type { GeneticFeatureState } from '../../src/types/geneticFeature.ts'
+import { isWildProvenanceV1, type WildProvenanceV1 } from './wildGeneticsV1.ts'
 
 export interface PlantSpecimenV2 extends Omit<PlantSpecimenV1, 'geneticFeatures'> {
   geneticFeatures: GeneticFeatureState[]
@@ -7,6 +8,7 @@ export interface PlantSpecimenV2 extends Omit<PlantSpecimenV1, 'geneticFeatures'
   parentSpeciesIds: [string, string] | null
   isHybrid: boolean
   sourceBredSeedId: string | null
+  wildOrigin?: WildProvenanceV1
 }
 export interface BredSeedV2 {
   seedId: string
@@ -47,7 +49,7 @@ const feature = (value: unknown): value is GeneticFeatureState => object(value) 
 const features = (value: unknown): value is GeneticFeatureState[] => Array.isArray(value) && value.every(feature)
 const specimenBaseKeys = ['specimenId','cloneLineId','speciesId','lifecycleStatus','plantedAt','collectedAt','genetics','geneticFeatures','specialVariants','geneticRepresentationVersion','visualDerivationVersion','version']
 export function isPlantSpecimenV2(value: unknown): value is PlantSpecimenV2 {
-  if (!object(value) || !keys(value, [...specimenBaseKeys,'parentPlantIds','parentSpeciesIds','isHybrid','sourceBredSeedId']) || !features(value.geneticFeatures)) return false
+  if (!object(value) || !keys(value, [...specimenBaseKeys,'parentPlantIds','parentSpeciesIds','isHybrid','sourceBredSeedId', ...('wildOrigin' in value ? ['wildOrigin'] : [])]) || !features(value.geneticFeatures) || ('wildOrigin' in value && !isWildProvenanceV1(value.wildOrigin))) return false
   const base = Object.fromEntries(specimenBaseKeys.map((key) => [key, key === 'geneticFeatures' ? [] : value[key]]))
   return isPlantSpecimenV1(base) && (value.parentPlantIds === null || pair(value.parentPlantIds)) && (value.parentSpeciesIds === null || pair(value.parentSpeciesIds)) && typeof value.isHybrid === 'boolean' && (value.sourceBredSeedId === null || (typeof value.sourceBredSeedId === 'string' && uuid.test(value.sourceBredSeedId)))
 }

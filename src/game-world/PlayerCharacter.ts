@@ -9,7 +9,7 @@ interface CharacterOptions { externalMotion?: boolean; npcId?: keyof typeof NPC_
 const motionBindings = new WeakMap<Phaser.GameObjects.Container, { motion: CharacterMotion; sprite: Phaser.GameObjects.Image }>()
 
 export function preloadCharacterArt(scene: Phaser.Scene) {
-  if (import.meta.env.MODE !== 'staging') return
+  if (import.meta.env.MODE !== 'staging' && import.meta.env.MODE !== 'production') return
   for (const [module, path] of Object.entries(CHARACTER_MODULES)) if (!scene.textures.exists(`character-module:${module}`)) scene.load.image(`character-module:${module}`, path)
 }
 
@@ -65,7 +65,7 @@ function bindCharacterMotion(scene: Phaser.Scene, container: Phaser.GameObjects.
 /** Existing Farm/Town character registration, shared by all local world scenes. */
 export function createPlayerCharacter(scene: Phaser.Scene, x: number, y: number, appearance: CharacterAppearance = DEFAULT_APPEARANCE, options: CharacterOptions = {}) {
   const modulesReady = Object.keys(CHARACTER_MODULES).every(module => scene.textures.exists(`character-module:${module}`))
-  const sprite = import.meta.env.MODE === 'staging' && modulesReady ? createCharacterArt(scene, appearance, options.npcId) : null
+  const sprite = (import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production') && modulesReady ? createCharacterArt(scene, appearance, options.npcId) : null
   const pieces = sprite ? [sprite] : [
     scene.add.rectangle(0, -18, 34, 62, SHIRT_COLORS[appearance.shirt]).setStrokeStyle(4, 0x2b1a13),
     scene.add.circle(0, -61, 20, SKIN_COLORS[appearance.skin]).setStrokeStyle(4, 0x2b1a13),

@@ -35,8 +35,8 @@ function socketClient(response) {
     while (!predicate()) { if (Date.now() > until) assert.fail('Timed out waiting for movement.'); await new Promise(r => setTimeout(r, 15)) }
   } }
 }
-test('workerd: two Town players retain smooth sequenced updates; impossible packets correct only their sender', { timeout: 60000 }, async t => {
-  const { scope, call } = await runtime(t), aScope = scope(1), bScope = scope(2)
+for (const environment of ['staging', 'production']) test(`workerd ${environment}: two Town players retain smooth sequenced updates; impossible packets correct only their sender`, { timeout: 60000 }, async t => {
+  const { scope, call } = await runtime(t, environment), aScope = scope(1), bScope = scope(2)
   assert.equal((await call('/seed', aScope)).status, 200); assert.equal((await call('/seed', bScope)).status, 200)
   const a = socketClient(await call('/admit', aScope, true)), b = socketClient(await call('/admit', bScope, true))
   await a.wait(() => a.messages.some(m => m.type === 'joined'))
@@ -59,7 +59,7 @@ test('workerd: two Town players retain smooth sequenced updates; impossible pack
   await b.wait(() => b.messages.some(m => m.type === 'moved' && m.sample.sequence === 14))
   a.socket.close(); b.socket.close()
 })
-test('workerd: private movement operations remain unavailable in production', async t => {
-  const { scope, call } = await runtime(t, 'production')
+test('workerd: private movement operations remain unavailable in development', async t => {
+  const { scope, call } = await runtime(t, 'development')
   assert.equal((await call('/seed', scope(1))).status, 404)
 })

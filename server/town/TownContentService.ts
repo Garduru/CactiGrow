@@ -55,7 +55,7 @@ export class TownContentService {
     this.movement = options.movement; this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date())
   }
   private assertEnvironment() {
-    if (!['staging', 'test'].includes(this.environment)) throw ApiError.notFound('API route not found.')
+    if (!['staging', 'production', 'test'].includes(this.environment)) throw ApiError.notFound('API route not found.')
   }
   async read(playerId: string): Promise<TownContentResultV1> {
     this.assertEnvironment()

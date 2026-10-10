@@ -65,7 +65,7 @@ test('Field Survey conversations carry only physical NPC intent; quest reset use
 
 test('HUD uses the live authoritative sale balance instead of the login snapshot', () => {
   const live = { player: { tokenBalance: 75, skills: { cultivationXp: 100 } } } as GrowerAlphaProjectionV1
-  assert.deepEqual(getHeaderPlayerValues('staging', { tokens: 1216, cultivationXp: 315 }, null, live), { tokens: 75, cultivationXp: 100 })
+  for (const mode of ['staging', 'production']) assert.deepEqual(getHeaderPlayerValues(mode, { tokens: 1216, cultivationXp: 315 }, null, live), { tokens: 75, cultivationXp: 100 })
 })
 
 const plantCommand = { slotId: 'slot-1' as const, speciesId: 'echinopsis-pachanoi', expectedSeedStackVersion: 1 }

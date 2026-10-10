@@ -4,7 +4,6 @@ import { mkdir, writeFile, unlink, readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
-import { createFarmReturnState, createTownReturnState, resolveFarmReturnPath, resolveFarmSpawnId, createFarmTownRoadEntryState } from './farmReturnNavigation.ts'
 
 test('Public homepage renders outside authentication; direct game routes retain the production access boundary', async (t) => {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
@@ -50,19 +49,24 @@ test('Public homepage renders outside authentication; direct game routes retain 
   assert.doesNotMatch(homepage, /The game|A world worth/)
   assert.match(render('/?account=A'), /href="\/play\?account=A"/)
   assert.doesNotMatch(homepage, /Establishing your secure session|game-header|Tokens/)
-  for (const route of ['/play', '/town', '/nursery', '/garden', '/inventory', '/friends', '/profile', '/settings', '/home', '/lab', '/mail', '/shop', '/market', '/farm', '/world-preview', '/collection', '/marketplace']) {
+  for (const route of ['/world', '/play', '/town', '/nursery', '/garden', '/inventory', '/friends', '/profile', '/settings', '/home', '/lab', '/mail', '/shop', '/market', '/farm', '/world-preview', '/collection', '/marketplace']) {
     assert.match(render(route), /Establishing your secure session/, route)
   }
   assert.doesNotMatch(access({ status: 'unauthenticated' }), /Game content/)
   assert.match(access({ status: 'authenticated' }), /Game content/)
 })
 
-test('Interior and Town return navigation target the same Farm at /play and preserve authored spawns', () => {
-  assert.equal(resolveFarmReturnPath(undefined), '/play')
-  assert.equal(resolveFarmReturnPath({ worldReturnTo: '/' }), '/play', 'old history entries still return to Farm')
-  const nursery = createFarmReturnState('nursery')
-  assert.equal(resolveFarmReturnPath(nursery), '/play')
-  assert.equal(resolveFarmSpawnId(nursery), 'nursery-exterior')
-  assert.equal(resolveFarmSpawnId(createFarmTownRoadEntryState()), 'road-from-town')
-  assert.equal(resolveFarmReturnPath(createTownReturnState('shop')), '/town')
+test('Interior return navigation preserves authored spawns and resumes the promoted world in staging and production', async () => {
+  for (const mode of ['development', 'staging', 'production']) {
+    const built = await build({ entryPoints: ['src/app/farmReturnNavigation.ts'], bundle: true, write: false, platform: 'node', format: 'esm', define: { 'import.meta.env': JSON.stringify({ MODE: mode }) } })
+    const { createFarmReturnState, createTownReturnState, resolveFarmReturnPath, resolveFarmSpawnId, createFarmTownRoadEntryState } = await import('data:text/javascript;base64,' + Buffer.from(built.outputFiles[0].contents).toString('base64'))
+    assert.equal(resolveFarmReturnPath({ worldReturnTo: '/world' }), mode === 'development' ? '/play' : '/world')
+    assert.equal(resolveFarmReturnPath(undefined), '/play')
+    assert.equal(resolveFarmReturnPath({ worldReturnTo: '/' }), '/play', 'old history entries still return to Farm')
+    const nursery = createFarmReturnState('nursery')
+    assert.equal(resolveFarmReturnPath(nursery), '/play')
+    assert.equal(resolveFarmSpawnId(nursery), 'nursery-exterior')
+    assert.equal(resolveFarmSpawnId(createFarmTownRoadEntryState()), 'road-from-town')
+    assert.equal(resolveFarmReturnPath(createTownReturnState('shop')), '/town')
+  }
 })

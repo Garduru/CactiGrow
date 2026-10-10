@@ -46,13 +46,13 @@ test('Starting Experience V1: fresh player through real Nursery, Collection, res
       location=await world.read(id);assert.equal(location.areaId,'starting-spawn-tutorial')
       await assert.rejects(world.transition(id,{v:1,exitId:'to-path-1',expectedRevision:0,commandId:crypto.randomUUID()}),/appearance/)
     })
-    await t.test('API rejects invalid appearance, fabricated payloads, unauthorized callers and production tutorial routes',async()=>{
+    await t.test('API rejects invalid appearance, fabricated payloads and unauthorized staging/production callers',async()=>{
       const router=createApiRouter({authenticationConfigurationFactory:()=>({identityProvider:{verify:async req=>req.getHeader('x-test-player')===id?{provider:'test',subject:id}:null},createPlayerIdentityResolver:async()=>({resolve:async()=>({playerId:id})})})})
       const request=async(body,environment='test',authorized=true)=>handleApiRequest(new Request('https://starting.test/api/v1/me/starting-experience',{method:body?'POST':'GET',headers:{'content-type':'application/json',...(authorized?{'x-test-player':id}:{})},...(body?{body:JSON.stringify(body)}:{})}),{CACTIGROW_ENVIRONMENT:environment,CACTIGROW_VERSION:'test'},undefined,{router,createRequestDatabaseContext:()=>({getDatabase:async()=>db,dispose:async()=>{}})})
       assert.equal((await request({type:'save-appearance',commandId:crypto.randomUUID(),appearance:{skin:999,shirt:0}})).status,400)
       assert.equal((await request({type:'harvest-plant',commandId:crypto.randomUUID(),entityId:'first-san-pedro',seedYield:999})).status,400)
       for (const type of ['confirm-nursery','confirm-garden','complete-tutorial']) assert.equal((await request({type,commandId:crypto.randomUUID()})).status,400)
-      assert.equal((await request(null,'test',false)).status,401);assert.equal((await request(null,'production')).status,404)
+      assert.equal((await request(null,'test',false)).status,401);assert.equal((await request(null,'production',false)).status,401);assert.equal((await request(null,'production')).status,200)
     })
     await t.test('legacy two-field appearance persists across new service instances and cannot be overwritten by a second setup',async()=>{
       const c={type:'save-appearance',appearance:{skin:2,shirt:1},commandId:crypto.randomUUID()};state=await starting.execute(id,c);assert.deepEqual((await new StartingExperienceService(db).read(id)).appearance,c.appearance);assert.deepEqual(await starting.execute(id,c),state)
@@ -238,7 +238,7 @@ test('Starting Experience V1: fresh player through real Nursery, Collection, res
       await exit('to-player-farm');assert.equal((await starting.read(target)).farmSeedAvailable,true)
       const empty=await lifecycle.getProjectionV3(target);assert.ok(empty.nursery.slots.every(s=>s.occupancy===null));assert.equal(empty.ownedSpecimens.length,1,'only the just-collected Path 1 specimen is present')
       stack=empty.seedStacks.find(s=>s.speciesId==='echinopsis-pachanoi');const command={slotId:'slot-1',speciesId:stack.speciesId,expectedSeedStackVersion:stack.version,tutorial:true},key=crypto.randomUUID()
-      await assert.rejects(new PlantLifecycleService(db,{environment:'production'}).plantCommoditySeedV3(target,crypto.randomUUID(),command),e=>e.status===404)
+      await assert.rejects(new PlantLifecycleService(db,{environment:'production'}).plantCommoditySeedV3(target,crypto.randomUUID(),{...command,speciesId:'lophophora-williamsii'}),e=>e.status===409)
       const planted=await lifecycle.plantCommoditySeedV3(target,key,command);await lifecycle.plantCommoditySeedV3(target,key,command)
       assert.equal(planted.seedStack.quantity,0);assert.equal(Date.parse(planted.slot.occupancy.readyAt)-Date.parse(planted.slot.occupancy.plantedAt),120000)
       assert.equal((await starting.read(target)).farmStage,'garden');assert.equal((await starting.read(target)).farmSeedAvailable,false)
@@ -255,9 +255,8 @@ test('Starting Experience V1: fresh player through real Nursery, Collection, res
       const old=await new SocialService(db).overview(ids[2]);assert.ok(old.ownProfile)
       assert.equal((await starting.read(ids[2])).compatibilityComplete,true)
     })
-    await t.test('fresh full-app browser flow: name, appearance, authored world interactions, mobile HUD, refresh, real Farm systems', { skip: !process.env.CACTIGROW_TEST_BROWSER_EXECUTABLE && 'Set CACTIGROW_TEST_BROWSER_EXECUTABLE.', timeout:180000 }, async()=>{
-      const playerId=crypto.randomUUID();await connection.query('insert into players(id)values($1)',[playerId])
-      await verifyStartingUi({database:db,playerId,handleApiRequest,createApiRouter})
+    await t.test('fresh full-app staging and production browser flow: name, appearance, authored world interactions, mobile HUD, refresh, real Farm systems', { skip: !process.env.CACTIGROW_TEST_BROWSER_EXECUTABLE && 'Set CACTIGROW_TEST_BROWSER_EXECUTABLE.', timeout:360000 }, async()=>{
+      for (const environment of ['staging','production']) {const playerId=crypto.randomUUID();await connection.query('insert into players(id)values($1)',[playerId]);await verifyStartingUi({database:db,playerId,handleApiRequest,createApiRouter,environment})}
     })
   } finally { await pool.end();await connection.end();await cluster.stop() }
 })

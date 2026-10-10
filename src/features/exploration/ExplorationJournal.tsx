@@ -13,6 +13,7 @@ export function ExplorationJournal() {
       <span>{entry.discoveredAt ? 'Discovered' : 'Undiscovered'} · {entry.area}</span><h3>{entry.name}</h3><p>{entry.description}</p>
       {entry.discoveredAt && <time dateTime={entry.discoveredAt}>{new Date(entry.discoveredAt).toLocaleDateString()}</time>}
     </article>)}</div>
+    {!!exploration.projection?.populations?.length && <><h3>Wild populations</h3><div className="journal-grid">{exploration.projection.populations.map(p => <article className="journal-entry" key={p.populationId}><h4>{p.label}</h4><p>{p.observedAt ? 'Observed' : 'Found while harvesting'}{p.collectedAt ? ' / Genetic material collected' : ''}</p></article>)}</div></>}
     <h3>Field notes</h3>
     {notes.length ? <div className="journal-grid">{notes.map(note => <article className="journal-entry" key={note.id}><span>{note.area}</span><h4>{note.name}</h4><p>{note.description}</p><time dateTime={note.discoveredAt}>{new Date(note.discoveredAt).toLocaleDateString()}</time></article>)}</div> : <p>Inspect trail markers and formations to record small observations.</p>}
   </section>

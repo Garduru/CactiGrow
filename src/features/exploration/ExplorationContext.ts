@@ -13,7 +13,7 @@ export interface ExplorationValue {
   now(): number
   refresh(): Promise<void>
   execute(intent: ExplorationIntent): Promise<boolean>
-  reset(type: ExplorationDevCommandV1['type']): Promise<boolean>
+  reset(type: ExplorationDevCommandV1['type'], outcome?: import('../../../shared/api/wildGeneticsV1').WildFindOutcome): Promise<boolean>
   dismissNotice(): void
   retryNotice(): Promise<boolean>
 }

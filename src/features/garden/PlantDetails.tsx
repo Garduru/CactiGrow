@@ -70,6 +70,7 @@ export function PlantDetails(props: PlantDetailsProps) {
   const localProps = localPlant ? props as LocalPlantDetailsProps : null
   const local = props.readOnly ? null : localProps
   const specimenId = 'specimenId' in plant ? plant.specimenId : plant.id
+  const wildOrigin = localPlant?.wildOrigin ?? (serverPlant && 'wildOrigin' in serverPlant ? serverPlant.wildOrigin : undefined)
   const stage = localPlant?.stage ?? 'mature'
   const previewVisualStage = localProps?.previewVisualStage
   const previewVariegationPattern = localProps?.previewVariegationPattern
@@ -187,6 +188,7 @@ export function PlantDetails(props: PlantDetailsProps) {
 
         <section className="plant-details__section" aria-labelledby="lineage-title">
           <h3 id="lineage-title">Lineage</h3>
+          {wildOrigin && <p>Wild origin: {wildOrigin.label}<br />{wildOrigin.rarity} source find</p>}
           {(localPlant?.isHybrid && localPlant.parentSpeciesIds || (serverPlant && 'parentSpeciesIds' in serverPlant && serverPlant.parentSpeciesIds)) && (
             <dl className="plant-details__identity">
               {(localPlant?.parentSpeciesIds ?? (serverPlant && 'parentSpeciesIds' in serverPlant ? serverPlant.parentSpeciesIds : null))!.map((speciesId, index) => {

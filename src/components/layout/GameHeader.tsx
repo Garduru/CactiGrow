@@ -80,7 +80,7 @@ export function GameHeader() {
           </div>
         </div>
         <div className="game-header__right">
-          {import.meta.env.MODE === 'staging' && location.pathname === '/world' && <button type="button" className="game-header__map" aria-label="Map" aria-expanded={map?.open ?? false} onClick={() => { setMenuOpen(false); map?.toggle() }}>Map</button>}
+          {(import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production') && location.pathname === '/world' && <button type="button" className="game-header__map" aria-label="Map" aria-expanded={map?.open ?? false} onClick={() => { setMenuOpen(false); map?.toggle() }}>Map</button>}
           <div ref={setTravelHost} className="game-header__travel" />
           <div className="game-header__menu" ref={menuRef}>
             <button ref={toggleRef} className="game-header__menu-toggle" type="button" aria-label="Menu" aria-expanded={menuOpen} aria-controls={menuOpen ? 'hud-menu-dropdown' : undefined} onClick={() => setMenuOpen(!menuOpen)}>Menu</button>

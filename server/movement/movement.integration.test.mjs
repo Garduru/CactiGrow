@@ -10,7 +10,7 @@ import { movementTestNamespace } from './movementTestNamespace.mjs'
 import { movementNavigation } from './movementRules.ts'
 import { findArea } from '../../shared/world/world.ts'
 
-test('staging authenticated API: movement, interactions, exits, private Farms and safe restoration in restricted PostgreSQL', {
+for (const runtimeEnvironment of ['staging', 'production']) test(`${runtimeEnvironment} authenticated API: movement, interactions, exits, private Farms and safe restoration in restricted PostgreSQL`, {
   skip: !process.env.CACTIGROW_EMBEDDED_POSTGRES_MODULE && 'Set CACTIGROW_EMBEDDED_POSTGRES_MODULE.', timeout: 180000,
 }, async t => {
   const { default: EmbeddedPostgres } = await import(process.env.CACTIGROW_EMBEDDED_POSTGRES_MODULE)
@@ -25,11 +25,11 @@ test('staging authenticated API: movement, interactions, exits, private Farms an
     const { handleApiRequest, createApiRouter, CactiGrowApiClient, initializeStagingGrower } = await import(pathToFileURL(out).href)
     const { drizzle } = await import('drizzle-orm/node-postgres'), ids = [crypto.randomUUID(), crypto.randomUUID()]
     for (const [n, id] of ids.entries()) { await connection.query('insert into players(id) values($1)', [id]); await initializeStagingGrower(drizzle(connection), id); await connection.query('insert into player_profiles(player_id,public_id,display_name) values($1,$1,$2)', [id, 'Movement Tester ' + n]) }
-    await connection.query('create role movement_runtime; grant usage on schema public to movement_runtime; grant select on all tables in schema public to movement_runtime; grant insert,update on player_onboarding to movement_runtime; grant insert on player_grower_state,player_grower_events to movement_runtime; grant insert,update on player_seed_stacks,player_plant_lifecycle_versions to movement_runtime;')
+    await connection.query('create role movement_runtime; grant usage on schema public to movement_runtime; grant select on all tables in schema public to movement_runtime; grant insert,update on player_onboarding to movement_runtime; grant insert on player_grower_state,player_grower_events,clone_lines,genetic_profiles,clone_line_variants to movement_runtime; grant insert,update on wild_genetic_seeds to movement_runtime; grant update on nursery_occupancies to movement_runtime; grant insert,update on player_seed_stacks,player_plant_lifecycle_versions to movement_runtime;')
     let now = Date.now(), opens = 0
     const namespace = movementTestNamespace(() => now)
     const router = createApiRouter({ authenticationConfigurationFactory: () => ({ identityProvider: { verify: async req => ids.includes(req.getHeader('x-test-player')) ? { provider: 'test', subject: req.getHeader('x-test-player') } : null }, createPlayerIdentityResolver: async () => ({ resolve: async i => ({ playerId: i.subject }) }) }) })
-    const request = (id, path, body, environment = 'staging') => handleApiRequest(new Request('https://movement.test' + path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', 'x-test-player': id }, ...(body ? { body: JSON.stringify(body) } : {}) }), { CACTIGROW_ENVIRONMENT: environment, CACTIGROW_VERSION: 'movement-test', AREA_PRESENCE: namespace }, undefined, { router, createRequestDatabaseContext: () => {
+    const request = (id, path, body, environment = runtimeEnvironment) => handleApiRequest(new Request('https://movement.test' + path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', 'x-test-player': id }, ...(body ? { body: JSON.stringify(body) } : {}) }), { CACTIGROW_ENVIRONMENT: environment, CACTIGROW_VERSION: 'movement-test', ...(environment === 'staging' ? {CACTIGROW_ACCESS_TEAM_DOMAIN:'test.cloudflareaccess.com',CACTIGROW_ACCESS_AUDIENCE:'test'} : {}), AREA_PRESENCE: namespace }, undefined, { router, createRequestDatabaseContext: () => {
       let ready, client
       return { getDatabase: () => { opens++; ready ??= (async () => { client = cluster.getPgClient('movement_test', '127.0.0.1'); await client.connect(); await client.query('set role movement_runtime'); return drizzle(client) })(); return ready }, dispose: async () => { if (ready) { await ready; await client.end() } } }
     } })
@@ -61,9 +61,9 @@ test('staging authenticated API: movement, interactions, exits, private Farms an
       assert.deepEqual(authority.position, location.position, 'transition authority resets to authored destination spawn')
       assert.equal(authority.runtimeAreaId, location.runtimeAreaId)
     }
-    await t.test('production routes and unauthenticated checkpoints fail before database acquisition', async () => {
+    await t.test('developer routes and unauthenticated staging/production checkpoints fail before database acquisition', async () => {
       const before = opens
-      for (const path of ['/api/v1/me/movement', '/api/v1/me/world-interaction', '/api/v1/dev/movement']) assert.equal((await request(ids[0], path, undefined, 'production')).status, 404)
+      assert.equal((await request(ids[0], '/api/v1/dev/movement', undefined, 'production')).status, 404); for (const environment of ['staging','production']) assert.equal((await request('invalid', '/api/v1/me/movement', undefined, environment)).status, 401)
       assert.equal((await request('invalid', '/api/v1/me/movement')).status, 401); assert.equal(opens, before)
     })
     await t.test('remote tutorial, board/building, harvest and exit requests cannot use fabricated coordinates', async () => {
@@ -81,8 +81,20 @@ test('staging authenticated API: movement, interactions, exits, private Farms an
       const command = () => ({ v: 1, commandId: crypto.randomUUID(), type: 'harvest', entityId: node.entityId, expectedWorldRevision: location.revision, position: { x: node.x, y: node.y + 50 } })
       await assert.rejects(a.explorationCommand(command()), /Approach/)
       await walk({ x: node.x, y: node.y + 50 })
-      const harvest = await a.explorationCommand({ ...command(), position: { x: 1, y: 1 } })
+      const projection = (await a.getExploration()).projection
+      // Fixture preparation uses the staging-only tool; production commands still reject it.
+      assert.equal((await request(ids[0], '/api/v1/dev/exploration', {v:1,commandId:crypto.randomUUID(),type:'force-wild-outcome',expectedRevision:projection.revision,outcome:'rare'}, 'staging')).status,200)
+      const intent = { ...command(), position: { x: 1, y: 1 } }
+      assert.equal((await request(ids[0], '/api/v1/me/exploration', {...intent,rarity:'rare'})).status,400)
+      const harvest = await a.explorationCommand(intent)
       assert.ok(harvest.reward.quantity >= 3 && harvest.reward.quantity <= 10)
+      assert.equal(harvest.reward.geneticLot.provenance.rarity,'rare')
+      assert.deepEqual((await a.explorationCommand(intent)).reward,harvest.reward)
+      assert.equal((await a.getPlantLifecycleV3()).wildSeedLots[0].quantity,3)
+      const inspection = await request(ids[0], '/api/v1/dev/wild-genetics', undefined, 'staging')
+      assert.equal(inspection.status,200)
+      assert.equal((await inspection.json()).data.receipts.length,1)
+
     })
     await exit('to-player-farm')
     await t.test('owner Farm authority, impossible Area changes and nearby building admission', async () => {

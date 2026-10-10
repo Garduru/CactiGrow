@@ -59,7 +59,7 @@ export function resolveTownSpawnId(state: unknown): TownWorldSpawnId {
 }
 
 export function resolveFarmReturnPath(state: unknown): InteriorReturnPath {
-  if (import.meta.env.MODE === 'staging' && typeof state === 'object' && state !== null && 'worldReturnTo' in state && state.worldReturnTo === '/world') return '/world'
+  if ((import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production') && typeof state === 'object' && state !== null && 'worldReturnTo' in state && state.worldReturnTo === '/world') return '/world'
   if (typeof state === 'object' && state !== null && 'worldReturnTo' in state && state.worldReturnTo === TOWN_WORLD_RETURN_PATH) return TOWN_WORLD_RETURN_PATH
   return CANONICAL_FARM_PATH
 }

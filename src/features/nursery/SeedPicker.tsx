@@ -1,3 +1,4 @@
+import type { WildSeedLotV1 } from '../../../shared/api/wildGeneticsV1'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { CactiGrowApiError } from '../../services/api/CactiGrowApiClient'
 import { getSpeciesById } from '../../data/species'
@@ -8,6 +9,8 @@ import { Badge } from '../../components/ui/Badge'
 import { EmptyState } from '../../components/ui/EmptyState'
 
 interface SeedPickerProps {
+  wildSeedLots?: WildSeedLotV1[]
+  onSelectWildSeed?: (seedId: string) => Promise<void>
   seeds: InventoryItem[]
   bredSeeds: (BredSeed | BredSeedV2)[]
   onSelect: (speciesId: string) => void | Promise<void>
@@ -16,7 +19,7 @@ interface SeedPickerProps {
   onSelectTutorial?: () => Promise<void>
 }
 
-export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClose, onSelectTutorial }: SeedPickerProps) {
+export function SeedPicker({ wildSeedLots = [], onSelectWildSeed, seeds, bredSeeds, onSelect, onSelectBredSeed, onClose, onSelectTutorial }: SeedPickerProps) {
   const panelRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const submitting = useRef(false)
@@ -74,7 +77,7 @@ export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClo
         <p className="seed-picker__note" role="status">{pending ? 'Planting seed... Please wait.' : 'Tap a seed to plant it immediately in this Nursery position.'}</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="seed-picker__options">
-          {!seeds.length && !bredSeeds.length && !onSelectTutorial && <EmptyState compact title="No seeds available">Return after acquiring seeds to plant this position.</EmptyState>}
+          {!seeds.length && !bredSeeds.length && !wildSeedLots.length && !onSelectTutorial && <EmptyState compact title="No seeds available">Return after acquiring seeds to plant this position.</EmptyState>}
           {onSelectTutorial && <button data-tutorial-target="nursery-seed" className="seed-option" type="button" disabled={pending !== null} onClick={() => void submit('farm-tutorial-seed', onSelectTutorial)}><span className="seed-option__icon" aria-hidden="true">◉</span><span><strong>San Pedro Farm practice seed</strong><small>Tutorial only · Reserved for this Nursery lesson</small></span><Badge tone="accent">× 1</Badge></button>}
           {seeds.map((seed) => {
             const seedSpecies = getSpeciesById(seed.itemKey)
@@ -92,6 +95,7 @@ export function SeedPicker({ seeds, bredSeeds, onSelect, onSelectBredSeed, onClo
               </button>
             )
           })}
+          {wildSeedLots.map(lot => <button className="seed-option seed-option--bred" key={lot.lotId} type="button" disabled={pending !== null || !onSelectWildSeed} onClick={() => void submit(lot.seedIds[0], () => onSelectWildSeed?.(lot.seedIds[0]))}><span className="seed-option__icon" aria-hidden="true">{'\u25c6'}</span><span><strong>Wild {getSpeciesById(lot.speciesId)?.commonName} seed lot</strong><small>{lot.provenance.region} / {lot.provenance.rarity} / {lot.quantity} seeds</small></span><Badge tone="accent">Wild</Badge></button>)}
           {bredSeeds.map((seed) => {
             const seedSpecies = getSpeciesById(seed.speciesId)
             const seedId = 'seedId' in seed ? seed.seedId : seed.id

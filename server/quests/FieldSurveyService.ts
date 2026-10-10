@@ -67,7 +67,7 @@ export class FieldSurveyService {
     this.movement = options.movement; this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date())
   }
   private assertEnvironment(dev = false) {
-    if (!(dev ? ['staging', 'development'] : ['staging', 'test']).includes(this.environment)) throw ApiError.notFound('API route not found.')
+    if (!(dev ? ['staging', 'development'] : ['staging', 'production', 'test']).includes(this.environment)) throw ApiError.notFound('API route not found.')
   }
   private async load(tx: StartingTransaction, playerId: string) {
     const owner = await lockStartingOwner(tx, playerId)

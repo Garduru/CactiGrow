@@ -11,7 +11,7 @@ import './townContent.css'
 /** First contacts are server records. Dialogue choices remain local to this player. */
 export function TownContentProvider({ children }: { children: ReactNode }) {
   const bootstrap = usePlayerBootstrap(), world = useWorldLocation()
-  const active = import.meta.env.MODE === 'staging'
+  const active = (import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production')
   const playerId = active && bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
   const [loaded, setLoaded] = useState<{ playerId: string; projection: TownContentProjectionV1 } | null>(null)
   const [pending, setPending] = useState(false), [error, setError] = useState('')

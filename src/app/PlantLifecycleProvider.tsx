@@ -61,6 +61,18 @@ export function PlantLifecycleProvider({ children }: { children: ReactNode }) {
         return true
       } finally { planting.current = false }
     },
+    async plantWildSeed(slotId: string, seedId: string): Promise<boolean> {
+      if (state.authority !== 'server' || state.status !== 'ready' || !isNurserySlotIdV3(slotId) || !state.projection.wildSeedLots?.some(lot => lot.seedIds.includes(seedId))) throw new CactiGrowApiError('server', 'That wild genetic seed is no longer available. Refresh the Nursery.')
+      if (planting.current) throw new CactiGrowApiError('server', 'A seed is already being planted. Please wait.')
+      planting.current = true
+      try {
+        const result = await browserApiClient.plantWildSeedV3({ slotId, seedId }, crypto.randomUUID())
+        readGeneration.current += 1
+        setState(previous => previous.authority === 'server' && previous.status === 'ready' ? { ...previous, projection: reconcilePlanting(previous.projection, result), error: null } : previous)
+        notifyGrowerAuthorityChanged()
+        return true
+      } finally { planting.current = false }
+    },
     async plantBredSeed(slotId: string, seedId: string): Promise<boolean> {
       if (state.authority !== 'server' || state.status !== 'ready' || !isNurserySlotIdV3(slotId) || !state.projection.bredSeeds.some((seed) => seed.seedId === seedId)) throw new CactiGrowApiError('server', 'The Nursery or seed is no longer available. Refresh and try again.')
       if (planting.current) throw new CactiGrowApiError('server', 'A seed is already being planted. Please wait.')

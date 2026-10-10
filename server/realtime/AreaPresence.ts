@@ -109,7 +109,7 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
     return this.#admit(input)
   }
   async #movementFetch(request: Request): Promise<Response> {
-    if (!['staging', 'test'].includes(this.env.CACTIGROW_ENVIRONMENT ?? '')) return new Response(null, { status: 404 })
+    if (!['staging', 'production', 'test'].includes(this.env.CACTIGROW_ENVIRONMENT ?? '')) return new Response(null, { status: 404 })
     const raw = await request.text()
     if (raw.length > 4096) return new Response(null, { status: 413 })
     let input: { playerId: string; command: unknown }
@@ -236,7 +236,7 @@ export class AreaPresence extends DurableObject<RealtimeEnv> {
   async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
     const chats = await this.ctx.blockConcurrencyWhile(async () => {
       if (this.#runtime) {
-        const scope = ['staging', 'test'].includes(this.env.CACTIGROW_ENVIRONMENT ?? '') ? this.#runtime.movementScope(socket, message) : null
+        const scope = ['staging', 'production', 'test'].includes(this.env.CACTIGROW_ENVIRONMENT ?? '') ? this.#runtime.movementScope(socket, message) : null
         if (scope) {
           const parsed = typeof message === 'string' ? parseClientMessageText(message) : null
           if (parsed?.ok && parsed.message.type === 'move') {

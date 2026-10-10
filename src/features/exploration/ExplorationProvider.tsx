@@ -16,7 +16,7 @@ import './exploration.css'
 export function ExplorationProvider({ children }: { children: ReactNode }) {
   const bootstrap = usePlayerBootstrap(), world = useWorldLocation(), lifecycle = usePlantLifecycle(), starting = useStartingExperience()
   const applyStarting = starting.applyProjection, refreshLifecycle = lifecycle.refresh, applySurvey = useFieldSurvey().applyProjection
-  const active = import.meta.env.MODE === 'staging'
+  const active = (import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production')
   const playerId = active && bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
   const [loaded, setLoaded] = useState<{ playerId: string; projection: ExplorationProjectionV1 } | null>(null)
   const [pending, setPending] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState<ExplorationNotice | null>(null)
@@ -102,14 +102,14 @@ export function ExplorationProvider({ children }: { children: ReactNode }) {
     return execute(failed.intent)
   }, [execute, publish, refresh, world.location?.revision])
   const projection = loaded?.playerId === playerId ? loaded.projection : null
-  const reset = useCallback(async (type: ExplorationDevCommandV1['type']) => {
+  const reset = useCallback(async (type: ExplorationDevCommandV1['type'], outcome?: import('../../../shared/api/wildGeneticsV1').WildFindOutcome) => {
     if (!playerId || !projection || busy.current) return false
     busy.current = true; setPending(true); setError('')
     try {
-      const result = await browserApiClient.resetExploration({ v: 1, commandId: crypto.randomUUID(), type, expectedRevision: projection.revision })
+      const result = await browserApiClient.resetExploration({ v: 1, commandId: crypto.randomUUID(), type, expectedRevision: projection.revision, ...(type === 'force-wild-outcome' ? { outcome: outcome ?? 'normal' } : {}) } as ExplorationDevCommandV1)
       if (identity.current !== playerId) return false
       generation.current += 1; apply(result.projection); applyStarting?.(result.starting); if (result.fieldSurvey) applySurvey(result.fieldSurvey); retry.current = null
-      publish(type === 'reset-landmarks' ? 'First Basin landmark discoveries reset.' : 'Wild resource cooldowns reset.')
+      publish(type === 'force-wild-outcome' ? `Next eligible wild harvest: ${outcome ?? 'normal'}. Proximity and cooldown still required.` : type === 'reset-landmarks' ? 'First Basin landmark discoveries reset.' : 'Wild resource cooldowns reset.')
       return true
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Exploration reset unavailable.'); return false }
     finally { busy.current = false; setPending(false) }

@@ -176,16 +176,16 @@ test('Field Survey uses restricted real PostgreSQL and existing world/harvest au
       const after = await ledger(b); assert.equal(after.xp, before.xp); assert.equal(after.currency, before.currency); assert.deepEqual(after.stacks, before.stacks)
       const result = await survey().read(b); assert.equal(result.projection.rewardClaimed, true); assert.equal(result.projection.completedAt, state.projection.completedAt); assert.equal(result.projection.status, 'locked')
     })
-    await t.test('API validates authenticated ownership and rejects production survey/Dev Tools before DB access', async () => {
+    await t.test('API validates authenticated ownership and keeps production Dev Tools unavailable', async () => {
       const router = createApiRouter({ authenticationConfigurationFactory: () => ({ identityProvider: { verify: async request => request.getHeader('x-test-player') === a ? { provider: 'test', subject: a } : null }, createPlayerIdentityResolver: async () => ({ resolve: async () => ({ playerId: a }) }) }) })
       let opens = 0
       const request = (path, environment, body, authenticated = true) => handleApiRequest(new Request('https://survey.test' + path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...(authenticated ? { 'x-test-player': a } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) }), { CACTIGROW_ENVIRONMENT: environment, CACTIGROW_VERSION: 'test', ...(environment === 'staging' ? { CACTIGROW_ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com', CACTIGROW_ACCESS_AUDIENCE: 'test' } : {}) }, undefined, { router, createRequestDatabaseContext: () => ({ getDatabase: async () => { opens++; return db }, dispose: async () => {} }) })
-      for (const path of ['/api/v1/me/field-survey', '/api/v1/dev/field-survey']) for (const body of [null, { v: 1, type: 'reset-field-survey', commandId: crypto.randomUUID(), expectedRevision: 0 }]) assert.equal((await request(path, 'production', body)).status, 404)
+      for (const path of ['/api/v1/dev/field-survey']) for (const body of [null, { v: 1, type: 'reset-field-survey', commandId: crypto.randomUUID(), expectedRevision: 0 }]) assert.equal((await request(path, 'production', body)).status, 404)
       assert.equal(opens, 0); assert.equal((await request('/api/v1/me/field-survey', 'test', null, false)).status, 401)
       const read = await request('/api/v1/me/field-survey', 'test', null); assert.equal(read.status, 200); assert.ok(isFieldSurveyResultV1((await read.json()).data))
       assert.equal((await request('/api/v1/me/field-survey', 'test', { ...questCommand(await world.read(a), 'report'), objectives: { completed: true } })).status, 400)
       assert.equal((await request('/api/v1/dev/field-survey', 'staging', { v: 1, commandId: crypto.randomUUID(), type: 'reset-field-survey', expectedRevision: 0, targetPlayerId: b })).status, 400)
-      await assert.rejects(new FieldSurveyService(db, { environment: 'production' }).read(a), e => e.status === 404)
+      assert.ok((await new FieldSurveyService(db, { environment: 'production' }).read(a)).projection)
     })
   } finally { await pool.end(); await connection.end(); await cluster.stop() }
 })

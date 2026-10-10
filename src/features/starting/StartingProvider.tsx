@@ -9,7 +9,7 @@ import './starting.css'
 import { TutorialClock } from './tutorialClock'
 export function StartingProvider({ children }: { children: ReactNode }) {
   const bootstrap = usePlayerBootstrap(), social = useSocialState(), world = useWorldLocation()
-  const active = import.meta.env.MODE === 'staging'
+  const active = (import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production')
   const playerId = active && bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
   const profileId = social.state.status === 'ready' ? social.state.overview.ownProfile?.publicId : null
   const [loaded, setLoaded] = useState<{ playerId: string; state: StartingExperienceV1 } | null>(null), [error, setError] = useState(''), [pending, setPending] = useState(false)

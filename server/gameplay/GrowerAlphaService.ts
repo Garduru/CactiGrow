@@ -25,6 +25,7 @@ import { recordTreatmentMilestones } from '../../src/features/research/researchM
 import { canUseBulkResearch, isEligibleForResearch, MAX_RESEARCH_BATCH } from '../../src/features/garden/collectionManagement.ts'
 import { createAchievementProgress, evaluateAchievements, type ProgressionEventCounts } from '../../src/features/achievements/achievementsModel.ts'
 import { getDiscoveredSpeciesCount } from '../../src/features/journal/journalModel.ts'
+import { wildSeedTruth } from './wildSeedRepository.ts'
 
 type Transaction = Parameters<Parameters<CactiGrowDatabase['transaction']>[0]>[0]
 
@@ -143,6 +144,7 @@ export class GrowerAlphaService {
       const byLine = new Map(lines.map((line) => [line.id, line]))
       const byProfile = new Map(profiles.map((entry) => [entry.cloneLineId, entry]))
       const bySeed = new Map(seeds.map((seed) => [seed.cloneLineId, seed]))
+      const wildSeeds = await wildSeedTruth(tx, cloneIds, lines.some(line => line.originType === 'wild-genetic-seed'))
       const result: NonNullable<GrowerAlphaProjectionV1['researchBatch']> = { succeeded: [], skipped: [] }
       const seen = new Set<string>()
       let research = state.research
@@ -154,7 +156,7 @@ export class GrowerAlphaService {
         if (!specimen || specimen.lifecycleStatus !== 'owned' || !specimen.collectedAt) { result.skipped.push({ specimenId, reason: 'Not an owned mature specimen.' }); continue }
         const line = byLine.get(specimen.cloneLineId), genetics = byProfile.get(specimen.cloneLineId), seed = bySeed.get(specimen.cloneLineId)
         if (!line || !genetics || !getSpeciesById(line.speciesId)) throw new Error('The specimen has incomplete genetic identity.')
-        const plant: CollectedPlant = { id: specimenId, ownerId: playerId, cloneLineId: line.id, speciesId: line.speciesId, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), collectedAt: specimen.collectedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), genetics: { vigor: genetics.vigor, growthSpeed: genetics.growthSpeed, size: genetics.size, flowering: genetics.flowering, mutationChance: genetics.mutationChance }, geneticFeatures: seed?.geneticFeatures ?? [], specialVariants: variants.filter((variant) => variant.cloneLineId === line.id && variant.variantId === 'shiny').map((variant) => ({ variantId: 'shiny', origin: 'random', establishedAt: variant.establishedAt.toISOString() })), isHybrid: seed?.isHybrid ?? false, isHarvestable: false, isListedForSale: false }
+        const plant: CollectedPlant = { id: specimenId, ownerId: playerId, cloneLineId: line.id, speciesId: line.speciesId, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), collectedAt: specimen.collectedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), genetics: { vigor: genetics.vigor, growthSpeed: genetics.growthSpeed, size: genetics.size, flowering: genetics.flowering, mutationChance: genetics.mutationChance }, geneticFeatures: seed?.geneticFeatures ?? wildSeeds.find(s => s.cloneLineId === line.id)?.geneticFeatures ?? [], specialVariants: variants.filter((variant) => variant.cloneLineId === line.id && variant.variantId === 'shiny').map((variant) => ({ variantId: 'shiny', origin: 'random', establishedAt: variant.establishedAt.toISOString() })), isHybrid: seed?.isHybrid ?? false, isHarvestable: false, isListedForSale: false }
         if (seen.has(line.id)) { result.skipped.push({ specimenId, reason: 'This clone line is already included.' }); continue }
         seen.add(line.id)
         const record = research.records[line.id]
@@ -349,7 +351,8 @@ export class GrowerAlphaService {
     ])
     if (!line || !profile || !getSpeciesById(line.speciesId)) throw new Error('The specimen has incomplete genetic identity.')
     const seed = seedRows[0]
-    return { id: specimen.id, ownerId: playerId, speciesId: line.speciesId, cloneLineId: line.id, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), collectedAt: specimen.collectedAt.toISOString(), genetics: { vigor: profile.vigor, growthSpeed: profile.growthSpeed, size: profile.size, flowering: profile.flowering, mutationChance: profile.mutationChance }, geneticFeatures: seed?.geneticFeatures ?? [], specialVariants: variants.filter((entry) => entry.variantId === 'shiny').map((entry) => ({ variantId: 'shiny' as const, origin: 'random' as const, establishedAt: entry.establishedAt.toISOString() })), isHarvestable: false, isListedForSale: false, isHybrid: seed?.isHybrid ?? false }
+    const wildSeeds = await wildSeedTruth(tx, [specimen.cloneLineId], line.originType === 'wild-genetic-seed')
+    return { id: specimen.id, ownerId: playerId, speciesId: line.speciesId, cloneLineId: line.id, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), collectedAt: specimen.collectedAt.toISOString(), genetics: { vigor: profile.vigor, growthSpeed: profile.growthSpeed, size: profile.size, flowering: profile.flowering, mutationChance: profile.mutationChance }, geneticFeatures: seed?.geneticFeatures ?? wildSeeds[0]?.geneticFeatures ?? [], specialVariants: variants.filter((entry) => entry.variantId === 'shiny').map((entry) => ({ variantId: 'shiny' as const, origin: 'random' as const, establishedAt: entry.establishedAt.toISOString() })), isHarvestable: false, isListedForSale: false, isHybrid: seed?.isHybrid ?? false }
   }
 
   private async persistResearchResult(tx: Transaction, playerId: string, profile: typeof playerOnboarding.$inferSelect, state: typeof playerGrowerState.$inferSelect, research: typeof state.research, xpAwarded: number, now: Date) {

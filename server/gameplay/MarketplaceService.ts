@@ -6,6 +6,7 @@ import type { Plant } from '../../src/types/plant.ts'
 import { projectGeneticKnowledge } from '../../src/features/research/researchModel.ts'
 import { getLevelFromXp } from '../../src/features/progression/progressionModel.ts'
 import { createPlantVisualDescriptor } from '../../src/features/plants/plantVisualModel.ts'
+import { wildSeedTruth } from './wildSeedRepository.ts'
 
 export class MarketplaceService {
   private readonly database: CactiGrowDatabase
@@ -25,9 +26,10 @@ export class MarketplaceService {
       this.database.select().from(playerGrowerState).where(eq(playerGrowerState.playerId, viewerId)).limit(1),
       this.database.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, viewerId)).limit(1),
     ])
+    const wildSeeds = await wildSeedTruth(this.database, ids, selected.some(row => row.line.originType === 'wild-genetic-seed'))
     return { projectionVersion: 1, hasMore: rows.length > 50, listings: selected.map(({ listing, specimen, line, genes, seller }): PublicListingV1 => {
-      const seed = seeds.find((row) => row.cloneLineId === line.id)
-      const plant: Plant = { id: specimen.id, ownerId: specimen.ownerPlayerId, speciesId: line.speciesId, cloneLineId: line.id, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), genetics: { vigor: genes.vigor, growthSpeed: genes.growthSpeed, size: genes.size, flowering: genes.flowering, mutationChance: genes.mutationChance }, geneticFeatures: seed?.geneticFeatures ?? [], specialVariants: variants.filter((v) => v.cloneLineId === line.id && v.variantId === 'shiny').map((v) => ({ variantId: 'shiny', origin: 'random', establishedAt: v.establishedAt.toISOString() })), isHybrid: seed?.isHybrid ?? false, isHarvestable: false, isListedForSale: listing.status === 'active' }
+      const seed = seeds.find((row) => row.cloneLineId === line.id) ?? wildSeeds.find(row => row.cloneLineId === line.id)
+      const plant: Plant = { id: specimen.id, ownerId: specimen.ownerPlayerId, speciesId: line.speciesId, cloneLineId: line.id, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), genetics: { vigor: genes.vigor, growthSpeed: genes.growthSpeed, size: genes.size, flowering: genes.flowering, mutationChance: genes.mutationChance }, geneticFeatures: seed?.geneticFeatures ?? [], specialVariants: variants.filter((v) => v.cloneLineId === line.id && v.variantId === 'shiny').map((v) => ({ variantId: 'shiny', origin: 'random', establishedAt: v.establishedAt.toISOString() })), isHybrid: seed && 'isHybrid' in seed ? seed.isHybrid : false, isHarvestable: false, isListedForSale: listing.status === 'active' }
       return { id: listing.id, specimenId: specimen.id, speciesId: line.speciesId, price: listing.askingPrice, createdAt: listing.createdAt.toISOString(), status: listing.status as PublicListingV1['status'], own: listing.sellerPlayerId === viewerId, seller,
         visual: createPlantVisualDescriptor(plant), knowledge: projectGeneticKnowledge(plant, state?.research.records[line.id], getLevelFromXp(profile?.geneticsXp ?? 0)) }
     }) }

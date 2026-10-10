@@ -16,6 +16,8 @@ import { discoverSpecies, getDiscoveredSpeciesCount, recordShinyDiscovery } from
 import { resolveQuantitativeTreatment, MEANINGFUL_TREATMENT_GAIN } from '../../src/features/lab/treatmentModel.ts'
 import { recordTreatmentMilestones } from '../../src/features/research/researchModel.ts'
 import { NURSERY_SLOT_IDS_V3, type CollectPlantCommandV3, type CollectPlantResultV3, type NurserySlotV3, type PlantBredSeedCommandV3, type PlantBredSeedResultV3, type PlantCommoditySeedCommandV3, type PlantCommoditySeedResultV3, type PlantLifecycleProjectionV3 } from '../../shared/api/plantLifecycleV3.ts'
+import { wildGeneticSeeds } from '../db/schema/index.ts'
+import { projectWildLots, supportsWildGenetics, wildSeedTruth } from './wildSeedRepository.ts'
 
 type Transaction = Parameters<Parameters<CactiGrowDatabase['transaction']>[0]>[0]
 type Clock = () => Date
@@ -93,7 +95,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
 
   async getProjection(playerId: string, retired?: { retiredSpecimenIds: string[]; retiredSeedIds: string[] }): Promise<PlantLifecycleProjectionV1> {
     await this.upgradeAlphaSchedules(playerId)
-    retired ??= ['staging', 'development', 'test'].includes(this.options.environment ?? '') ? await retiredTutorialMaterial(this.database, playerId) : { retiredSpecimenIds: [], retiredSeedIds: [] }
+    retired ??= ['staging', 'production', 'development', 'test'].includes(this.options.environment ?? '') ? await retiredTutorialMaterial(this.database, playerId) : { retiredSpecimenIds: [], retiredSeedIds: [] }
     const stacks = await this.database.select().from(playerSeedStacks).where(eq(playerSeedStacks.playerId, playerId))
     const occupancies = await this.database.select().from(nurseryOccupancies).where(eq(nurseryOccupancies.playerId, playerId))
     const reserved = await this.database.select({ id: mailMessages.specimenId }).from(mailMessages).where(and(eq(mailMessages.senderPlayerId, playerId), isNull(mailMessages.claimedAt)))
@@ -116,7 +118,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
   }
 
   async getProjectionV2(playerId: string): Promise<PlantLifecycleProjectionV2> {
-    const retired = ['staging', 'development', 'test'].includes(this.options.environment ?? '') ? await retiredTutorialMaterial(this.database, playerId) : { retiredSpecimenIds: [], retiredSeedIds: [] }
+    const retired = ['staging', 'production', 'development', 'test'].includes(this.options.environment ?? '') ? await retiredTutorialMaterial(this.database, playerId) : { retiredSpecimenIds: [], retiredSeedIds: [] }
     const base = await this.getProjection(playerId, retired)
     const seeds = (await this.database.select().from(bredSeeds).where(eq(bredSeeds.ownerPlayerId, playerId))).filter(seed => !retired.retiredSeedIds.includes(seed.id))
     const cloneIds = seeds.map((seed) => seed.cloneLineId)
@@ -127,9 +129,11 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     const specimenCloneIds = [...new Set([...base.ownedSpecimens.map((plant) => plant.cloneLineId), ...base.nursery.slots.flatMap((slot) => slot.occupancy ? [slot.occupancy.specimen.cloneLineId] : [])])]
     const lineage = specimenCloneIds.length ? await this.database.select().from(bredSeeds).where(inArray(bredSeeds.cloneLineId, specimenCloneIds)) : []
     const lineageByClone = new Map(lineage.map((seed) => [seed.cloneLineId, seed]))
+    const wild = await wildSeedTruth(this.database, specimenCloneIds, supportsWildGenetics(this.options.environment))
     const enrich = (specimen: PlantSpecimenV1): PlantSpecimenV2 => {
       const lineage = lineageByClone.get(specimen.cloneLineId)
-      return { ...specimen, geneticFeatures: lineage?.geneticFeatures ?? [], parentPlantIds: lineage ? [lineage.parent1SpecimenId, lineage.parent2SpecimenId] : null, parentSpeciesIds: lineage ? [lineage.parent1SpeciesId, lineage.parent2SpeciesId] : null, isHybrid: lineage?.isHybrid ?? false, sourceBredSeedId: lineage?.id ?? null }
+      const wildSeed = wild.find(s => s.cloneLineId === specimen.cloneLineId)
+      return { ...specimen, geneticFeatures: lineage?.geneticFeatures ?? wildSeed?.geneticFeatures ?? [], parentPlantIds: lineage ? [lineage.parent1SpecimenId, lineage.parent2SpecimenId] : null, parentSpeciesIds: lineage ? [lineage.parent1SpeciesId, lineage.parent2SpeciesId] : null, isHybrid: lineage?.isHybrid ?? false, sourceBredSeedId: lineage?.id ?? null, ...(wildSeed ? { wildOrigin: wildSeed.provenance } : {}) }
     }
     const slots: NurserySlotV2[] = base.nursery.slots.map((slot) => slot.occupancy ? { slotId: slot.slotId, occupancy: { ...slot.occupancy, specimen: enrich(slot.occupancy.specimen) } } : { slotId: slot.slotId, occupancy: null })
     return { ...base, projectionVersion: 2, nursery: { slots }, ownedSpecimens: base.ownedSpecimens.map(enrich), bredSeeds: seeds.filter((seed) => seed.status === 'available').map((seed) => this.projectBredSeed(seed, profileByClone.get(seed.cloneLineId), variants.filter((variant) => variant.cloneLineId === seed.cloneLineId))) }
@@ -153,6 +157,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       cloneIds.length ? this.database.select().from(bredSeeds).where(inArray(bredSeeds.cloneLineId, cloneIds)) : [],
     ])
     const extraBySlot = new Map(extraOccupancies.map((occupancy) => [occupancy.slotId, occupancy]))
+    const wild = await wildSeedTruth(this.database, cloneIds, supportsWildGenetics(this.options.environment))
     const specimenById = new Map(extraSpecimens.map((specimen) => [specimen.id, specimen]))
     const slots: NurserySlotV3[] = NURSERY_SLOT_IDS_V3.map((slotId) => {
       const existing = base.nursery.slots.find((slot) => slot.slotId === slotId)
@@ -165,10 +170,11 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       const profile = profiles.find((entry) => entry.cloneLineId === specimenRow.cloneLineId)
       const seed = lineage.find((entry) => entry.cloneLineId === specimenRow.cloneLineId)
       const projected = this.projectSpecimen(specimenRow, line, profile, variants.filter((entry) => entry.cloneLineId === specimenRow.cloneLineId))
-      const specimen: PlantSpecimenV2 = { ...projected, geneticFeatures: seed?.geneticFeatures ?? [], parentPlantIds: seed ? [seed.parent1SpecimenId, seed.parent2SpecimenId] : null, parentSpeciesIds: seed ? [seed.parent1SpeciesId, seed.parent2SpeciesId] : null, isHybrid: seed?.isHybrid ?? false, sourceBredSeedId: seed?.id ?? null }
+      const wildSeed = wild.find(s => s.cloneLineId === specimenRow.cloneLineId)
+      const specimen: PlantSpecimenV2 = { ...projected, geneticFeatures: seed?.geneticFeatures ?? wildSeed?.geneticFeatures ?? [], parentPlantIds: seed ? [seed.parent1SpecimenId, seed.parent2SpecimenId] : null, parentSpeciesIds: seed ? [seed.parent1SpeciesId, seed.parent2SpeciesId] : null, isHybrid: seed?.isHybrid ?? false, sourceBredSeedId: seed?.id ?? null, ...(wildSeed ? { wildOrigin: wildSeed.provenance } : {}) }
       return { slotId, occupancy: { specimen, plantedAt: occupancy.plantedAt.toISOString(), readyAt: occupancy.readyAt.toISOString(), growthRuleVersion: occupancy.growthRuleVersion, version: occupancy.version } }
     })
-    return { ...base, projectionVersion: 3, nursery: { capacity, slots } }
+    return { ...base, projectionVersion: 3, nursery: { capacity, slots }, ...(supportsWildGenetics(this.options.environment) ? { wildSeedLots: await projectWildLots(this.database, playerId) } : {}) }
   }
 
   async plantCommoditySeedV3(playerId: string, idempotencyKey: string, command: PlantCommoditySeedCommandV3): Promise<PlantCommoditySeedResultV3> {
@@ -230,12 +236,13 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       }
       const profiles = await tx.select().from(geneticProfiles).where(inArray(geneticProfiles.cloneLineId, [first.cloneLineId, second.cloneLineId]))
       const previousSeeds = await tx.select().from(bredSeeds).where(inArray(bredSeeds.cloneLineId, [first.cloneLineId, second.cloneLineId]))
+      const wildParents = await wildSeedTruth(tx, [first.cloneLineId, second.cloneLineId], supportsWildGenetics(this.options.environment))
       const variants = await tx.select().from(cloneLineVariants).where(inArray(cloneLineVariants.cloneLineId, [first.cloneLineId, second.cloneLineId]))
       const toParent = (specimen: typeof first): Plant => {
         const line = lines.find((entry) => entry.id === specimen.cloneLineId)
         const profile = profiles.find((entry) => entry.cloneLineId === specimen.cloneLineId)
         if (!line || !profile) throw new Error('A parent specimen has incomplete genetic identity.')
-        const previous = previousSeeds.find((entry) => entry.cloneLineId === specimen.cloneLineId)
+        const previous = previousSeeds.find((entry) => entry.cloneLineId === specimen.cloneLineId) ?? wildParents.find(entry => entry.cloneLineId === specimen.cloneLineId)
         return { id: specimen.id, ownerId: playerId, speciesId: line.speciesId, cloneLineId: line.id, stage: 'mature', plantedAt: specimen.plantedAt.toISOString(), lastUpdatedAt: specimen.updatedAt.toISOString(), genetics: { vigor: profile.vigor, growthSpeed: profile.growthSpeed, size: profile.size, flowering: profile.flowering, mutationChance: profile.mutationChance }, geneticFeatures: previous?.geneticFeatures ?? [], specialVariants: variants.filter((entry) => entry.cloneLineId === line.id && entry.variantId === 'shiny').map((entry) => ({ variantId: 'shiny', origin: 'random', establishedAt: entry.establishedAt.toISOString() })), isHarvestable: false, isListedForSale: false }
       }
       const firstParent = toParent(first); const secondParent = toParent(second)
@@ -252,6 +259,33 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
       await this.awardXp(tx, playerId, 'breeding', 40)
       await this.recordProgress(tx, playerId, idempotencyKey, 'breedPlant', firstParent.speciesId, offspring.cloneLineId, offspring.specialVariants.some((variant) => variant.variantId === 'shiny'), createdAt)
       return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seed: { seedId: offspring.id, cloneLineId: offspring.cloneLineId, speciesId: offspring.speciesId, parentPlantIds: offspring.parentPlantIds, parentSpeciesIds: offspring.parentSpeciesIds, isHybrid: offspring.isHybrid, createdAt: offspring.createdAt, genetics: offspring.genetics, geneticFeatures: offspring.geneticFeatures, specialVariants: offspring.specialVariants.map((variant) => { if (variant.origin !== 'random') throw new Error('The offspring has an unsupported special-variant origin.'); return { variantId: variant.variantId, origin: variant.origin, establishedAt: variant.establishedAt } }) } }
+    })
+  }
+
+  async plantWildSeedV3(playerId: string, idempotencyKey: string, command: PlantBredSeedCommandV3): Promise<PlantBredSeedResultV3> {
+    if (!supportsWildGenetics(this.options.environment)) throw ApiError.notFound()
+    await this.assertNurserySlotAvailable(playerId, command.slotId)
+    return this.runIdempotent(playerId, idempotencyKey, 'plant-wild-seed-v1', command, async tx => {
+      const [seed] = await tx.select().from(wildGeneticSeeds).where(and(eq(wildGeneticSeeds.ownerPlayerId, playerId), eq(wildGeneticSeeds.id, command.seedId))).for('update').limit(1)
+      if (!seed) throw ApiError.notFound('This wild genetic seed is not owned.')
+      if (seed.status !== 'available') throw safeConflict('SEED_UNAVAILABLE', 'That wild genetic seed has already been planted.')
+      const [occupied] = await tx.select().from(nurseryOccupancies).where(and(eq(nurseryOccupancies.playerId, playerId), eq(nurseryOccupancies.slotId, command.slotId))).limit(1)
+      if (occupied) throw safeConflict('SLOT_OCCUPIED', 'That Nursery position is already occupied.')
+      const [line] = await tx.select().from(cloneLines).where(eq(cloneLines.id, seed.cloneLineId)).limit(1)
+      const [profile] = await tx.select().from(geneticProfiles).where(eq(geneticProfiles.cloneLineId, seed.cloneLineId)).limit(1)
+      const variants = await tx.select().from(cloneLineVariants).where(eq(cloneLineVariants.cloneLineId, seed.cloneLineId))
+      if (!line || !profile || line.originType !== 'wild-genetic-seed') throw new Error('Wild seed genetic identity is incomplete.')
+      const plantedAt = this.now(), specimenId = this.createId(), { readyAt, growthRuleVersion } = resolvePlantGrowth(plantedAt, this.options.environment, line.speciesId)
+      if (!UUID.test(specimenId) || specimenId === seed.id || specimenId === seed.cloneLineId) throw new Error('Invalid specimen identity.')
+      const row = { id: specimenId, ownerPlayerId: playerId, cloneLineId: seed.cloneLineId, sourceType: 'wild-genetic-seed', lifecycleStatus: 'growing', plantedAt, collectedAt: null, visualDerivationVersion: line.visualDerivationVersion, version: 1, createdAt: plantedAt, updatedAt: plantedAt }
+      await tx.insert(plantSpecimens).values(row)
+      await tx.insert(nurseryOccupancies).values({ playerId, slotId: command.slotId, specimenId, plantedAt, readyAt, growthRuleVersion, version: 1, createdAt: plantedAt, updatedAt: plantedAt })
+      await tx.update(wildGeneticSeeds).set({ status: 'planted', plantedAt, plantedSpecimenId: specimenId }).where(eq(wildGeneticSeeds.id, seed.id))
+      const version = await this.incrementVersion(tx, playerId, plantedAt)
+      await this.awardXp(tx, playerId, 'cultivation', 15)
+      await this.recordProgress(tx, playerId, idempotencyKey, 'plantBredSeed', line.speciesId, seed.cloneLineId, variants.some(v => v.variantId === 'shiny'), plantedAt)
+      const specimen: PlantSpecimenV2 = { ...this.projectSpecimen(row, line, profile, variants), geneticFeatures: seed.geneticFeatures, parentPlantIds: null, parentSpeciesIds: null, isHybrid: false, sourceBredSeedId: null, wildOrigin: seed.provenance }
+      return { commandId: idempotencyKey, lifecycleVersion: lifecycleVersion(version), seedId: seed.id, slot: { slotId: command.slotId, occupancy: { specimen, plantedAt: plantedAt.toISOString(), readyAt: readyAt.toISOString(), growthRuleVersion, version: 1 } } }
     })
   }
 
@@ -301,11 +335,11 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
   }
 
   async plantCommoditySeed(playerId: string, idempotencyKey: string, command: PlantCommoditySeedCommandV1 & { tutorial?: true }): Promise<PlantCommoditySeedResultV1> {
-    if (command.tutorial && !['staging', 'test'].includes(this.options.environment ?? '')) throw ApiError.notFound()
+    if (command.tutorial && !['staging', 'production', 'test'].includes(this.options.environment ?? '')) throw ApiError.notFound()
     return this.runIdempotent(playerId, idempotencyKey, 'plant-commodity-seed', command, async (tx) => {
       let tutorial
       if (command.tutorial) {
-        if (!['staging', 'test'].includes(this.options.environment ?? '')) throw ApiError.notFound()
+        if (!['staging', 'production', 'test'].includes(this.options.environment ?? '')) throw ApiError.notFound()
         const [owner] = await tx.select().from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1)
         if (!owner) throw safeConflict('CONFLICT', 'Tutorial onboarding is unavailable.')
         tutorial = await loadStartingState(tx, playerId, owner.profileId)
@@ -398,7 +432,7 @@ export class PlantLifecycleService implements PlantLifecycleApplication {
     if (existing[0]) { if (existing[0].commandType !== type || existing[0].requestFingerprint !== requestFingerprint) throw safeConflict('IDEMPOTENCY_KEY_REUSED', 'The idempotency key was already used for another request.'); if (existing[0].status === 'completed') return existing[0].responsePayload as T }
     try { return await this.database.transaction(async (tx) => {
       // Staging resets and cultivation share the canonical owner lock before inventory/body locks.
-      if (['staging', 'development', 'test'].includes(this.options.environment ?? '')) await tx.select({ playerId: playerOnboarding.playerId }).from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1)
+      if (['staging', 'production', 'development', 'test'].includes(this.options.environment ?? '')) await tx.select({ playerId: playerOnboarding.playerId }).from(playerOnboarding).where(eq(playerOnboarding.playerId, playerId)).for('update').limit(1)
       await tx.insert(gameplayCommandReceipts).values({ playerId, idempotencyKey: key, commandType: type, requestFingerprint, status: 'processing' }); const response = await operation(tx); await tx.update(gameplayCommandReceipts).set({ status: 'completed', responsePayload: response, completedAt: this.now() }).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, key))); return response }) } catch (error) { if (databaseErrorCode(error) === '23505') { const [receipt] = await this.database.select().from(gameplayCommandReceipts).where(and(eq(gameplayCommandReceipts.playerId, playerId), eq(gameplayCommandReceipts.idempotencyKey, key))).limit(1); if (receipt?.status === 'completed' && receipt.commandType === type && receipt.requestFingerprint === requestFingerprint) return receipt.responsePayload as T } throw error }
   }
 }

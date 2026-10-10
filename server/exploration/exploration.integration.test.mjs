@@ -62,18 +62,18 @@ test('First Basin Exploration: real restricted PostgreSQL, personal resources, d
       assert.deepEqual((await service().read(fresh)).starting.ownedEquipment, [], 'fresh incomplete players receive no compatibility tool')
       await starting.execute(a, { type: 'equip-tool', itemId: 'field-knife', commandId: crypto.randomUUID() })
     })
-    await t.test('strict API contracts, authentication and production gates reject before DB acquisition', async () => {
+    await t.test('strict contracts and production developer gates reject before DB acquisition', async () => {
       const router = createApiRouter({ authenticationConfigurationFactory: () => ({ identityProvider: { verify: async request => request.getHeader('x-test-player') === a ? { provider: 'test', subject: a } : null }, createPlayerIdentityResolver: async () => ({ resolve: async () => ({ playerId: a }) }) }) })
       let opens = 0
       const request = (path, environment, body, authenticated = true) => handleApiRequest(new Request('https://exploration.test' + path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...(authenticated ? { 'x-test-player': a } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) }), { CACTIGROW_ENVIRONMENT: environment, CACTIGROW_VERSION: 'test', ...(environment === 'staging' ? { CACTIGROW_ACCESS_TEAM_DOMAIN: 'test.cloudflareaccess.com', CACTIGROW_ACCESS_AUDIENCE: 'test' } : {}) }, undefined, { router, createRequestDatabaseContext: () => ({ getDatabase: async () => { opens++; return db }, dispose: async () => {} }) })
-      for (const path of ['/api/v1/me/exploration', '/api/v1/me/exploration/entry', '/api/v1/dev/exploration']) for (const body of [null, { v: 1, commandId: crypto.randomUUID(), type: 'reset-cooldowns', expectedRevision: 0 }]) assert.equal((await request(path, 'production', body)).status, 404)
+      for (const path of ['/api/v1/dev/exploration']) for (const body of [null, { v: 1, commandId: crypto.randomUUID(), type: 'reset-cooldowns', expectedRevision: 0 }]) assert.equal((await request(path, 'production', body)).status, 404)
       assert.equal(opens, 0); assert.equal((await request('/api/v1/me/exploration', 'test', null, false)).status, 401)
       const invalid = { v: 1, commandId: crypto.randomUUID(), type: 'harvest', entityId: crossNode.entityId, expectedWorldRevision: 0, position: { x: 330, y: 940 }, quantity: 1000 }
       assert.equal(isExplorationCommandV1(invalid), false); assert.equal((await request('/api/v1/me/exploration', 'test', invalid)).status, 400)
       assert.equal((await request('/api/v1/dev/exploration', 'staging', { v: 1, commandId: crypto.randomUUID(), type: 'reset-cooldowns', expectedRevision: 0, targetPlayerId: b })).status, 400)
       assert.equal((await request('/api/v1/dev/exploration', 'staging', null)).status, 200)
       const restored = await request('/api/v1/me/exploration/entry', 'test', { v: 1, commandId: crypto.randomUUID(), expectedWorldRevision: 0 }); assert.equal(restored.status, 200); assert.ok(isExplorationResultV1((await restored.json()).data))
-      await assert.rejects(new ExplorationService(db, { environment: 'production' }).read(a), e => e.status === 404)
+      assert.ok((await new ExplorationService(db, { environment: 'production' }).read(a)).projection)
     })
     await t.test('server rejects stale Area revision, foreign target, blocked ground and impossible instant reach', async () => {
       aLocation = await enter(a, cross.areaId)

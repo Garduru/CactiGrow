@@ -143,15 +143,15 @@ test('Town first contacts use authenticated ownership, preserved geometry and re
       await connection.query('drop trigger town_receipt_failure on player_grower_events; drop function town_receipt_failure()')
       assert.equal((await service().execute(c, command)).firstContact, true)
     })
-    await t.test('strict API ownership rejects board/manual flags and production Town content before authentication/database', async () => {
+    await t.test('strict API ownership rejects board/manual flags and anonymous production Town content', async () => {
       const router = createApiRouter({ authenticationConfigurationFactory: () => ({ identityProvider: { verify: async request => request.getHeader('x-test-player') === a ? { provider: 'test', subject: a } : null }, createPlayerIdentityResolver: async () => ({ resolve: async () => ({ playerId: a }) }) }) })
       let opens = 0
       const request = (environment, body, authenticated = true) => handleApiRequest(new Request('https://town.test/api/v1/me/town-content', { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...(authenticated ? { 'x-test-player': a } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) }), { CACTIGROW_ENVIRONMENT: environment, CACTIGROW_VERSION: 'test' }, undefined, { router, createRequestDatabaseContext: () => ({ getDatabase: async () => { opens++; return db }, dispose: async () => {} }) })
-      for (const body of [null, talk(aLocation)]) assert.equal((await request('production', body)).status, 404)
+      for (const body of [null, talk(aLocation)]) assert.equal((await request('production', body, false)).status, 401)
       assert.equal(opens, 0); assert.equal((await request('test', null, false)).status, 401)
       const read = await request('test', null); assert.equal(read.status, 200); assert.ok(isTownContentResultV1((await read.json()).data))
       for (const change of [{ entityId: TOWN_CONTENT.boardEntityId }, { type: 'mark-met' }, { playerId: b }, { reward: 1000 }, { firstMetAt: clock.toISOString() }]) assert.equal((await request('test', { ...talk(aLocation), ...change })).status, 400)
-      await assert.rejects(new TownContentService(db, { environment: 'production' }).read(a), e => e.status === 404)
+      assert.ok((await new TownContentService(db, { environment: 'production' }).read(a)).projection)
     })
   } finally { await pool.end(); await connection.end(); await cluster.stop() }
 })

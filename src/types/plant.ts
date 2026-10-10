@@ -9,6 +9,7 @@ export interface Plant {
   speciesId: string
   cloneLineId: string
 
+  wildOrigin?: import('../../shared/api/wildGeneticsV1').WildProvenanceV1
   nickname?: string
 
   stage: GrowthStage

@@ -64,13 +64,13 @@ export async function routeRealtime(context: ApiRequestContext, readJson: (reque
     if (!profile) throw ApiError.conflict('Choose a character name before entering Town.')
     const input = await readJson(request)
     if (!isRealtimeCredentialsRequestV1(input)) throw ApiError.validation('Invalid realtime admission request.')
-    if (env.CACTIGROW_ENVIRONMENT === 'staging' || input.worldFoundation || input.areaId !== 'town' && !input.areaId.startsWith('farm-')) {
-      if (!input.worldFoundation || !['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.forbidden()
-      const location = await new WorldService(await context.database.getDatabase(), env.CACTIGROW_ENVIRONMENT === 'staging' ? createMovementPort(env) : undefined).read(player.playerId)
+    if (['staging', 'production'].includes(env.CACTIGROW_ENVIRONMENT) || input.worldFoundation || input.areaId !== 'town' && !input.areaId.startsWith('farm-')) {
+      if (!input.worldFoundation || !['staging', 'production', 'test'].includes(env.CACTIGROW_ENVIRONMENT)) throw ApiError.forbidden()
+      const location = await new WorldService(await context.database.getDatabase(), ['staging', 'production'].includes(env.CACTIGROW_ENVIRONMENT) ? createMovementPort(env) : undefined).read(player.playerId)
       if (input.areaId !== location.runtimeAreaId || input.entryPointId !== location.entryId) throw ApiError.forbidden()
     }
     const now = Date.now()
-    const starting = env.CACTIGROW_ENVIRONMENT === 'staging' ? await new StartingExperienceService(await context.database.getDatabase()).read(player.playerId) : null
+    const starting = ['staging', 'production'].includes(env.CACTIGROW_ENVIRONMENT) ? await new StartingExperienceService(await context.database.getDatabase()).read(player.playerId) : null
     const appearance = starting && !starting.compatibilityComplete && starting.appearanceComplete ? starting.appearance : undefined
     const sessionExpiry = player.authorizationExpiresAt === undefined && ['development', 'test'].includes(env.CACTIGROW_ENVIRONMENT)
       ? now + CONNECTION_TTL_MS : Date.parse(player.authorizationExpiresAt ?? '')

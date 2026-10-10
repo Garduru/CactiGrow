@@ -24,6 +24,7 @@ export class LandmarkEntryController {
   }
 }
 export function explorationResultNotice(command: ExplorationCommandV1, result: ExplorationResultV1) {
+  if (result.reward?.geneticLot) return { title: 'Genetic material found', detail: `Wild ${getSpeciesById(result.reward.speciesId)?.commonName} / ${result.reward.geneticLot.provenance.region} / ${result.reward.geneticLot.provenance.rarity} lot (${result.reward.geneticLot.quantity} seeds) / +${result.reward.quantity} ordinary seeds / +${result.reward.harvestingXp} Harvesting XP` }
   if (result.reward) return { title: `Harvested ${result.reward.name}`, detail: `+${result.reward.quantity} ${getSpeciesById(result.reward.speciesId)?.commonName ?? 'cactus'} seeds · +${result.reward.harvestingXp} Harvesting XP` }
   if (command.type === 'discover-landmark') {
     const landmark = WORLD.areas.flatMap(area => area.landmarks ?? []).find(landmark => landmark.landmarkId === command.landmarkId)

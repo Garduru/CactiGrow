@@ -20,7 +20,7 @@ export const GROWER_ALPHA_PROFILE = {
   ],
 } as const
 
-// Called only after staging Access JWT verification and durable player resolution.
+// Called only after provider verification and durable player resolution.
 // The unique onboarding row serializes concurrent first requests. An existing
 // gameplay footprint is never mistaken for a fresh player, even with zero seeds.
 export async function initializeStagingGrower(database: CactiGrowDatabase, playerId: string, startingExperience = false): Promise<void> {

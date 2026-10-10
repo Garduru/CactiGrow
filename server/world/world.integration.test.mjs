@@ -29,7 +29,7 @@ test('authenticated world transitions persist, serialize/replay, isolate owners 
     }, reportUnexpectedError: e => { console.error(e.message, e.cause?.message) } }) })
     const a = api(ids[0]), b = api(ids[1])
     await assert.rejects(api('invalid').getWorld(), e => e.status === 401)
-    await assert.rejects(api(ids[0], 'production').getWorld(), e => e.status === 404)
+    await assert.rejects(api('invalid', 'production').getWorld(), e => e.status === 401)
     let state = await a.getWorld(); assert.equal(state.areaId, 'starting-spawn-tutorial')
     await assert.rejects(a.travelWorld('town-p1', 0, crypto.randomUUID()), e => e.status === 403)
     await assert.rejects(a.travelWorld('player-farm', 0, crypto.randomUUID()), e => e.status === 403)

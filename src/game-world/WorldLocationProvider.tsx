@@ -7,7 +7,7 @@ import { WorldLocationContext } from './WorldLocationContext'
 export function WorldLocationProvider({ children }: { children: ReactNode }) {
   const route = useLocation(), bootstrap = usePlayerBootstrap()
   const playerId = bootstrap.status === 'authenticated' ? bootstrap.bootstrap.player.playerId : null
-  const active = import.meta.env.MODE === 'staging' && (route.pathname === '/world' || route.state?.worldReturnTo === '/world')
+  const active = (import.meta.env.MODE === 'staging' || import.meta.env.MODE === 'production') && (route.pathname === '/world' || route.state?.worldReturnTo === '/world')
   const [loaded, setLoaded] = useState<{ playerId: string; location: WorldLocation } | null>(null)
   const [error, setError] = useState(''), [pending, setPending] = useState(false), [revision, setRevision] = useState(0)
   const location = loaded?.playerId === playerId ? loaded.location : null

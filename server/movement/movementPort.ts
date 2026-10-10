@@ -10,7 +10,7 @@ export interface MovementPort {
 }
 export function createMovementPort(env: WorkerEnv): MovementPort {
   async function call(playerId: string, command: unknown): Promise<MovementAuthorityV1> {
-    if (!['staging', 'test'].includes(env.CACTIGROW_ENVIRONMENT) || !env.AREA_PRESENCE) throw ApiError.conflict('Movement authority is temporarily unavailable.')
+    if (!['staging', 'production', 'test'].includes(env.CACTIGROW_ENVIRONMENT) || !env.AREA_PRESENCE) throw ApiError.conflict('Movement authority is temporarily unavailable.')
     const stub = env.AREA_PRESENCE.get(env.AREA_PRESENCE.idFromName(movementOwnerName(playerId)))
     const response = await stub.fetch(new Request('https://movement.internal/movement', { method: 'POST', body: JSON.stringify({ playerId, command }) }))
     const result: unknown = response.ok ? await response.json() : null

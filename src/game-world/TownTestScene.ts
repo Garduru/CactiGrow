@@ -232,7 +232,7 @@ export class TownTestScene extends Phaser.Scene {
   }
 
   private createTownContent() {
-    if (import.meta.env.MODE !== 'staging' || this.foundation?.area.areaId !== TOWN_CONTENT.areaId) return
+    if ((import.meta.env.MODE !== 'staging' && import.meta.env.MODE !== 'production') || this.foundation?.area.areaId !== TOWN_CONTENT.areaId) return
     for (const entity of this.foundation.area.interactables ?? []) {
       if (entity.entityId !== TOWN_CONTENT.boardEntityId && !TOWN_NPC_IDS.some(id => id === entity.entityId)) continue
       if (entity.kind === 'npc') {
@@ -309,7 +309,7 @@ export class TownTestScene extends Phaser.Scene {
   private setupPresence() {
     const connection = this.connection
     if (!connection) return
-    const remotes = new RemotePlayers((presence) => (presence.appearance === 'placeholder' && import.meta.env.MODE !== 'staging' ? this.add.container(presence.position.x, presence.position.y, [
+    const remotes = new RemotePlayers((presence) => (presence.appearance === 'placeholder' && import.meta.env.MODE !== 'staging' && import.meta.env.MODE !== 'production' ? this.add.container(presence.position.x, presence.position.y, [
       this.add.rectangle(0, -18, 34, 62, 0x58806b).setStrokeStyle(4, 0x2b1a13),
       this.add.circle(0, -61, 20, 0xd39a6b).setStrokeStyle(4, 0x2b1a13),
     ]) : createPlayerCharacter(this, presence.position.x, presence.position.y, presence.appearance === 'placeholder' ? DEFAULT_APPEARANCE : presence.appearance, { externalMotion: true }))

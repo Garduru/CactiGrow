@@ -6,7 +6,7 @@ import { mkdir, writeFile, unlink } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-test('actual staging routes retire legacy Farm/Town renderers and resume the authoritative world; production stays gated', async () => {
+test('staging and production aliases resume the authoritative world and preserve navigation state', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'https://dev.cactigrow.com' })
   const original = new Map()
   for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document, navigator: dom.window.navigator, IS_REACT_ACT_ENVIRONMENT: true })) {
@@ -31,13 +31,13 @@ test('actual staging routes retire legacy Farm/Town renderers and resume the aut
       await writeFile(file, built.outputFiles[0].contents)
       try {
         const { mount, act } = await import(pathToFileURL(file).href)
-        for (const path of mode === 'staging' ? ['/play','/town','/farm','/world-preview'] : ['/play','/town']) {
+        for (const path of ['/play','/town','/farm','/world-preview']) {
           let root
           await act(async () => { root = mount(path); await new Promise(r => setTimeout(r, 20)) })
           await act(async () => { await new Promise(r => setTimeout(r, 20)) })
-          assert.deepEqual(JSON.parse(document.querySelector('#location').textContent), { path: mode === 'staging' ? '/world' : path, search: '?check=1', hash: '#entry', state: { token: 'kept' } })
-          assert.ok(document.querySelector(`[data-surface="${mode === 'staging' ? 'LdtkWorldPage' : path === '/play' ? 'FarmWorldPage' : 'TownWorldPage'}"]`))
-          if (mode === 'staging') assert.equal(document.querySelector('[data-surface="FarmWorldPage"],[data-surface="TownWorldPage"]'), null)
+          assert.deepEqual(JSON.parse(document.querySelector('#location').textContent), { path: '/world', search: '?check=1', hash: '#entry', state: { token: 'kept' } })
+          assert.ok(document.querySelector(`[data-surface="LdtkWorldPage"]`))
+          assert.equal(document.querySelector('[data-surface="FarmWorldPage"],[data-surface="TownWorldPage"]'), null)
           await act(async () => root.unmount())
         }
       } finally { await unlink(file) }

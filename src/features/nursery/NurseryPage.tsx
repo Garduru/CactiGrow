@@ -18,7 +18,7 @@ function serverPlant(specimen: PlantSpecimenV2) {
 }
 
 function ServerNurseryPage() {
-  const { state, plant, plantBredSeed, collect } = usePlantLifecycle()
+  const { state, plant, plantWildSeed, plantBredSeed, collect } = usePlantLifecycle()
   const tutorial = useStartingExperience()
   const [plantingSlotId, setPlantingSlotId] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
@@ -64,13 +64,15 @@ function ServerNurseryPage() {
           ))}
         </div>
         <div className="nursery-greenhouse__status">
-          <span><strong>{seeds.reduce((sum, item) => sum + item.quantity, 0) + state.projection.bredSeeds.length + (tutorial.active && tutorial.state?.farmSeedAvailable ? 1 : 0)}</strong> seeds ready</span>
+          <span><strong>{seeds.reduce((sum, item) => sum + item.quantity, 0) + state.projection.bredSeeds.length + (state.projection.wildSeedLots?.reduce((n, lot) => n + lot.quantity, 0) ?? 0) + (tutorial.active && tutorial.state?.farmSeedAvailable ? 1 : 0)}</strong> seeds ready</span>
           <span><strong>{state.projection.ownedSpecimens.length}</strong> collected</span>
         </div>
       </div>
       {plantingSlotId && (
         <SeedPicker
           onSelectTutorial={tutorial.active && tutorial.state?.farmSeedAvailable && tutorial.state.farmStage === 'nursery' ? async () => { if (await plant(plantingSlotId, 'echinopsis-pachanoi', true)) { setPlantingSlotId(null); await tutorial.refresh() } } : undefined}
+          wildSeedLots={state.projection.wildSeedLots}
+          onSelectWildSeed={async seedId => { if (await plantWildSeed(plantingSlotId, seedId)) setPlantingSlotId(null) }}
           seeds={seeds}
           bredSeeds={state.projection.bredSeeds}
           onSelect={async (speciesId) => { await plant(plantingSlotId, speciesId).then((ok) => { if (ok) setPlantingSlotId(null) }) }}

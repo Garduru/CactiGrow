@@ -3,7 +3,7 @@ import { readInteractionAuthority } from '../movement/interactionProximity.ts'
 import { movementNavigation } from '../movement/movementRules.ts'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import type { CactiGrowDatabase } from '../db/client/database.ts'
-import { playerGrowerEvents, playerPlantLifecycleVersions, playerProfiles, playerSeedStacks } from '../db/schema/index.ts'
+import { cloneLines, geneticProfiles, cloneLineVariants, wildGeneticSeeds, playerGrowerEvents, playerPlantLifecycleVersions, playerProfiles, playerSeedStacks } from '../db/schema/index.ts'
 import { ApiError } from '../api/errors.ts'
 import { WORLD, findArea, initialLocation, isWorldLocation } from '../../shared/world/world.ts'
 import type { WorldInteractable } from '../../shared/world/types.ts'
@@ -15,6 +15,8 @@ import { validateExplorationReach } from './explorationReach.ts'
 import { addXp } from '../../src/features/progression/progressionModel.ts'
 import { establishCommoditySeedGenetics } from '../gameplay/plantLifecycleRules.ts'
 import { projectFieldSurvey } from '../quests/FieldSurveyService.ts'
+import { WILD_SOURCES, WILD_FIND_TUNING, resolveWildFind, resolveWildSeed, wildSourceParents } from './wildSources.ts'
+import type { WildSeedLotV1 } from '../../shared/api/wildGeneticsV1.ts'
 
 const WORLD_EVENT = 'world-foundation-location-v1'
 const areas = () => WORLD.areas.filter(a => a.zoneId === 'first-basin' && !['farm', 'town'].includes(a.areaType))
@@ -37,11 +39,13 @@ export class ExplorationService {
   private readonly environment: string
   private readonly now: () => Date
   private readonly yield: (min: number, max: number) => number
-  constructor(database: CactiGrowDatabase, options: { movement?: MovementPort; environment: string; now?: () => Date; rollYield?: (min: number, max: number) => number }) {
+  private readonly random: () => number
+  constructor(database: CactiGrowDatabase, options: { movement?: MovementPort; environment: string; now?: () => Date; rollYield?: (min: number, max: number) => number; random?: () => number }) {
+    this.random = options.random ?? (() => crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000)
     this.movement = options.movement; this.database = database; this.environment = options.environment; this.now = options.now ?? (() => new Date()); this.yield = options.rollYield ?? rollYield
   }
   private assertEnvironment(dev = false) {
-    if (!(dev ? ['staging', 'development'] : ['staging', 'test']).includes(this.environment)) throw ApiError.notFound('API route not found.')
+    if (!(dev ? ['staging', 'development'] : ['staging', 'production', 'test']).includes(this.environment)) throw ApiError.notFound('API route not found.')
   }
   private async load(tx: StartingTransaction, playerId: string) {
     const owner = await lockStartingOwner(tx, playerId)
@@ -60,7 +64,8 @@ export class ExplorationService {
     return { projectionVersion: 1, revision: state.revision, serverNow: this.now().toISOString(), harvestingXp: starting.harvestingXp,
       nodes: areas().flatMap(a => (a.interactables ?? []).filter(supportedNode).map(n => ({ entityId: n.entityId, areaId: a.areaId, readyAt: state.cooldowns[n.entityId] ?? null }))),
       landmarks: areas().flatMap(a => (a.landmarks ?? []).map(l => ({ landmarkId: l.landmarkId, areaId: a.areaId, discoveredAt: state.landmarks[l.landmarkId] ?? null }))),
-      notes: areas().flatMap(a => (a.interactables ?? []).filter(n => n.kind === 'inspectable' && n.noteId).map(n => ({ noteId: n.noteId!, areaId: a.areaId, discoveredAt: state.notes[n.noteId!] ?? null }))) }
+      notes: areas().flatMap(a => (a.interactables ?? []).filter(n => n.kind === 'inspectable' && n.noteId).map(n => ({ noteId: n.noteId!, areaId: a.areaId, discoveredAt: state.notes[n.noteId!] ?? null }))),
+      populations: WILD_SOURCES.filter(s => state.collectedPopulations?.[s.populationId] || s.landmarkId && state.landmarks[s.landmarkId]).map(s => ({ populationId: s.populationId, label: `${s.region} ${s.speciesId === 'echinopsis-pachanoi' ? 'San Pedro' : 'Peyote'}`, observedAt: s.landmarkId ? state.landmarks[s.landmarkId] ?? null : null, collectedAt: state.collectedPopulations?.[s.populationId] ?? null })) }
   }
   private async result(tx: StartingTransaction, playerId: string, state: ExplorationCheckpoint, starting: StartingExperienceV1, reward?: ExplorationRewardV1): Promise<ExplorationResultV1> {
     return { projection: this.project(state, starting), starting, fieldSurvey: await projectFieldSurvey(tx, playerId, starting, state), ...(reward ? { reward } : {}) }
@@ -72,6 +77,13 @@ export class ExplorationService {
   async inspect(playerId: string): Promise<ExplorationResultV1> {
     this.assertEnvironment(true)
     return this.database.transaction(async tx => { const { state, starting } = await this.load(tx, playerId); return this.result(tx, playerId, state, starting) })
+  }
+  async inspectGenetics(playerId: string) {
+    this.assertEnvironment(true)
+    const result = await this.inspect(playerId)
+    const seeds = await this.database.select().from(wildGeneticSeeds).where(eq(wildGeneticSeeds.ownerPlayerId, playerId)).orderBy(desc(wildGeneticSeeds.createdAt)).limit(100)
+    const receipts = await this.database.select().from(playerGrowerEvents).where(and(eq(playerGrowerEvents.playerId, playerId), eq(playerGrowerEvents.eventType, 'wild-genetic-harvest-receipt-v1'))).orderBy(desc(playerGrowerEvents.occurredAt)).limit(30)
+    return { ...result, sources: WILD_SOURCES.map(source => ({ ...source, sourceData: { uncommon: wildSourceParents(source, 'uncommon').map(p => ({ genetics: p.genetics, geneticFeatures: p.geneticFeatures })), rare: wildSourceParents(source, 'rare').map(p => ({ genetics: p.genetics, geneticFeatures: p.geneticFeatures })) } })), tuning: WILD_FIND_TUNING, seeds, receipts }
   }
   async restoreEntry(playerId: string, command: ExplorationRestoreCommandV1): Promise<ExplorationResultV1> {
     this.assertEnvironment()
@@ -132,6 +144,30 @@ export class ExplorationService {
       if (command.type === 'harvest' && entity) {
         if (entity.requiredToolId && (starting.equipment.tool !== entity.requiredToolId || !starting.ownedEquipment.includes(entity.requiredToolId))) throw ApiError.conflict('Equip your Field Knife from Inventory before harvesting.')
         if (state.cooldowns[entity.entityId] && now.getTime() < Date.parse(state.cooldowns[entity.entityId])) throw ApiError.conflict('This plant is recovering. Return after it respawns.')
+        // Genetic rolls require Movement Authority V1 even if an ordinary legacy fixture omits the port.
+        let geneticLot: WildSeedLotV1 | undefined
+        const source = WILD_SOURCES.find(s => s.nodeId === entity.entityId && s.areaId === area.areaId && s.speciesId === entity.speciesId)
+        if (source && authority) {
+          if (authority.areaId !== area.areaId || authority.worldRevision !== location.revision) throw ApiError.conflict('Your authoritative location changed.')
+          const [previous] = source.special ? await tx.select({ id: wildGeneticSeeds.id }).from(wildGeneticSeeds).where(and(eq(wildGeneticSeeds.ownerPlayerId, playerId), sql`${wildGeneticSeeds.provenance}->>'sourceNodeId' = ${source.nodeId}`)).limit(1) : []
+          const outcome = previous ? 'normal' : state.forcedWildOutcome ?? resolveWildFind(this.random)
+          delete state.forcedWildOutcome
+          if (outcome !== 'normal') {
+            const lotId = crypto.randomUUID(), seedIds: string[] = []
+            const provenance = { v: 1 as const, lotId, sourceNodeId: source.nodeId, populationId: source.populationId, areaId: source.areaId, region: source.region, label: `First Basin — ${source.region} population`, rarity: outcome, harvestedAt: now.toISOString(), harvestCommandId: command.commandId, sourceVersion: WILD_FIND_TUNING.version }
+            for (let ordinal = 0; ordinal < WILD_FIND_TUNING.seedsPerLot; ordinal++) {
+              const id = crypto.randomUUID(), cloneLineId = crypto.randomUUID(), resolved = resolveWildSeed(source, outcome, now, this.random)
+              seedIds.push(id)
+              await tx.insert(cloneLines).values({ id: cloneLineId, speciesId: source.speciesId, originType: 'wild-genetic-seed', originPlayerId: playerId, establishedAt: now, geneticRepresentationVersion: 1, visualDerivationVersion: 1, createdAt: now })
+              await tx.insert(geneticProfiles).values({ cloneLineId, ...resolved.genetics, establishmentRuleVersion: 1, createdAt: now })
+              for (const variant of resolved.specialVariants) await tx.insert(cloneLineVariants).values({ cloneLineId, variantId: variant.variantId, origin: variant.origin, establishedAt: now })
+              await tx.insert(wildGeneticSeeds).values({ id, ownerPlayerId: playerId, lotId, ordinal, cloneLineId, provenance, sourceGenetics: resolved.sourceGenetics, geneticFeatures: resolved.geneticFeatures, status: 'available', createdAt: now })
+            }
+            geneticLot = { lotId, speciesId: source.speciesId, provenance, seedIds, quantity: seedIds.length }
+            state.collectedPopulations ??= {}; state.collectedPopulations[source.populationId] ??= now.toISOString()
+          }
+          await tx.insert(playerGrowerEvents).values({ id: crypto.randomUUID(), playerId, eventType: 'wild-genetic-harvest-receipt-v1', sourceCommandId: command.commandId, occurredAt: now, payload: { sourceNodeId: source.nodeId, populationId: source.populationId, sourceVersion: WILD_FIND_TUNING.version, outcome, rewardType: geneticLot ? 'commodity-and-genetic-lot' : 'commodity', lotId: geneticLot?.lotId ?? null, seedIds: geneticLot?.seedIds ?? [], special: source.special } })
+        }
         const quantity = this.yield(entity.minYield!, entity.maxYield!)
         if (!Number.isSafeInteger(quantity) || quantity < entity.minYield! || quantity > entity.maxYield!) throw new Error('Invalid harvest resolution.')
         const [stack] = await tx.select({ quantity: playerSeedStacks.quantity }).from(playerSeedStacks).where(and(eq(playerSeedStacks.playerId, playerId), eq(playerSeedStacks.speciesId, entity.speciesId!))).for('update').limit(1)
@@ -143,7 +179,7 @@ export class ExplorationService {
         state.cooldowns[entity.entityId] = new Date(now.getTime() + entity.respawnSeconds! * 1000).toISOString()
         await saveStartingState(tx, playerId, starting, command.commandId, now)
         await tx.insert(playerPlantLifecycleVersions).values({ playerId, version: 1, updatedAt: now }).onConflictDoUpdate({ target: playerPlantLifecycleVersions.playerId, set: { version: sql`${playerPlantLifecycleVersions.version} + 1`, updatedAt: now } })
-        reward = { name: entity.displayName, speciesId: entity.speciesId!, quantity, harvestingXp: awardedXp }
+        reward = { name: entity.displayName, speciesId: entity.speciesId!, quantity, harvestingXp: awardedXp, ...(geneticLot ? { geneticLot } : {}) }
       } else if (landmark) state.landmarks[landmark.landmarkId] ??= now.toISOString()
       else if (entity?.noteId) state.notes[entity.noteId] ??= now.toISOString()
       state.anchor = { areaId: area.areaId, worldRevision: location.revision, position: { ...position }, at: now.toISOString() }
@@ -163,7 +199,8 @@ export class ExplorationService {
       } else {
         if (state.revision !== command.expectedRevision) throw ApiError.conflict('Exploration state changed. Refresh before resetting.')
         if (command.type === 'reset-landmarks') state.landmarks = {}
-        else state.cooldowns = {}
+        else if (command.type === 'reset-cooldowns') state.cooldowns = {}
+        else if ('outcome' in command) state.forcedWildOutcome = command.outcome
         await saveExplorationState(tx, playerId, state, command.commandId, this.now(), fingerprint)
       }
       return this.result(tx, playerId, state, starting)

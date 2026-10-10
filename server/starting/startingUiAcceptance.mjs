@@ -10,7 +10,7 @@ import { verifyCreatorViewport } from './creatorViewportAcceptance.mjs'
 
 // Isolated full-app browser fixture: real API/services/PostgreSQL, fixed test identity.
 // No instrumentation or authentication shortcuts are compiled into the shipped app.
-export async function verifyStartingUi({ database, playerId, handleApiRequest, createApiRouter }) {
+export async function verifyStartingUi({ database, playerId, handleApiRequest, createApiRouter, environment = 'staging' }) {
   await mkdir('.wrangler/starting-browser',{recursive:true})
   await mkdir('.wrangler/character-v21-work',{recursive:true})
   const bundle=await build({stdin:{resolveDir:process.cwd(),loader:'tsx',contents:`
@@ -18,7 +18,7 @@ export async function verifyStartingUi({ database, playerId, handleApiRequest, c
     import {CHARACTER_MODULES} from './src/characters/characterArt';window.fixtureCharacterModules=CHARACTER_MODULES;
     const OriginalGame=Phaser.Game;Phaser.Game=class extends OriginalGame{constructor(options){super(options);window.fixtureGame=this;}};
     createRoot(document.getElementById('root')).render(<AppRouter/>);
-  `},bundle:true,jsx:'automatic',platform:'browser',format:'iife',write:false,define:{'import.meta.env':JSON.stringify({MODE:'staging',DEV:false})},loader:{'.css':'empty'},logLevel:'silent'})
+  `},bundle:true,jsx:'automatic',platform:'browser',format:'iife',write:false,define:{'import.meta.env':JSON.stringify({MODE:environment,DEV:false})},loader:{'.css':'empty'},logLevel:'silent'})
   const css=(await Promise.all(['src/index.css','src/styles/tokens.css','src/styles/game.css','src/features/starting/starting.css','src/game-world/localMinimap.css','src/features/devtools/devTools.css','src/features/admin/adminTools.css'].map(f=>readFile(f,'utf8')))).join('\n')
   const router=createApiRouter({authenticationConfigurationFactory:()=>({identityProvider:{verify:async()=>({provider:'test',subject:playerId,expiresAt:new Date(Date.now()+3600000).toISOString()})},createPlayerIdentityResolver:async()=>({resolve:async()=>({playerId})})})})
   const movementNamespace=movementTestNamespace()
@@ -28,7 +28,7 @@ export async function verifyStartingUi({ database, playerId, handleApiRequest, c
       if(req.url.startsWith('/api/')) {
         const chunks=[];for await(const c of req)chunks.push(c)
         if(req.method==='POST'&&req.url==='/api/v1/me/starting-experience'&&JSON.parse(Buffer.concat(chunks).toString()).type==='save-appearance')appearanceWrites++
-        const response=await handleApiRequest(new Request(`http://127.0.0.1${req.url}`,{method:req.method,headers:req.headers,...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})}),{AREA_PRESENCE:movementNamespace,CACTIGROW_ENVIRONMENT:'staging',CACTIGROW_VERSION:'starting-ui-fixture',CACTIGROW_REALTIME_ENABLED:'false',CACTIGROW_ACCESS_TEAM_DOMAIN:'https://fixture.invalid',CACTIGROW_ACCESS_AUDIENCE:'fixture-audience'},undefined,{router,createRequestDatabaseContext:()=>({getDatabase:async()=>database,dispose:async()=>{}}),reportUnexpectedError:e=>errors.push(e.message+': '+(e.cause?.message??''))})
+        const response=await handleApiRequest(new Request(`http://127.0.0.1${req.url}`,{method:req.method,headers:req.headers,...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)})}),{AREA_PRESENCE:movementNamespace,CACTIGROW_ENVIRONMENT:environment,CACTIGROW_VERSION:'starting-ui-fixture',CACTIGROW_REALTIME_ENABLED:'false',CACTIGROW_ACCESS_TEAM_DOMAIN:'https://fixture.invalid',CACTIGROW_ACCESS_AUDIENCE:'fixture-audience'},undefined,{router,createRequestDatabaseContext:()=>({getDatabase:async()=>database,dispose:async()=>{}}),reportUnexpectedError:e=>errors.push(e.message+': '+(e.cause?.message??''))})
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));return
       }
       if(req.url.startsWith('/assets/')) {const path=resolve('public','.'+req.url);if(!path.startsWith(resolve('public')+'\\'))throw new Error('Invalid asset path');res.setHeader('content-type',extname(path)==='.png'?'image/png':extname(path)==='.webp'?'image/webp':'image/svg+xml');res.end(await readFile(path));return}
@@ -147,6 +147,7 @@ export async function verifyStartingUi({ database, playerId, handleApiRequest, c
     await page.getByRole('button',{name:'Travel',exact:true}).click();await page.getByRole('button',{name:'Farm',exact:true}).click();await ready('player-farm')
     assert.equal(await page.getByRole('dialog').count(),0,'Travel closes the previous Area interaction')
     await walk({x:1500,y:1570})
+    if(environment==='production'){assert.equal(await page.getByText('Staging Developer Tools - onboarding reset',{exact:true}).count(),0);assert.equal((await page.request.post(`http://127.0.0.1:${server.address().port}/api/v1/dev/starting-experience/reset`,{data:{}})).status(),404)} else {
     // Disposable fixture only: full reset shows the same empty name form before appearance.
     const resetResponse=await page.request.post(`http://127.0.0.1:${server.address().port}/api/v1/dev/starting-experience/reset`,{data:{commandId:crypto.randomUUID(),targetPlayerId:playerId,confirmPlayerId:playerId,mode:'full-onboarding'}})
     assert.equal(resetResponse.status(),200)
@@ -164,9 +165,10 @@ export async function verifyStartingUi({ database, playerId, handleApiRequest, c
     await page.getByRole('button',{name:'Reset Full Character Onboarding',exact:true}).click()
     await page.getByLabel('Character name',{exact:true}).waitFor();assert.equal(await page.getByLabel('Character name',{exact:true}).inputValue(),'')
     await page.screenshot({path:'.wrangler/starting-browser/full-reset-waiting-name.png'})
+    }
     assert.deepEqual(errors,[])
-    const acceptance=JSON.stringify({fullApp:true,freshPlayer:true,appearance:true,bodyPreviews:['masculine','feminine'],authoredMara:true,modularAppearance:selectedAppearance,appearanceWrites,creatorNavigation:true,visualViewportCreator:true,persistentPreviewAndActions:true,controlsOnlyScroll:true,tool:true,harvest:true,pot15s:true,refreshResume:true,farmNurseryGardenResearchBreeding:true,travelClosesInteraction:true,mobileWidths:[320,360,390],errors},null,2)
-    await Promise.all([writeFile('.wrangler/starting-browser/acceptance.json',acceptance),writeFile('.wrangler/character-v21-work/starting-acceptance.json',acceptance)])
+    const acceptance=JSON.stringify({environment,fullApp:true,freshPlayer:true,appearance:true,bodyPreviews:['masculine','feminine'],authoredMara:true,modularAppearance:selectedAppearance,appearanceWrites,creatorNavigation:true,visualViewportCreator:true,persistentPreviewAndActions:true,controlsOnlyScroll:true,tool:true,harvest:true,pot15s:true,refreshResume:true,farmNurseryGardenResearchBreeding:true,travelClosesInteraction:true,mobileWidths:[320,360,390],errors},null,2)
+    await Promise.all([writeFile(`.wrangler/starting-browser/acceptance-${environment}.json`,acceptance),writeFile('.wrangler/character-v21-work/starting-acceptance.json',acceptance)])
   }catch(e){await page?.screenshot({path:'.wrangler/starting-browser/failure.png'});await writeFile('.wrangler/starting-browser/failure.json',JSON.stringify({text:await page?.locator('body').innerText(),errors,error:e.message},null,2));throw e}
   finally{await browser.close();await new Promise(r=>server.close(r))}
 }

@@ -124,7 +124,7 @@ export function LdtkWorldPage() {
     }
     }).catch(e => setMovementError(e instanceof Error ? e.message : 'Approach the entrance again.')).finally(() => { movementBusy.current = false })
   }, [area, farm.locations, navigate, panels, social, world, movement])
-  if (import.meta.env.MODE !== 'staging') return <Navigate to="/play" replace />
+  if (import.meta.env.MODE !== 'staging' && import.meta.env.MODE !== 'production') return <Navigate to="/play" replace />
   if (!area || !location) return <section className="world-page"><p role="status">{world.error || 'Loading world…'}</p>{world.error && <button onClick={world.reload}>Retry</button>}</section>
   return <section className="world-page" aria-label={`${zoneName(area.zoneId)} · ${area.displayName}`}>
     <WorldNav<string> sceneName={area.displayName}

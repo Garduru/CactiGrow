@@ -1,5 +1,6 @@
 import { isCommoditySeedStackV1, type CommoditySeedStackV1 } from './plantLifecycleV1.ts'
 import { isBredSeedV2, isPlantSpecimenV2, type BredSeedV2, type PlantSpecimenV2 } from './plantLifecycleV2.ts'
+import { isWildSeedLotV1, type WildSeedLotV1 } from './wildGeneticsV1.ts'
 
 export const NURSERY_SLOT_IDS_V3 = ['slot-1', 'slot-2', 'slot-3', 'slot-4', 'slot-5', 'slot-6', 'slot-7', 'slot-8'] as const
 export type NurserySlotIdV3 = typeof NURSERY_SLOT_IDS_V3[number]
@@ -13,6 +14,7 @@ export interface PlantLifecycleProjectionV3 {
   generatedAt: string
   seedStacks: CommoditySeedStackV1[]
   bredSeeds: BredSeedV2[]
+  wildSeedLots?: WildSeedLotV1[]
   nursery: { capacity: 6 | 8; slots: NurserySlotV3[] }
   ownedSpecimens: PlantSpecimenV2[]
 }
@@ -36,7 +38,8 @@ export function isNurserySlotV3(value: unknown): value is NurserySlotV3 {
     && Number.isInteger(value.occupancy.growthRuleVersion) && Number.isInteger(value.occupancy.version)
 }
 export function isPlantLifecycleProjectionV3(value: unknown): value is PlantLifecycleProjectionV3 {
-  if (!object(value) || !keys(value, ['projectionVersion', 'lifecycleVersion', 'generatedAt', 'seedStacks', 'bredSeeds', 'nursery', 'ownedSpecimens']) || value.projectionVersion !== 3 || typeof value.lifecycleVersion !== 'string' || !date(value.generatedAt)) return false
+  if (!object(value) || !keys(value, ['projectionVersion', 'lifecycleVersion', 'generatedAt', 'seedStacks', 'bredSeeds', 'nursery', 'ownedSpecimens', ...('wildSeedLots' in value ? ['wildSeedLots'] : [])]) || value.projectionVersion !== 3 || typeof value.lifecycleVersion !== 'string' || !date(value.generatedAt)) return false
+  if ('wildSeedLots' in value && (!Array.isArray(value.wildSeedLots) || !value.wildSeedLots.every(isWildSeedLotV1))) return false
   if (!Array.isArray(value.seedStacks) || !value.seedStacks.every(isCommoditySeedStackV1) || !Array.isArray(value.bredSeeds) || !value.bredSeeds.every(isBredSeedV2) || !Array.isArray(value.ownedSpecimens) || !value.ownedSpecimens.every(isPlantSpecimenV2)) return false
   if (!object(value.nursery) || !keys(value.nursery, ['capacity', 'slots']) || (value.nursery.capacity !== 6 && value.nursery.capacity !== 8) || !Array.isArray(value.nursery.slots)) return false
   return value.nursery.slots.length === 8 && value.nursery.slots.every(isNurserySlotV3) && new Set(value.nursery.slots.map((slot) => slot.slotId)).size === 8

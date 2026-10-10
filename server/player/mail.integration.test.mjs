@@ -45,7 +45,7 @@ test('Mailbox authenticated API and real PostgreSQL escrow transactions', { skip
     }
     // Reproduce existing gameplay grants plus only SELECT/INSERT/UPDATE on the additive mailbox.
     await pg.exec(`create role mail_runtime; grant usage on schema public to mail_runtime;
-      grant select on player_profiles,player_blocks,mail_messages,player_onboarding,player_seed_stacks,plant_specimens,marketplace_listings,nursery_occupancies,player_garden_displays,player_garden_specimens,player_plant_lifecycle_versions,gameplay_command_receipts,player_grower_state,player_grower_events,clone_lines,genetic_profiles,clone_line_variants,bred_seeds,bred_seed_treatments to mail_runtime;
+      grant select on player_profiles,player_blocks,mail_messages,player_onboarding,player_seed_stacks,plant_specimens,marketplace_listings,nursery_occupancies,player_garden_displays,player_garden_specimens,player_plant_lifecycle_versions,gameplay_command_receipts,player_grower_state,player_grower_events,clone_lines,genetic_profiles,clone_line_variants,bred_seeds,bred_seed_treatments,wild_genetic_seeds to mail_runtime;
       grant insert,update on mail_messages,player_onboarding,player_seed_stacks,plant_specimens,nursery_occupancies,player_plant_lifecycle_versions,gameplay_command_receipts,marketplace_listings,player_grower_state to mail_runtime;
       grant update on player_profiles to mail_runtime; grant insert,update,delete on player_garden_displays,player_garden_specimens to mail_runtime; grant insert on player_grower_events to mail_runtime;`)
     const router = createApiRouter({ authenticationConfigurationFactory: () => ({ identityProvider: { verify: async request => ids.includes(request.getHeader('x-test-player')) ? { provider:'test',subject:request.getHeader('x-test-player') } : null }, createPlayerIdentityResolver: async () => ({ resolve: async identity => ({ playerId:identity.subject }) }) }) })
@@ -165,7 +165,7 @@ test('Mailbox authenticated API and real PostgreSQL escrow transactions', { skip
       await cluster.createDatabase('cactigrow_staging')
       const owner=cluster.getPgClient('cactigrow_staging','127.0.0.1');await owner.connect()
       try {
-        const migrations=(await readdir('server/db/migrations')).filter(f=>f.endsWith('.sql')&&!f.startsWith('0007')).sort()
+        const migrations=(await readdir('server/db/migrations')).filter(f=>f.endsWith('.sql')&&f.slice(0,4)<'0007').sort()
         for(const file of migrations)await owner.query(await readFile('server/db/migrations/'+file,'utf8'))
         await owner.query('create schema drizzle; create table drizzle.__drizzle_migrations(id serial primary key, hash text not null, created_at bigint); create role cactigrow_staging_runtime; grant usage on schema public to cactigrow_staging_runtime; revoke create on schema public from public;')
         const journal=JSON.parse(await readFile('server/db/migrations/meta/_journal.json','utf8'))
